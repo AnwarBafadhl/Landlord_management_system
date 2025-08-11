@@ -16,7 +16,7 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public $baseURL = 'http://localhost/landlord_management_system/public/';
+    public $baseURL = 'https://tab3ni.online/';
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
