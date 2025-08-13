@@ -151,11 +151,17 @@ class Auth extends BaseController
 
     /**
      * Display forgot password form
+     * Add this method to your Auth controller
      */
     public function forgotPassword()
     {
+        // If user is already logged in, redirect to dashboard
+        if (session()->get('user_id')) {
+            return redirect()->to($this->getDashboardUrl(session()->get('role')));
+        }
+
         $data = [
-            'title' => 'Forgot Password - Landlord Management System',
+            'title' => 'Forgot Password - Property Management System',
             'validation' => \Config\Services::validation()
         ];
 
@@ -163,7 +169,41 @@ class Auth extends BaseController
     }
 
     /**
-     * Process forgot password request
+     * Display reset password form
+     * Add this method to your Auth controller
+     */
+    public function resetPassword($token = null)
+    {
+        if (!$token) {
+            return redirect()->to('/auth/forgot-password')
+                ->with('error', 'Invalid reset token.');
+        }
+
+        // Check if token exists and is not expired
+        $userModel = new UserModel();
+        $user = $userModel->where('reset_token', $token)
+            ->where('reset_expires >', date('Y-m-d H:i:s'))
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$user) {
+            return redirect()->to('/auth/forgot-password')
+                ->with('error', 'Invalid or expired reset token. Please request a new password reset.');
+        }
+
+        $data = [
+            'title' => 'Reset Password - Property Management System',
+            'token' => $token,
+            'user' => $user,
+            'validation' => \Config\Services::validation()
+        ];
+
+        return view('auth/reset_password', $data);
+    }
+
+    /**
+     * Process Forgot Password - Working Version with Basic Mail
+     * Replace your current processForgotPassword method with this
      */
     public function processForgotPassword()
     {
@@ -175,24 +215,87 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
-        $userModel = new UserModel();
         $email = $this->request->getPost('email');
-        $user = $userModel->where('email', $email)->first();
+        log_message('info', 'Password reset requested for: ' . $email);
 
-        if ($user) {
-            // Generate reset token (in production, implement proper token generation and email sending)
-            $resetToken = bin2hex(random_bytes(32));
+        $userModel = new UserModel();
+        $user = $userModel->where('email', $email)->where('is_active', 1)->first();
 
-            // For now, just redirect with success message
-            // In production, you would:
-            // 1. Store the reset token in database with expiration
-            // 2. Send email with reset link
-            return redirect()->to('/auth/login')
-                ->with('success', 'Password reset instructions have been sent to your email');
-        } else {
+        if (!$user) {
+            log_message('warning', 'Password reset requested for non-existent email: ' . $email);
+            // Don't reveal if email exists or not for security
             return redirect()->back()
-                ->withInput()
-                ->with('error', 'Email address not found');
+                ->with('success', 'If the email exists in our system, you will receive reset instructions shortly.');
+        }
+
+        log_message('info', 'User found for reset: ' . $user['username']);
+
+        try {
+            // Generate reset token
+            $resetToken = bin2hex(random_bytes(32));
+            $resetExpiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+            // Check if reset columns exist in database
+            $db = \Config\Database::connect();
+            $fields = $db->getFieldNames('users');
+
+            if (!in_array('reset_token', $fields) || !in_array('reset_expires', $fields)) {
+                log_message('error', 'reset_token or reset_expires columns missing from users table');
+                return redirect()->back()
+                    ->with('error', 'Password reset feature is not properly configured. Please contact administrator.');
+            }
+
+            // Save reset token
+            $updateResult = $userModel->update($user['id'], [
+                'reset_token' => $resetToken,
+                'reset_expires' => $resetExpiry
+            ]);
+
+            if (!$updateResult) {
+                throw new \Exception('Failed to save reset token');
+            }
+
+            log_message('info', 'Reset token saved for user: ' . $user['id']);
+
+            // Send email using basic mail function
+            $emailService = \Config\Services::email();
+
+            $resetUrl = site_url('auth/reset-password/' . $resetToken);
+
+            $subject = 'Password Reset Request - Property Management System';
+            $message = "Hello {$user['first_name']} {$user['last_name']},\n\n";
+            $message .= "We received a request to reset your password for your Property Management System account.\n\n";
+            $message .= "Click the link below to reset your password:\n";
+            $message .= $resetUrl . "\n\n";
+            $message .= "This link will expire in 1 hour.\n\n";
+            $message .= "If you didn't request this password reset, please ignore this email.\n\n";
+            $message .= "Best regards,\n";
+            $message .= "Property Management System";
+
+            $emailService->setTo($email);
+            $emailService->setSubject($subject);
+            $emailService->setMessage($message);
+
+            log_message('info', 'Attempting to send email to: ' . $email);
+
+            $emailSent = $emailService->send();
+
+            if ($emailSent) {
+                log_message('info', 'Password reset email sent successfully');
+                return redirect()->back()
+                    ->with('success', 'Password reset instructions have been sent to your email address.');
+            } else {
+                $emailError = $emailService->printDebugger(['headers']);
+                log_message('error', 'Failed to send email: ' . $emailError);
+
+                return redirect()->back()
+                    ->with('error', 'Failed to send email. Please contact administrator or try again later.');
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Password reset exception: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while processing your request. Please try again.');
         }
     }
 

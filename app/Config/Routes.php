@@ -19,6 +19,10 @@ $routes->group('auth', function ($routes) {
 
     $routes->get('register', 'PublicAuth::register');
     $routes->post('register', 'PublicAuth::attemptRegister');
+
+    // Reset Password Routes
+    $routes->get('reset-password/(:any)', 'Auth::resetPassword/$1');
+    $routes->post('process-reset-password', 'Auth::processResetPassword');
 });
 
 // Admin Routes
@@ -87,8 +91,8 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->post('generate-monthly-payments', 'Admin\Ajax::generateMonthlyPayments');
 });
 
-// Landlord Routes 
-$routes->group('landlord', ['namespace' => 'App\Controllers'], function ($routes) {
+// Landlord Routes - CORRECTED VERSION
+$routes->group('landlord', function ($routes) {  // Removed namespace
 
     // Dashboard
     $routes->get('/', 'Landlord::dashboard');
@@ -101,9 +105,9 @@ $routes->group('landlord', ['namespace' => 'App\Controllers'], function ($routes
 
     // Add property routes (both patterns for flexibility)
     $routes->get('request-property', 'Landlord::requestProperty');
-    $routes->get('properties/add', 'Landlord::requestProperty'); // Add this line
+    $routes->get('properties/add', 'Landlord::requestProperty');
     $routes->post('add-property', 'Landlord::addProperty');
-    $routes->post('properties/add', 'Landlord::addProperty'); // Add this line
+    $routes->post('properties/add', 'Landlord::addProperty');
 
     // Tenants
     $routes->get('tenants', 'Landlord::tenants');
@@ -139,10 +143,10 @@ $routes->group('landlord', ['namespace' => 'App\Controllers'], function ($routes
     $routes->delete('reports/delete/(:num)', 'Reports::delete/$1');
     $routes->get('reports/download/(:num)', 'Reports::download/$1');
 
-    // Profile routes
-    $routes->get('profile', 'Landlord\Profile::index');
-    $routes->post('profile/update', 'Landlord\Profile::update');
-    $routes->post('profile/change-password', 'Landlord\Profile::changePassword');
+    // Profile routes - FIXED TO USE MAIN LANDLORD CONTROLLER
+    $routes->get('profile', 'Landlord::profile');
+    $routes->post('profile/update', 'Landlord::updateProfile');
+    $routes->post('profile/change-password', 'Landlord::changePassword');  // Match your method name
 
     // Help & Support
     $routes->get('help', 'Landlord::help');
@@ -150,17 +154,8 @@ $routes->group('landlord', ['namespace' => 'App\Controllers'], function ($routes
     // Income Reports (legacy routes)
     $routes->get('income-report', 'Landlord::incomeReport');
 
-    // Contact admin - FIXED (removed duplicate landlord/)
+    // Contact admin
     $routes->post('send-admin-message', 'Landlord::sendAdminMessage');
-
-    // Payment verification pages
-    $routes->get('payment-verification', 'PaymentVerification::index');
-    $routes->get('payments', 'PaymentVerification::index'); // Alternative URL
-
-    // Payment verification actions
-    $routes->post('verify-receipt/(:num)', 'PaymentVerification::verifyReceipt/$1');
-    $routes->post('reject-receipt/(:num)', 'PaymentVerification::rejectReceipt/$1');
-    $routes->get('download-receipt/(:num)', 'PaymentVerification::downloadReceipt/$1');
 });
 
 

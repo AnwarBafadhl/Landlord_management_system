@@ -358,7 +358,8 @@ class Landlord extends BaseController
     }
 
     /**
-     * Change Password - NEW METHOD
+     * DEBUG: Detailed password change debugging
+     * Replace your changePassword method with this temporarily
      */
     public function changePassword()
     {
@@ -367,6 +368,8 @@ class Landlord extends BaseController
             return $redirect;
 
         $userId = $this->getCurrentUserId();
+        log_message('info', '=== PASSWORD CHANGE DEBUG START ===');
+        log_message('info', 'User ID: ' . $userId);
 
         if (!$userId) {
             if ($this->request->isAJAX()) {
@@ -378,6 +381,19 @@ class Landlord extends BaseController
             return redirect()->to('/auth/login');
         }
 
+        // Log all POST data (careful - contains passwords)
+        $postData = $this->request->getPost();
+        log_message('info', 'POST fields received: ' . implode(', ', array_keys($postData)));
+
+        // Get the passwords
+        $currentPasswordInput = $this->request->getPost('current_password');
+        $newPassword = $this->request->getPost('new_password');
+        $confirmPassword = $this->request->getPost('confirm_password');
+
+        log_message('info', 'Current password input length: ' . strlen($currentPasswordInput ?? ''));
+        log_message('info', 'New password length: ' . strlen($newPassword ?? ''));
+        log_message('info', 'Current password (first 3 chars): ' . substr($currentPasswordInput ?? '', 0, 3));
+
         // Validation rules
         $rules = [
             'current_password' => 'required',
@@ -386,11 +402,14 @@ class Landlord extends BaseController
         ];
 
         if (!$this->validate($rules)) {
+            $errors = $this->validator->getErrors();
+            log_message('error', 'Validation failed: ' . json_encode($errors));
+
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $this->validator->getErrors()
+                    'errors' => $errors
                 ]);
             }
             return redirect()->back()->with('validation', $this->validator);
@@ -399,6 +418,7 @@ class Landlord extends BaseController
         try {
             // Get current user
             $user = $this->userModel->find($userId);
+            log_message('info', 'User found: ' . ($user ? 'Yes' : 'No'));
 
             if (!$user) {
                 if ($this->request->isAJAX()) {
@@ -407,40 +427,90 @@ class Landlord extends BaseController
                         'message' => 'User not found'
                     ]);
                 }
-                $this->setError('User not found');
                 return redirect()->back();
             }
 
-            // Verify current password
-            if (!password_verify($this->request->getPost('current_password'), $user['password'])) {
+            $storedPasswordHash = $user['password'];
+            log_message('info', 'Stored hash: ' . $storedPasswordHash);
+            log_message('info', 'Hash info: ' . json_encode(password_get_info($storedPasswordHash)));
+
+            // Test the exact input against the hash
+            log_message('info', 'Testing current password...');
+            $passwordVerified = password_verify($currentPasswordInput, $storedPasswordHash);
+            log_message('info', 'Password verification result: ' . ($passwordVerified ? 'SUCCESS' : 'FAILED'));
+
+            // If failed, let's test with different variations
+            if (!$passwordVerified) {
+                log_message('info', 'Testing password variations...');
+
+                // Test without whitespace
+                $trimmedInput = trim($currentPasswordInput);
+                $trimTest = password_verify($trimmedInput, $storedPasswordHash);
+                log_message('info', 'Trimmed password test: ' . ($trimTest ? 'SUCCESS' : 'FAILED'));
+
+                // Test common variations
+                $variations = [
+                    strtolower($currentPasswordInput),
+                    strtoupper($currentPasswordInput),
+                    ucfirst($currentPasswordInput)
+                ];
+
+                foreach ($variations as $i => $variation) {
+                    $result = password_verify($variation, $storedPasswordHash);
+                    log_message('info', 'Variation ' . ($i + 1) . ' test: ' . ($result ? 'SUCCESS' : 'FAILED'));
+                }
+            }
+
+            if (!$passwordVerified) {
+                log_message('error', 'All password verification attempts failed');
                 if ($this->request->isAJAX()) {
                     return $this->response->setJSON([
                         'success' => false,
-                        'message' => 'Current password is incorrect'
+                        'message' => 'Current password is incorrect. Please check your spelling and try again.'
                     ]);
                 }
                 $this->setError('Current password is incorrect');
                 return redirect()->back();
             }
 
-            // Update password
-            $newPasswordHash = password_hash($this->request->getPost('new_password'), PASSWORD_DEFAULT);
+            // If we get here, password verification succeeded
+            log_message('info', 'Password verification successful, proceeding with update...');
 
-            $updateData = [
-                'password' => $newPasswordHash,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+            // Hash the new password
+            $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
 
-            // Add last_password_change if column exists
-            $db = \Config\Database::connect();
-            $fields = $db->getFieldNames('users');
-            if (in_array('last_password_change', $fields)) {
-                $updateData['last_password_change'] = date('Y-m-d H:i:s');
+            if (!$newPasswordHash) {
+                throw new \Exception('Failed to hash new password');
             }
 
-            $result = $this->userModel->update($userId, $updateData);
+            // Verify the new hash works
+            if (!password_verify($newPassword, $newPasswordHash)) {
+                throw new \Exception('Password hash verification failed');
+            }
+
+            // Update password
+            $db = \Config\Database::connect();
+            $result = $db->table('users')
+                ->where('id', $userId)
+                ->update([
+                    'password' => $newPasswordHash,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            log_message('info', 'Database update result: ' . ($result ? 'SUCCESS' : 'FAILED'));
 
             if ($result) {
+                // Final verification
+                $updatedUser = $db->table('users')->where('id', $userId)->get()->getRowArray();
+                $finalVerification = password_verify($newPassword, $updatedUser['password']);
+                log_message('info', 'Final verification: ' . ($finalVerification ? 'SUCCESS' : 'FAILED'));
+
+                if (!$finalVerification) {
+                    throw new \Exception('Password update verification failed');
+                }
+
+                log_message('info', 'Password change completed successfully');
+
                 if ($this->request->isAJAX()) {
                     return $this->response->setJSON([
                         'success' => true,
@@ -448,22 +518,16 @@ class Landlord extends BaseController
                     ]);
                 }
 
-                $this->setSuccess('Password changed successfully');
+                $this->setSuccess('Password changed successfully!');
                 return redirect()->to('/landlord/profile');
             } else {
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'Failed to update password'
-                    ]);
-                }
-
-                $this->setError('Failed to update password');
-                return redirect()->back();
+                $error = $db->error();
+                log_message('error', 'Database update failed: ' . json_encode($error));
+                throw new \Exception('Database update failed');
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'Password change error: ' . $e->getMessage());
+            log_message('error', 'Password change exception: ' . $e->getMessage());
 
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([

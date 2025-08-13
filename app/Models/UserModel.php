@@ -12,19 +12,21 @@ class UserModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    
+
     protected $allowedFields = [
-        'username', 
-        'email', 
-        'password', 
-        'role', 
-        'first_name', 
-        'last_name', 
-        'phone', 
-        'address', 
-        'bank_account', 
-        'bank_name', 
-        'is_active'
+        'username',
+        'email',
+        'password',
+        'role',
+        'first_name',
+        'last_name',
+        'phone',
+        'address',
+        'bank_account',
+        'bank_name',
+        'is_active',
+        'reset_token',
+        'reset_expires'
     ];
 
     // Dates
@@ -37,11 +39,11 @@ class UserModel extends Model
     // Validation
     protected $validationRules = [
         'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username,id,{id}]',
-        'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
+        'email' => 'required|valid_email|is_unique[users.email,id,{id}]',
         'password' => 'required|min_length[6]',
-        'role'     => 'required|in_list[admin,landlord,tenant,maintenance]',
+        'role' => 'required|in_list[admin,landlord,tenant,maintenance]',
         'first_name' => 'required|min_length[2]|max_length[50]',
-        'last_name'  => 'required|min_length[2]|max_length[50]'
+        'last_name' => 'required|min_length[2]|max_length[50]'
     ];
 
     protected $validationMessages = [
@@ -107,9 +109,9 @@ class UserModel extends Model
     public function authenticate($username, $password)
     {
         $user = $this->where('username', $username)
-                     ->orWhere('email', $username)
-                     ->where('is_active', 1)
-                     ->first();
+            ->orWhere('email', $username)
+            ->where('is_active', 1)
+            ->first();
 
         if ($user && password_verify($password, $user['password'])) {
             unset($user['password']); // Remove password from returned data
@@ -132,7 +134,7 @@ class UserModel extends Model
         $builder->join('properties p', 'p.id = po.property_id', 'left');
         $builder->where('u.id', $landlordId);
         $builder->where('u.role', 'landlord');
-        
+
         return $builder->get()->getResultArray();
     }
 
@@ -149,7 +151,7 @@ class UserModel extends Model
         $builder->where('u.id', $tenantId);
         $builder->where('u.role', 'tenant');
         $builder->where('l.status', 'active');
-        
+
         return $builder->get()->getRowArray();
     }
 
@@ -172,22 +174,22 @@ class UserModel extends Model
     public function getUsers($role = null, $search = null)
     {
         $builder = $this->builder();
-        
+
         if ($role) {
             $builder->where('role', $role);
         }
-        
+
         if ($search) {
             $builder->groupStart()
-                   ->like('first_name', $search)
-                   ->orLike('last_name', $search)
-                   ->orLike('email', $search)
-                   ->orLike('username', $search)
-                   ->groupEnd();
+                ->like('first_name', $search)
+                ->orLike('last_name', $search)
+                ->orLike('email', $search)
+                ->orLike('username', $search)
+                ->groupEnd();
         }
-        
+
         $builder->orderBy('created_at', 'DESC');
-        
+
         // Fix: Use get()->getResultArray() instead of findAll() on builder
         return $builder->get()->getResultArray();
     }
