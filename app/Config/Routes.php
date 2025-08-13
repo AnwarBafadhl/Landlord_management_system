@@ -88,20 +88,23 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
 });
 
 // Landlord Routes 
-$routes->group('landlord', ['namespace' => 'App\Controllers'], function($routes) {
-    
+$routes->group('landlord', ['namespace' => 'App\Controllers'], function ($routes) {
+
     // Dashboard
     $routes->get('/', 'Landlord::dashboard');
     $routes->get('dashboard', 'Landlord::dashboard');
-    
+
     // Properties
     $routes->get('properties', 'Landlord::properties');
     $routes->get('properties/view/(:num)', 'Landlord::viewProperty/$1');
     $routes->post('properties/update/(:num)', 'Landlord::updateProperty/$1');
-    $routes->get('properties/add', 'Landlord::requestProperty');
-    $routes->post('submit-property-request', 'Landlord::submitPropertyRequest');
-    $routes->get('property-request-details/(:num)', 'Landlord::getPropertyRequestDetails/$1');
-    
+
+    // Add property routes (both patterns for flexibility)
+    $routes->get('request-property', 'Landlord::requestProperty');
+    $routes->get('properties/add', 'Landlord::requestProperty'); // Add this line
+    $routes->post('add-property', 'Landlord::addProperty');
+    $routes->post('properties/add', 'Landlord::addProperty'); // Add this line
+
     // Tenants
     $routes->get('tenants', 'Landlord::tenants');
     $routes->get('tenants/view/(:num)', 'Landlord::viewTenant/$1');
@@ -112,14 +115,14 @@ $routes->group('landlord', ['namespace' => 'App\Controllers'], function($routes)
     $routes->post('tenants/terminate/(:num)', 'Landlord::terminateLease/$1');
     $routes->get('tenants/get-lease-info/(:num)', 'Landlord::getLeaseInfo/$1');
     $routes->get('tenants/export', 'Landlord::exportTenants');
-    
+
     // Payments
     $routes->get('payments', 'Landlord::payments');
     $routes->get('payments/details/(:num)', 'Landlord::getPaymentDetails/$1');
     $routes->post('payments/mark-paid', 'Landlord::markPaymentAsPaid');
     $routes->get('payments/receipt/(:num)', 'Landlord::downloadReceipt/$1');
     $routes->get('payments/export', 'Landlord::exportPayments');
-    
+
     // Maintenance
     $routes->get('maintenance', 'Landlord::maintenance');
     $routes->get('maintenance/details/(:num)', 'Landlord::getMaintenanceDetails/$1');
@@ -128,35 +131,36 @@ $routes->group('landlord', ['namespace' => 'App\Controllers'], function($routes)
     $routes->post('maintenance/reject/(:num)', 'Landlord::rejectMaintenance/$1');
     $routes->post('maintenance/update-progress/(:num)', 'Landlord::updateMaintenanceProgress/$1');
     $routes->get('maintenance/export', 'Landlord::exportMaintenance');
-    
-    // Reports
-    $routes->get('reports', 'Landlord::reports');
-    $routes->post('reports/generate', 'Landlord::generateReport');
-    $routes->post('reports/schedule', 'Landlord::scheduleReport');
-    $routes->get('reports/download/(:num)', 'Landlord::downloadReport/$1');
-    $routes->get('reports/preview/(:num)', 'Landlord::previewReport/$1');
-    $routes->post('reports/regenerate/(:num)', 'Landlord::regenerateReport/$1');
-    $routes->delete('reports/delete/(:num)', 'Landlord::deleteReport/$1');
-    $routes->post('reports/chart-data', 'Landlord::getChartData');
-    $routes->get('reports/schedule-details/(:num)', 'Landlord::getScheduleDetails/$1');
-    $routes->post('reports/update-schedule/(:num)', 'Landlord::updateSchedule/$1');
-    $routes->post('reports/toggle-schedule/(:num)', 'Landlord::toggleSchedule/$1');
-    $routes->delete('reports/delete-schedule/(:num)', 'Landlord::deleteSchedule/$1');
-    
-    // Profile
-    $routes->get('profile', 'Landlord::profile');
-    $routes->post('profile/update', 'Landlord::updateProfile');
-    $routes->post('profile/upload-photo', 'Landlord::uploadProfilePhoto');
-    $routes->post('profile/change-password', 'Landlord::changePassword');
-    $routes->post('profile/enable-2fa', 'Landlord::enable2FA');
-    $routes->post('profile/disable-2fa', 'Landlord::disable2FA');
-    $routes->post('profile/update-notifications', 'Landlord::updateNotifications');
-    
+
+    // Reports routes
+    $routes->get('reports', 'Reports::index');
+    $routes->post('reports/generate-pdf', 'Reports::generatePdf');
+    $routes->post('reports/chart-data', 'Reports::getChartData');
+    $routes->delete('reports/delete/(:num)', 'Reports::delete/$1');
+    $routes->get('reports/download/(:num)', 'Reports::download/$1');
+
+    // Profile routes
+    $routes->get('profile', 'Landlord\Profile::index');
+    $routes->post('profile/update', 'Landlord\Profile::update');
+    $routes->post('profile/change-password', 'Landlord\Profile::changePassword');
+
+    // Help & Support
+    $routes->get('help', 'Landlord::help');
+
     // Income Reports (legacy routes)
     $routes->get('income-report', 'Landlord::incomeReport');
-    
+
     // Contact admin - FIXED (removed duplicate landlord/)
     $routes->post('send-admin-message', 'Landlord::sendAdminMessage');
+
+    // Payment verification pages
+    $routes->get('payment-verification', 'PaymentVerification::index');
+    $routes->get('payments', 'PaymentVerification::index'); // Alternative URL
+
+    // Payment verification actions
+    $routes->post('verify-receipt/(:num)', 'PaymentVerification::verifyReceipt/$1');
+    $routes->post('reject-receipt/(:num)', 'PaymentVerification::rejectReceipt/$1');
+    $routes->get('download-receipt/(:num)', 'PaymentVerification::downloadReceipt/$1');
 });
 
 
@@ -165,21 +169,21 @@ $routes->group('landlord', ['namespace' => 'App\Controllers'], function($routes)
 $routes->group('tenant', ['filter' => 'auth'], function ($routes) {
     // Dashboard
     $routes->get('dashboard', 'Tenant::dashboard');
-    
+
     // Lease
     $routes->get('lease', 'Tenant::lease');
-    
-        // Profile routes
+
+    // Profile routes
     $routes->get('profile', 'Tenant::profile');
     $routes->post('profile/update', 'Tenant::updateProfile');
     $routes->post('profile/change-password', 'Tenant::changePassword');
-    
+
     // Payments
     $routes->get('payments', 'Tenant::payments');
     $routes->get('payments/make', 'Tenant::makePayment');
     $routes->post('payments/process', 'Tenant::processPayment');
     $routes->get('payments/receipt/(:num)', 'Tenant::paymentReceipt/$1');
-    
+
     // Maintenance
     $routes->get('maintenance', 'Tenant::maintenance');
     $routes->get('maintenance/create', 'Tenant::createMaintenance');

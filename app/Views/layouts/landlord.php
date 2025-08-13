@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,12 +11,15 @@
     <title><?= $this->renderSection('title') ?> - Landlord Panel</title>
 
     <!-- Custom fonts for this template-->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"
+        type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
 
     <!-- Custom styles for this template-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <style>
         :root {
             --primary-color: #1cc88a;
@@ -134,19 +138,50 @@
         }
 
         /* Text colors */
-        .text-primary { color: var(--primary-color) !important; }
-        .text-success { color: var(--success-color) !important; }
-        .text-info { color: var(--info-color) !important; }
-        .text-warning { color: var(--warning-color) !important; }
-        .text-danger { color: var(--danger-color) !important; }
-        .text-gray-800 { color: #5a5c69 !important; }
-        .text-gray-300 { color: #dddfeb !important; }
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .text-success {
+            color: var(--success-color) !important;
+        }
+
+        .text-info {
+            color: var(--info-color) !important;
+        }
+
+        .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        .text-danger {
+            color: var(--danger-color) !important;
+        }
+
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
 
         /* Badges */
-        .badge-success { background-color: var(--success-color); }
-        .badge-danger { background-color: var(--danger-color); }
-        .badge-warning { background-color: var(--warning-color); }
-        .badge-info { background-color: var(--info-color); }
+        .badge-success {
+            background-color: var(--success-color);
+        }
+
+        .badge-danger {
+            background-color: var(--danger-color);
+        }
+
+        .badge-warning {
+            background-color: var(--warning-color);
+        }
+
+        .badge-info {
+            background-color: var(--info-color);
+        }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -158,11 +193,11 @@
                 z-index: 1000;
                 transition: all 0.3s;
             }
-            
+
             .sidebar.active {
                 left: 0;
             }
-            
+
             .main-content {
                 margin-left: 0;
             }
@@ -186,8 +221,8 @@
             <ul class="navbar-nav">
                 <!-- Dashboard -->
                 <li class="nav-item">
-                    <a class="nav-link <?= uri_string() == 'landlord/dashboard' ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/dashboard') ?>">
+                    <a class="nav-link <?= uri_string() == 'landlord/dashboard' ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/dashboard') ?>">
                         <i class="fas fa-fw fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
@@ -198,8 +233,8 @@
 
                 <!-- Properties -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/properties') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/properties') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/properties') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/properties') ?>">
                         <i class="fas fa-fw fa-building"></i>
                         <span>My Properties</span>
                     </a>
@@ -207,8 +242,8 @@
 
                 <!-- Tenants -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/tenants') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/tenants') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/tenants') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/tenants') ?>">
                         <i class="fas fa-fw fa-users"></i>
                         <span>My Tenants</span>
                     </a>
@@ -216,8 +251,8 @@
 
                 <!-- Payments -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/payments') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/payments') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/payments') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/payments') ?>">
                         <i class="fas fa-fw fa-dollar-sign"></i>
                         <span>Payments</span>
                     </a>
@@ -225,8 +260,8 @@
 
                 <!-- Maintenance -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/maintenance') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/maintenance') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/maintenance') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/maintenance') ?>">
                         <i class="fas fa-fw fa-tools"></i>
                         <span>Maintenance</span>
                     </a>
@@ -234,8 +269,8 @@
 
                 <!-- Reports -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/reports') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/reports') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/reports') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/reports') ?>">
                         <i class="fas fa-fw fa-chart-bar"></i>
                         <span>Reports</span>
                     </a>
@@ -244,10 +279,19 @@
                 <!-- Divider -->
                 <hr class="sidebar-divider" style="border-color: rgba(255, 255, 255, 0.15);">
 
+                <!-- Help & Support -->
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/help') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/help') ?>">
+                        <i class="fas fa-fw fa-life-ring"></i>
+                        <span>Help & Support</span>
+                    </a>
+                </li>
+
                 <!-- Profile -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/profile') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('landlord/profile') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'landlord/profile') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('landlord/profile') ?>">
                         <i class="fas fa-fw fa-user"></i>
                         <span>Profile</span>
                     </a>
@@ -274,8 +318,8 @@
                 <ul class="navbar-nav ms-auto">
                     <!-- User Information -->
                     <li class="nav-item dropdown no-arrow">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="me-2 d-none d-lg-inline text-gray-600 small">
                                 <?= session()->get('full_name') ?>
                             </span>
@@ -285,6 +329,10 @@
                             <a class="dropdown-item" href="<?= site_url('landlord/profile') ?>">
                                 <i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i>
                                 Profile
+                            </a>
+                            <a class="dropdown-item" href="<?= site_url('landlord/help') ?>">
+                                <i class="fas fa-life-ring fa-sm fa-fw me-2 text-gray-400"></i>
+                                Help & Support
                             </a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="<?= site_url('auth/logout') ?>">
@@ -339,22 +387,22 @@
 
     <!-- Bootstrap core JavaScript-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom scripts -->
     <script>
         // Toggle sidebar on mobile
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebarToggle').addEventListener('click', function () {
             document.getElementById('sidebar').classList.toggle('active');
         });
 
         // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
+        setTimeout(function () {
             const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
+            alerts.forEach(function (alert) {
                 if (alert) {
                     alert.style.transition = 'opacity 0.5s ease';
                     alert.style.opacity = '0';
-                    setTimeout(function() {
+                    setTimeout(function () {
                         alert.remove();
                     }, 500);
                 }
@@ -362,16 +410,16 @@
         }, 5000);
 
         // Loading states for forms
-        document.querySelectorAll('form').forEach(function(form) {
-            form.addEventListener('submit', function() {
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function () {
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     const originalText = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
                     submitBtn.disabled = true;
-                    
+
                     // Re-enable after 10 seconds in case of error
-                    setTimeout(function() {
+                    setTimeout(function () {
                         submitBtn.innerHTML = originalText;
                         submitBtn.disabled = false;
                     }, 10000);
@@ -380,6 +428,45 @@
         });
     </script>
 
+    <style>
+        /* Additional styles for notifications */
+        .icon-circle {
+            height: 2.5rem;
+            width: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge-counter {
+            position: absolute;
+            transform: scale(0.7);
+            transform-origin: top right;
+            right: 0.25rem;
+            top: -0.25rem;
+        }
+
+        .mr-3 {
+            margin-right: 1rem !important;
+        }
+
+        .dropdown-menu {
+            min-width: 20rem;
+        }
+
+        .dropdown-header {
+            background-color: #4e73df;
+            border: 1px solid #4e73df;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+    </style>
+
     <?= $this->renderSection('scripts') ?>
 </body>
+
 </html>

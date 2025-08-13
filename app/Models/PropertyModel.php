@@ -12,7 +12,6 @@ class PropertyModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    
     protected $allowedFields = [
         'property_name',
         'address',
@@ -21,220 +20,92 @@ class PropertyModel extends Model
         'bathrooms',
         'square_feet',
         'base_rent',
+        'expenses',
+        'management_company',
+        'management_percentage',
+        'number_of_landlords',
         'deposit',
         'status',
         'description'
     ];
 
-    // Dates
     protected $useTimestamps = true;
-    protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
-    // Validation
-    protected $validationRules = [
-        'property_name' => 'required|min_length[3]|max_length[100]',
-        'address' => 'required|min_length[10]',
-        'property_type' => 'required|in_list[apartment,house,condo,commercial]',
-        'base_rent' => 'required|decimal|greater_than[0]',
-        'status' => 'in_list[vacant,occupied,maintenance]'
-    ];
-
-    protected $validationMessages = [];
-    protected $skipValidation = false;
-    protected $cleanValidationRules = true;
-
-    // Callbacks
-    protected $allowCallbacks = true;
-    protected $beforeInsert = [];
-    protected $beforeUpdate = [];
-
     /**
-     * Get properties with landlord information
-     */
-    public function getPropertiesWithLandlords($propertyId = null)
-    {
-        $db = \Config\Database::connect();
-        $builder = $db->table('properties p');
-        $builder->select('p.*, u.first_name, u.last_name, u.email, u.phone, po.ownership_percentage,
-                         l.tenant_id, tenant.first_name as tenant_first_name, tenant.last_name as tenant_last_name,
-                         l.lease_start, l.lease_end, l.rent_amount, l.status as lease_status');
-        $builder->join('property_ownership po', 'po.property_id = p.id', 'left');
-        $builder->join('users u', 'u.id = po.landlord_id AND u.role = "landlord"', 'left');
-        $builder->join('leases l', 'l.property_id = p.id AND l.status = "active"', 'left');
-        $builder->join('users tenant', 'tenant.id = l.tenant_id AND tenant.role = "tenant"', 'left');
-        
-        if ($propertyId) {
-            $builder->where('p.id', $propertyId);
-        }
-        
-        $builder->orderBy('p.property_name', 'ASC');
-        
-        return $propertyId ? $builder->get()->getResultArray() : $builder->get()->getResultArray();
-    }
-
-    /**
-     * Get properties for specific landlord
+     * Get properties for a specific landlord with ownership details
      */
     public function getPropertiesForLandlord($landlordId)
     {
-        $db = \Config\Database::connect();
-        $builder = $db->table('properties p');
-        $builder->select('p.*, po.ownership_percentage, 
-                         l.tenant_id, tenant.first_name as tenant_first_name, tenant.last_name as tenant_last_name,
-                         l.lease_start, l.lease_end, l.rent_amount, l.status as lease_status');
-        $builder->join('property_ownership po', 'po.property_id = p.id');
-        $builder->join('leases l', 'l.property_id = p.id AND l.status = "active"', 'left');
-        $builder->join('users tenant', 'tenant.id = l.tenant_id AND tenant.role = "tenant"', 'left');
-        $builder->where('po.landlord_id', $landlordId);
-        $builder->orderBy('p.property_name', 'ASC');
-        
-        return $builder->get()->getResultArray();
+        return $this->db->table('properties p')
+                       ->join('property_ownership po', 'po.property_id = p.id')
+                       ->where('po.landlord_id', $landlordId)
+                       ->select('p.*, po.ownership_percentage, po.landlord_name')
+                       ->orderBy('p.created_at', 'DESC')
+                       ->get()
+                       ->getResultArray();
     }
 
     /**
-     * Get vacant properties
+     * Get property with all ownership details
      */
-    public function getVacantProperties()
+    public function getPropertyWithOwnership($propertyId)
     {
-        return $this->where('status', 'vacant')->findAll();
-    }
-
-    /**
-     * Get occupied properties
-     */
-    public function getOccupiedProperties()
-    {
-        return $this->where('status', 'occupied')->findAll();
-    }
-
-    /**
-     * Assign landlord to property
-     */
-    public function assignLandlord($propertyId, $landlordId, $ownershipPercentage = 100.00)
-    {
-        $db = \Config\Database::connect();
+        $property = $this->find($propertyId);
         
-        // Check if ownership already exists
-        $existing = $db->table('property_ownership')
-                      ->where('property_id', $propertyId)
-                      ->where('landlord_id', $landlordId)
-                      ->get()
-                      ->getRowArray();
-
-        if ($existing) {
-            // Update ownership percentage
-            return $db->table('property_ownership')
-                     ->where('property_id', $propertyId)
-                     ->where('landlord_id', $landlordId)
-                     ->update(['ownership_percentage' => $ownershipPercentage]);
-        } else {
-            // Insert new ownership
-            return $db->table('property_ownership')
-                     ->insert([
-                         'property_id' => $propertyId,
-                         'landlord_id' => $landlordId,
-                         'ownership_percentage' => $ownershipPercentage
-                     ]);
-        }
-    }
-
-    /**
-     * Remove landlord from property
-     */
-    public function removeLandlord($propertyId, $landlordId)
-    {
-        $db = \Config\Database::connect();
-        return $db->table('property_ownership')
-                 ->where('property_id', $propertyId)
-                 ->where('landlord_id', $landlordId)
-                 ->delete();
-    }
-
-    /**
-     * Get property landlords
-     */
-    public function getPropertyLandlords($propertyId)
-    {
-        $db = \Config\Database::connect();
-        $builder = $db->table('property_ownership po');
-        $builder->select('po.*, u.first_name, u.last_name, u.email, u.phone');
-        $builder->join('users u', 'u.id = po.landlord_id');
-        $builder->where('po.property_id', $propertyId);
-        
-        return $builder->get()->getResultArray();
-    }
-
-    /**
-     * Update property status
-     */
-    public function updateStatus($propertyId, $status)
-    {
-        return $this->update($propertyId, ['status' => $status]);
-    }
-
-    /**
-     * Get property statistics
-     */
-    public function getPropertyStatistics()
-    {
-        $db = \Config\Database::connect();
-        
-        $stats = [];
-        
-        // Total properties
-        $stats['total'] = $this->countAllResults();
-        
-        // Properties by status
-        $statusQuery = $db->query("
-            SELECT status, COUNT(*) as count 
-            FROM properties 
-            GROUP BY status
-        ");
-        $statusResults = $statusQuery->getResultArray();
-        
-        foreach ($statusResults as $row) {
-            $stats['by_status'][$row['status']] = $row['count'];
+        if ($property) {
+            $ownership = $this->db->table('property_ownership')
+                                 ->where('property_id', $propertyId)
+                                 ->orderBy('ownership_percentage', 'DESC')
+                                 ->get()
+                                 ->getResultArray();
+            
+            $property['ownership'] = $ownership;
         }
         
-        // Properties by type
-        $typeQuery = $db->query("
-            SELECT property_type, COUNT(*) as count 
-            FROM properties 
-            GROUP BY property_type
-        ");
-        $typeResults = $typeQuery->getResultArray();
-        
-        foreach ($typeResults as $row) {
-            $stats['by_type'][$row['property_type']] = $row['count'];
-        }
-        
-        return $stats;
+        return $property;
     }
 
     /**
-     * Search properties
+     * Get properties summary for dashboard
      */
-    public function searchProperties($searchTerm = '', $status = '', $type = '')
+    public function getPropertiesSummary($landlordId)
     {
-        $builder = $this->builder();
+        $properties = $this->getPropertiesForLandlord($landlordId);
         
-        if (!empty($searchTerm)) {
-            $builder->groupStart()
-                   ->like('property_name', $searchTerm)
-                   ->orLike('address', $searchTerm)
-                   ->groupEnd();
+        $summary = [
+            'total' => count($properties),
+            'vacant' => 0,
+            'occupied' => 0,
+            'maintenance' => 0,
+            'total_rent' => 0,
+            'total_expenses' => 0,
+            'net_income' => 0
+        ];
+        
+        foreach ($properties as $property) {
+            // Count by status
+            switch ($property['status']) {
+                case 'vacant':
+                    $summary['vacant']++;
+                    break;
+                case 'occupied':
+                    $summary['occupied']++;
+                    break;
+                case 'maintenance':
+                    $summary['maintenance']++;
+                    break;
+            }
+            
+            // Calculate totals based on ownership percentage
+            $ownershipRatio = $property['ownership_percentage'] / 100;
+            $summary['total_rent'] += ($property['base_rent'] * $ownershipRatio);
+            $summary['total_expenses'] += ($property['expenses'] * $ownershipRatio);
         }
         
-        if (!empty($status)) {
-            $builder->where('status', $status);
-        }
+        $summary['net_income'] = $summary['total_rent'] - $summary['total_expenses'];
         
-        if (!empty($type)) {
-            $builder->where('property_type', $type);
-        }
-        
-        return $builder->get()->getResultArray();
+        return $summary;
     }
 }

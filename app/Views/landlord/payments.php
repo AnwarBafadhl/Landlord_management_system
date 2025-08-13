@@ -1,18 +1,23 @@
 <?= $this->extend('layouts/landlord') ?>
 
-<?= $this->section('title') ?>Payment History<?= $this->endSection() ?>
+<?= $this->section('title') ?>Payment Management<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-credit-card"></i> Payment History
+            <i class="fas fa-file-invoice-dollar"></i> Payment Management
         </h1>
         <div>
-            <button class="btn btn-success" onclick="generatePaymentReport()">
-                <i class="fas fa-download"></i> Export Report
-            </button>
+            <div class="btn-group" role="group">
+                <button class="btn btn-success" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </button>
+                <button class="btn btn-danger" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
         </div>
     </div>
 
@@ -24,59 +29,17 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                This Month Collected
+                                Total Payments
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($payment_stats['this_month_collected'] ?? 0, 2) ?>
+                                <?= $stats['total_payments'] ?? 0 ?>
+                            </div>
+                            <div class="text-xs">
+                                All time
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Outstanding
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($payment_stats['outstanding'] ?? 0, 2) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Collection Rate
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php
-                                $expected = $payment_stats['this_month_expected'] ?? 0;
-                                $collected = $payment_stats['this_month_collected'] ?? 0;
-                                $rate = $expected > 0 ? round(($collected / $expected) * 100, 1) : 0;
-                                echo $rate . '%';
-                                ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
                         </div>
                     </div>
                 </div>
@@ -89,14 +52,63 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Year to Date
+                                This Month
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($payment_stats['year_to_date'] ?? 0, 2) ?>
+                                <?= $stats['current_month_payments'] ?? 0 ?>
+                            </div>
+                            <div class="text-xs">
+                                Payments received
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                            <i class="fas fa-calendar-alt fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Average Payment
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                $<?= number_format($stats['average_payment'] ?? 0, 0) ?>
+                            </div>
+                            <div class="text-xs">
+                                Per transaction
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Income
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                $<?= number_format($stats['total_income'] ?? 0, 0) ?>
+                            </div>
+                            <div class="text-xs">
+                                This Month
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-warning"></i>
                         </div>
                     </div>
                 </div>
@@ -104,173 +116,212 @@
         </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Filters and Search -->
     <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filter Payment Records</h6>
+        </div>
         <div class="card-body">
-            <form id="filterForm" class="row g-3">
-                <div class="col-md-3">
-                    <label for="property_filter" class="form-label">Property</label>
-                    <select class="form-control" id="property_filter" name="property_id">
-                        <option value="">All Properties</option>
-                        <?php if (!empty($properties)): ?>
-                            <?php foreach ($properties as $property): ?>
-                                <option value="<?= $property['id'] ?>"
-                                    <?= (isset($_GET['property_id']) && $_GET['property_id'] == $property['id']) ? 'selected' : '' ?>>
-                                    <?= esc($property['property_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="status_filter" class="form-label">Status</label>
-                    <select class="form-control" id="status_filter" name="status">
-                        <option value="">All Statuses</option>
-                        <option value="paid" <?= (isset($_GET['status']) && $_GET['status'] == 'paid') ? 'selected' : '' ?>>Paid</option>
-                        <option value="pending" <?= (isset($_GET['status']) && $_GET['status'] == 'pending') ? 'selected' : '' ?>>Pending</option>
-                        <option value="overdue" <?= (isset($_GET['status']) && $_GET['status'] == 'overdue') ? 'selected' : '' ?>>Overdue</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="month_filter" class="form-label">Month</label>
-                    <select class="form-control" id="month_filter" name="month">
-                        <option value="">All Months</option>
-                        <?php for ($i = 1; $i <= 12; $i++): ?>
-                            <option value="<?= str_pad($i, 2, '0', STR_PAD_LEFT) ?>"
-                                <?= (isset($_GET['month']) && $_GET['month'] == str_pad($i, 2, '0', STR_PAD_LEFT)) ? 'selected' : '' ?>>
-                                <?= date('F', mktime(0, 0, 0, $i, 1)) ?>
-                            </option>
-                        <?php endfor; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="year_filter" class="form-label">Year</label>
-                    <select class="form-control" id="year_filter" name="year">
-                        <option value="">All Years</option>
-                        <?php
-                        $currentYear = date('Y');
-                        for ($year = $currentYear; $year >= $currentYear - 5; $year--):
-                        ?>
-                            <option value="<?= $year ?>"
-                                <?= (isset($_GET['year']) && $_GET['year'] == $year) ? 'selected' : '' ?>>
-                                <?= $year ?>
-                            </option>
-                        <?php endfor; ?>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search"></i> Filter
-                    </button>
-                    <a href="<?= site_url('landlord/payments') ?>" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Clear
-                    </a>
+            <form method="GET" action="<?= current_url() ?>" id="filterForm">
+                <div class="row">
+                    <div class="col-md-2 mb-3">
+                        <label for="payment_type" class="form-label">Payment Type</label>
+                        <select class="form-control" id="payment_type" name="payment_type">
+                            <option value="">All Types</option>
+                            <option value="rent" <?= ($filters['payment_type'] ?? '') === 'rent' ? 'selected' : '' ?>>Rent</option>
+                            <option value="maintenance" <?= ($filters['payment_type'] ?? '') === 'maintenance' ? 'selected' : '' ?>>Maintenance</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="property" class="form-label">Property</label>
+                        <select class="form-control" id="property" name="property">
+                            <option value="">All Properties</option>
+                            <?php if (!empty($properties)): ?>
+                                <?php foreach ($properties as $property): ?>
+                                    <option value="<?= $property['id'] ?>" <?= ($filters['property'] ?? '') == $property['id'] ? 'selected' : '' ?>>
+                                        <?= esc($property['property_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="date_from" class="form-label">From Date</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" value="<?= $filters['date_from'] ?? '' ?>">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="date_to" class="form-label">To Date</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" value="<?= $filters['date_to'] ?? '' ?>">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="tenant" class="form-label">Tenant</label>
+                        <select class="form-control" id="tenant" name="tenant">
+                            <option value="">All Tenants</option>
+                            <?php if (!empty($tenants)): ?>
+                                <?php foreach ($tenants as $tenant): ?>
+                                    <option value="<?= $tenant['id'] ?>" <?= ($filters['tenant'] ?? '') == $tenant['id'] ? 'selected' : '' ?>>
+                                        <?= esc($tenant['first_name'] . ' ' . $tenant['last_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Payment Records -->
+    <!-- Payment Records Table -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
             <h6 class="m-0 font-weight-bold text-primary">Payment Records</h6>
+            <div>
+                <span class="badge badge-primary"><?= count($payment_receipts ?? []) ?> payments</span>
+                <button class="btn btn-sm btn-outline-primary ms-2" onclick="bulkActions()">
+                    <i class="fas fa-tasks"></i> Bulk Actions
+                </button>
+            </div>
         </div>
         <div class="card-body">
-            <?php if (!empty($payments)): ?>
+            <?php if (!empty($payment_receipts)): ?>
                 <div class="table-responsive">
-                    <table class="table table-bordered" id="paymentsTable">
+                    <table class="table table-bordered table-hover" width="100%" cellspacing="0" id="paymentsTable">
                         <thead>
                             <tr>
-                                <th>Date</th>
+                                <th width="40">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th>Receipt</th>
                                 <th>Property</th>
                                 <th>Tenant</th>
-                                <th>Period</th>
-                                <th>Total Rent</th>
-                                <th>Your Share</th>
+                                <th>Amount</th>
+                                <th>Payment Date</th>
+                                <th>Type</th>
                                 <th>Status</th>
-                                <th>Payment Method</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($payments as $payment): ?>
-                                <tr>
+                            <?php foreach ($payment_receipts as $receipt): ?>
+                                <tr id="receipt-<?= $receipt['id'] ?>">
                                     <td>
-                                        <strong><?= date('M d, Y', strtotime($payment['payment_date'])) ?></strong>
-                                        <br>
-                                        <small class="text-muted">
-                                            <?= date('h:i A', strtotime($payment['created_at'] ?? $payment['payment_date'])) ?>
-                                        </small>
+                                        <input type="checkbox" class="receipt-checkbox" value="<?= $receipt['id'] ?>">
                                     </td>
                                     <td>
-                                        <strong><?= esc($payment['property_name']) ?></strong>
-                                        <br>
-                                        <small class="text-muted"><?= esc($payment['property_address']) ?></small>
-                                    </td>
-                                    <td>
-                                        <strong><?= esc($payment['tenant_first_name'] . ' ' . $payment['tenant_last_name']) ?></strong>
-                                        <br>
-                                        <small class="text-muted"><?= esc($payment['tenant_email'] ?? 'N/A') ?></small>
-                                    </td>
-                                    <td>
-                                        <?= date('M Y', strtotime($payment['payment_period'] ?? $payment['payment_date'])) ?>
-                                        <?php if (isset($payment['late_days']) && $payment['late_days'] > 0): ?>
-                                            <br>
-                                            <small class="text-warning">
-                                                <i class="fas fa-clock"></i> <?= $payment['late_days'] ?> days late
-                                            </small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <strong class="text-success">$<?= number_format($payment['amount'], 2) ?></strong>
-                                        <?php if (isset($payment['late_fee']) && $payment['late_fee'] > 0): ?>
-                                            <br>
-                                            <small class="text-warning">
-                                                +$<?= number_format($payment['late_fee'], 2) ?> late fee
-                                            </small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <strong class="text-primary">
-                                            $<?= number_format($payment['amount'] * $payment['ownership_percentage'] / 100, 2) ?>
-                                        </strong>
-                                        <br>
-                                        <small class="text-muted">
-                                            (<?= $payment['ownership_percentage'] ?>%)
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-<?= $payment['status'] === 'paid' ? 'success' : ($payment['status'] === 'overdue' ? 'danger' : 'warning') ?>">
-                                            <?= ucfirst($payment['status']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($payment['payment_method'])): ?>
-                                            <i class="fas fa-<?= $payment['payment_method'] === 'cash' ? 'money-bill' : ($payment['payment_method'] === 'check' ? 'money-check' : 'credit-card') ?>"></i>
-                                            <?= ucfirst($payment['payment_method']) ?>
-                                            <?php if (!empty($payment['reference_number'])): ?>
-                                                <br>
-                                                <small class="text-muted">Ref: <?= esc($payment['reference_number']) ?></small>
-                                            <?php endif; ?>
+                                        <?php if (!empty($receipt['receipt_file'])): ?>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewReceipt('<?= $receipt['receipt_file'] ?>')" 
+                                                    title="View Receipt">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
                                         <?php else: ?>
-                                            <span class="text-muted">N/A</span>
+                                            <span class="text-muted">
+                                                <i class="fas fa-receipt"></i> Receipt
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <strong><?= esc($receipt['property_name'] ?? 'N/A') ?></strong>
+                                        <br>
+                                        <small class="text-muted"><?= esc($receipt['property_address'] ?? '') ?></small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2">
+                                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
+                                                     style="width: 32px; height: 32px;">
+                                                    <span class="text-white fw-bold">
+                                                        <?= strtoupper(substr($receipt['tenant_first_name'] ?? 'T', 0, 1) . substr($receipt['tenant_last_name'] ?? 'T', 0, 1)) ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <strong><?= esc(($receipt['tenant_first_name'] ?? '') . ' ' . ($receipt['tenant_last_name'] ?? '')) ?></strong>
+                                                <br>
+                                                <small class="text-muted"><?= esc($receipt['tenant_email'] ?? '') ?></small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">$<?= number_format($receipt['amount'] ?? 0, 2) ?></strong>
+                                        <?php if (!empty($receipt['ownership_percentage']) && $receipt['ownership_percentage'] != 100): ?>
+                                            <br>
+                                            <small class="text-muted">
+                                                Your share: $<?= number_format(($receipt['amount'] ?? 0) * (($receipt['ownership_percentage'] ?? 100) / 100), 2) ?>
+                                                (<?= $receipt['ownership_percentage'] ?>%)
+                                            </small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?= !empty($receipt['payment_date']) ? date('M j, Y', strtotime($receipt['payment_date'])) : 'N/A' ?>
+                                        <br>
+                                        <small class="text-muted">
+                                            <?php
+                                            if (!empty($receipt['payment_date'])) {
+                                                $datetime = strtotime($receipt['payment_date']);
+                                                $now = time();
+                                                $diff = $now - $datetime;
+                                                $days = floor($diff / (60 * 60 * 24));
+                                                if ($days == 0) {
+                                                    echo 'Today';
+                                                } elseif ($days == 1) {
+                                                    echo 'Yesterday';
+                                                } elseif ($days < 30) {
+                                                    echo $days . ' days ago';
+                                                } else {
+                                                    echo date('M Y', $datetime);
+                                                }
+                                            }
+                                            ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info"><?= ucfirst($receipt['payment_type'] ?? 'rent') ?></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check-circle"></i> Confirmed
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            Processed: <?= !empty($receipt['created_at']) ? date('M j, Y', strtotime($receipt['created_at'])) : 'N/A' ?>
+                                        </small>
+                                        <?php if (!empty($receipt['notes'])): ?>
+                                            <br>
+                                            <small class="text-muted" title="<?= esc($receipt['notes']) ?>">
+                                                <i class="fas fa-comment"></i> Note
+                                            </small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-primary"
-                                                onclick="viewPaymentDetails(<?= $payment['id'] ?>)" title="View Details">
+                                            <button class="btn btn-sm btn-info" 
+                                                    onclick="viewPaymentDetails(<?= $receipt['id'] ?>)" 
+                                                    title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <?php if ($payment['status'] !== 'paid'): ?>
-                                                <button class="btn btn-sm btn-outline-success"
-                                                    onclick="markAsPaid(<?= $payment['id'] ?>)" title="Mark as Paid">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
+                                            <?php if (!empty($receipt['receipt_file'])): ?>
+                                                <a href="<?= site_url('landlord/download-receipt/' . $receipt['id']) ?>" 
+                                                   class="btn btn-sm btn-outline-primary" 
+                                                   title="Download Receipt">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
                                             <?php endif; ?>
-                                            <button class="btn btn-sm btn-outline-info"
-                                                onclick="downloadReceipt(<?= $payment['id'] ?>)" title="Download Receipt">
-                                                <i class="fas fa-download"></i>
+                                            <button class="btn btn-sm btn-outline-secondary" 
+                                                    onclick="addNote(<?= $receipt['id'] ?>)" 
+                                                    title="Add Note">
+                                                <i class="fas fa-comment-alt"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -280,72 +331,31 @@
                     </table>
                 </div>
 
-                <!-- Pagination -->
-                <?php if (isset($pager)): ?>
-                    <div class="d-flex justify-content-center mt-4">
-                        <?= $pager->links() ?>
+                <!-- Pagination (if needed) -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        Showing <?= count($payment_receipts) ?> of <?= $total_receipts ?? count($payment_receipts) ?> payments
                     </div>
-                <?php endif; ?>
+                    <div>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <!-- Pagination links would go here -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
             <?php else: ?>
                 <div class="text-center py-5">
-                    <i class="fas fa-credit-card fa-4x text-gray-300 mb-3"></i>
-                    <h4 class="text-gray-500">No Payment Records Found</h4>
+                    <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Payment Records Found</h5>
                     <p class="text-muted">No payment records match your current filters.</p>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary" onclick="clearFilters()">
+                            <i class="fas fa-refresh"></i> Clear Filters
+                        </button>
+                    </div>
                 </div>
             <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Monthly Summary Chart -->
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Monthly Payment Trends</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="paymentChart" width="100%" height="40"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Payment Summary</h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Total Collected:</span>
-                            <strong class="text-success">$<?= number_format($payment_stats['total_collected'] ?? 0, 2) ?></strong>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Outstanding:</span>
-                            <strong class="text-warning">$<?= number_format($payment_stats['outstanding'] ?? 0, 2) ?></strong>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Average Payment:</span>
-                            <strong>$<?= number_format($payment_stats['average_payment'] ?? 0, 2) ?></strong>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="mb-3">
-                        <h6>Payment Methods:</h6>
-                        <?php if (!empty($payment_stats['methods'])): ?>
-                            <?php foreach ($payment_stats['methods'] as $method => $count): ?>
-                                <div class="d-flex justify-content-between">
-                                    <span><?= ucfirst($method) ?>:</span>
-                                    <span><?= $count ?></span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -363,56 +373,46 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="printPaymentDetails()">
-                    <i class="fas fa-print"></i> Print
-                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Mark as Paid Modal -->
-<div class="modal fade" id="markPaidModal" tabindex="-1">
+<!-- Receipt Viewer Modal -->
+<div class="modal fade" id="receiptViewerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" id="receiptViewerContent">
+                <!-- Receipt image/PDF will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Mark Payment as Paid</h5>
+                <h5 class="modal-title">Add Note to Payment</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="markPaidForm">
+            <form id="addNoteForm">
                 <div class="modal-body">
-                    <input type="hidden" id="payment_id" name="payment_id">
                     <div class="mb-3">
-                        <label for="payment_method" class="form-label">Payment Method</label>
-                        <select class="form-control" id="payment_method" name="payment_method" required>
-                            <option value="">Select Method</option>
-                            <option value="cash">Cash</option>
-                            <option value="check">Check</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="credit_card">Credit Card</option>
-                            <option value="online">Online Payment</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="reference_number" class="form-label">Reference Number</label>
-                        <input type="text" class="form-control" id="reference_number" name="reference_number"
-                            placeholder="Check number, transaction ID, etc.">
-                    </div>
-                    <div class="mb-3">
-                        <label for="payment_date_confirm" class="form-label">Payment Date</label>
-                        <input type="date" class="form-control" id="payment_date_confirm" name="payment_date"
-                            value="<?= date('Y-m-d') ?>" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3"
-                            placeholder="Any additional notes about this payment..."></textarea>
+                        <label for="payment_note" class="form-label">Note</label>
+                        <textarea class="form-control" id="payment_note" name="note" rows="3" 
+                                  placeholder="Add a note about this payment..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-check"></i> Mark as Paid
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Note
                     </button>
                 </div>
             </form>
@@ -420,136 +420,679 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="bulk_action" class="form-label">Select Action</label>
+                    <select class="form-control" id="bulk_action" name="action">
+                        <option value="">Select Action</option>
+                        <option value="export_selected">Export Selected</option>
+                        <option value="add_notes">Add Notes to Selected</option>
+                        <option value="download_receipts">Download Receipts</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="bulk_notes_section" style="display: none;">
+                    <label for="bulk_notes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="bulk_notes" name="notes" rows="3" 
+                              placeholder="Add notes for selected payments..."></textarea>
+                </div>
+                <div class="alert alert-info">
+                    <span id="selected_count">0</span> payments selected
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="executeBulkAction()">
+                    <i class="fas fa-play"></i> Execute Action
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Payment chart
-    const ctx = document.getElementById('paymentChart').getContext('2d');
-    const paymentChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: <?= json_encode($chart_data['labels'] ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']) ?>,
-            datasets: [{
-                label: 'Monthly Collections',
-                data: <?= json_encode($chart_data['data'] ?? [0, 0, 0, 0, 0, 0]) ?>,
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                tension: 0.1,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return '' +
-                                value.toLocaleString()
-                            ;
-                        }
-                    }
-                }
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return 'Collections:'  +
-                                context.parsed.y.toLocaleString();
-                        }
-                    }
-                }
-            }
+let currentPaymentId = null;
+let selectedReceipts = [];
+
+function viewReceipt(filename) {
+    const fileExtension = filename.split('.').pop().toLowerCase();
+    const receiptUrl = `<?= base_url('uploads/receipts') ?>/${filename}`;
+    
+    let content = '';
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+        content = `<img src="${receiptUrl}" class="img-fluid" alt="Payment Receipt">`;
+    } else if (fileExtension === 'pdf') {
+        content = `<embed src="${receiptUrl}" type="application/pdf" width="100%" height="500px">`;
+    } else {
+        content = `<p>Cannot preview this file type. <a href="${receiptUrl}" target="_blank">Click here to download</a></p>`;
+    }
+    
+    document.getElementById('receiptViewerContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('receiptViewerModal')).show();
+}
+
+function viewPaymentDetails(paymentId) {
+    currentPaymentId = paymentId;
+    
+    // Show loading
+    document.getElementById('paymentDetailsContent').innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-2">Loading payment details...</p>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('paymentDetailsModal')).show();
+    
+    // Fetch payment details
+    fetch(`<?= site_url('landlord/payment-details') ?>/${paymentId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
         }
+    })
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('paymentDetailsContent').innerHTML = html;
+    })
+    .catch(error => {
+        document.getElementById('paymentDetailsContent').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Error loading payment details: ${error.message}
+            </div>
+        `;
     });
+}
 
-    function viewPaymentDetails(paymentId) {
-        fetch('<?= site_url('landlord/payments/details') ?>/' + paymentId, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('paymentDetailsContent').innerHTML = html;
-                new bootstrap.Modal(document.getElementById('paymentDetailsModal')).show();
-            })
-            .catch(error => {
-                alert('Error loading payment details: ' + error.message);
-            });
+function addNote(paymentId) {
+    currentPaymentId = paymentId;
+    document.getElementById('payment_note').value = '';
+    new bootstrap.Modal(document.getElementById('addNoteModal')).show();
+}
+
+function exportToExcel() {
+    // Check if there are any payments to export
+    if (<?= count($payment_receipts ?? []) ?> === 0) {
+        showAlert('warning', 'No payments available to export. Please add some payment records first.');
+        return;
     }
-
-    function markAsPaid(paymentId) {
-        document.getElementById('payment_id').value = paymentId;
-        new bootstrap.Modal(document.getElementById('markPaidModal')).show();
+    
+    // Show loading message
+    showAlert('info', 'Preparing Excel export...');
+    
+    try {
+        // Fallback: Create CSV export using JavaScript
+        exportToCSV();
+    } catch (error) {
+        showAlert('danger', 'Export failed. Please try again or contact support.');
+        console.error('Export error:', error);
     }
+}
 
-    function downloadReceipt(paymentId) {
-        window.open('<?= site_url('landlord/payments/receipt') ?>/' + paymentId, '_blank');
+function exportToPDF() {
+    // Check if there are any payments to export
+    if (<?= count($payment_receipts ?? []) ?> === 0) {
+        showAlert('warning', 'No payments available to export. Please add some payment records first.');
+        return;
     }
-
-    function generatePaymentReport() {
-        const form = document.getElementById('filterForm');
-        const formData = new FormData(form);
-        const params = new URLSearchParams(formData).toString();
-        window.open('<?= site_url('landlord/payments/export') ?>?' + params, '_blank');
+    
+    // Show loading message
+    showAlert('info', 'Preparing PDF export...');
+    
+    try {
+        // Fallback: Print the current page
+        window.print();
+    } catch (error) {
+        showAlert('danger', 'Export failed. Please try again or contact support.');
+        console.error('Export error:', error);
     }
+}
 
-    function printPaymentDetails() {
-        const content = document.getElementById('paymentDetailsContent').innerHTML;
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-        <html>
-            <head>
-                <title>Payment Details</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            </head>
-            <body class="p-4">
-                ${content}
-                <script>window.print(); window.close();
+function exportToCSV() {
+    const table = document.getElementById('paymentsTable');
+    if (!table) {
+        showAlert('warning', 'No payment data available to export.');
+        return;
+    }
+    
+    let csv = [];
+    const rows = table.querySelectorAll('tr');
+    
+    // Get headers (skip checkbox column)
+    const headerRow = rows[0];
+    const headers = [];
+    for (let i = 1; i < headerRow.cells.length; i++) { // Skip first checkbox column
+        headers.push(headerRow.cells[i].textContent.trim());
+    }
+    csv.push(headers.join(','));
+    
+    // Get data rows (skip header)
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const rowData = [];
+        for (let j = 1; j < row.cells.length; j++) { // Skip first checkbox column
+            let cellText = row.cells[j].textContent.trim();
+            // Clean up the text and escape commas
+            cellText = cellText.replace(/\s+/g, ' ').replace(/"/g, '""');
+            if (cellText.includes(',')) {
+                cellText = `"${cellText}"`;
+            }
+            rowData.push(cellText);
+        }
+        csv.push(rowData.join(','));
+    }
+    
+    // Download CSV
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payments_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('success', 'CSV export completed successfully!');
+}
+
+function clearFilters() {
+    document.getElementById('payment_type').value = '';
+    document.getElementById('property').value = '';
+    document.getElementById('tenant').value = '';
+    document.getElementById('date_from').value = '';
+    document.getElementById('date_to').value = '';
+    document.getElementById('filterForm').submit();
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.receipt-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateSelectedReceipts();
+}
+
+function updateSelectedReceipts() {
+    selectedReceipts = Array.from(document.querySelectorAll('.receipt-checkbox:checked'))
+                           .map(checkbox => parseInt(checkbox.value));
+    
+    document.getElementById('selected_count').textContent = selectedReceipts.length;
+}
+
+function bulkActions() {
+    updateSelectedReceipts();
+    
+    if (selectedReceipts.length === 0) {
+        showAlert('warning', 'Please select at least one payment');
+        return;
+    }
+    
+    new bootstrap.Modal(document.getElementById('bulkActionsModal')).show();
+}
+
+function executeBulkAction() {
+    const action = document.getElementById('bulk_action').value;
+    const notes = document.getElementById('bulk_notes').value;
+    
+    if (!action) {
+        showAlert('warning', 'Please select an action');
+        return;
+    }
+    
+    if (selectedReceipts.length === 0) {
+        showAlert('warning', 'Please select at least one payment');
+        return;
+    }
+    
+    const data = {
+        action: action,
+        receipts: selectedReceipts,
+        notes: notes
+    };
+    
+    fetch(`<?= site_url('landlord/bulk-payment-action') ?>`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal')).hide();
+            showAlert('success', data.message);
+            if (action !== 'export_selected') {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } else {
+            showAlert('danger', data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error: ' + error.message);
+    });
+}
+
+// Form submission for adding notes
+document.getElementById('addNoteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(this);
+    
+    fetch(`<?= site_url('landlord/add-payment-note') ?>/${currentPaymentId}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error: ' + error.message);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Auto-submit on filter change
+document.querySelectorAll('#payment_type, #property, #tenant, #date_from, #date_to').forEach(element => {
+    element.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+
+// Update selected receipts when checkboxes change
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('receipt-checkbox')) {
+        updateSelectedReceipts();
+    }
+});
+
+// Show notes section for bulk add notes action
+document.getElementById('bulk_action').addEventListener('change', function() {
+    const notesSection = document.getElementById('bulk_notes_section');
+    if (this.value === 'add_notes') {
+        notesSection.style.display = 'block';
+        document.getElementById('bulk_notes').required = true;
+    } else {
+        notesSection.style.display = 'none';
+        document.getElementById('bulk_notes').required = false;
+    }
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : (type === 'warning' ? 'exclamation-triangle' : 'times-circle')}"></i> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
 </script>
-</body>
 
-</html>
-`);
-printWindow.document.close();
+<style>
+.table th {
+    background-color: #f8f9fc;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-// Mark as paid form submission
-document.getElementById('markPaidForm').addEventListener('submit', function(e) {
-e.preventDefault();
-
-const formData = new FormData(this);
-
-fetch('<?= site_url('landlord/payments/mark-paid') ?>', {
-method: 'POST',
-body: formData,
-headers: {
-'X-Requested-With': 'XMLHttpRequest'
+.table td {
+    vertical-align: middle;
 }
-})
-.then(response => response.json())
-.then(data => {
-if (data.success) {
-location.reload();
-} else {
-alert('Error: ' + data.message);
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
 }
-})
-.catch(error => {
-alert('Error: ' + error.message);
-});
-});
 
-// Filter form submission
-document.getElementById('filterForm').addEventListener('submit', function(e) {
-e.preventDefault();
+.btn-group .btn {
+    margin-right: 0;
+}
 
-const formData = new FormData(this);
-const params = new URLSearchParams(formData).toString();
-window.location.href = '<?= site_url('landlord/payments') ?>?' + params;
-});
-</script>
+.progress-sm {
+    height: 8px;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.avatar-sm {
+    flex-shrink: 0;
+}
+
+.alert.position-fixed {
+    min-width: 300px;
+}
+
+.pagination-sm .page-link {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.hover-shadow {
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+        border-radius: 0.25rem !important;
+    }
+    
+    .d-flex.align-items-center {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .avatar-sm {
+        margin-bottom: 0.5rem;
+    }
+    
+    .d-sm-flex {
+        flex-direction: column !important;
+        gap: 1rem;
+    }
+    
+    .btn-group[role="group"] {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+}
+
+/* Enhanced card styling */
+.card.border-left-primary,
+.card.border-left-success,
+.card.border-left-warning,
+.card.border-left-info {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card.border-left-primary:hover,
+.card.border-left-success:hover,
+.card.border-left-warning:hover,
+.card.border-left-info:hover {
+    transform: translateY(-2px);
+}
+
+/* Table row hover effect */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.075);
+    transform: scale(1.002);
+    transition: all 0.2s ease;
+}
+
+/* Modal enhancements */
+.modal-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.modal-title {
+    color: #5a5c69;
+    font-weight: 600;
+}
+
+/* Button enhancements */
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Badge enhancements */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Receipt viewer enhancements */
+#receiptViewerContent img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Filter form enhancements */
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Statistics cards animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card.border-left-primary,
+.card.border-left-success,
+.card.border-left-warning,
+.card.border-left-info {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.card.border-left-primary {
+    animation-delay: 0.1s;
+}
+
+.card.border-left-success {
+    animation-delay: 0.2s;
+}
+
+.card.border-left-warning {
+    animation-delay: 0.3s;
+}
+
+.card.border-left-info {
+    animation-delay: 0.4s;
+}
+
+/* Loading spinner */
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Empty state styling */
+.text-center.py-5 {
+    padding: 3rem 1rem !important;
+}
+
+.text-center.py-5 i {
+    opacity: 0.5;
+}
+
+/* Print styles for PDF export */
+@media print {
+    .btn, .modal, .alert, .pagination, .card-header .btn-group {
+        display: none !important;
+    }
+    
+    .container-fluid {
+        width: 100% !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+    
+    .card-header {
+        background-color: #f8f9fc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .table {
+        font-size: 12px !important;
+    }
+    
+    .table th {
+        background-color: #f8f9fc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .badge {
+        border: 1px solid #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .text-success {
+        color: #28a745 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .text-primary {
+        color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .h3 {
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Hide checkbox column when printing */
+    .table th:first-child,
+    .table td:first-child {
+        display: none !important;
+    }
+    
+    /* Ensure page breaks */
+    .row {
+        break-inside: avoid;
+    }
+    
+    /* Print header */
+    @page {
+        margin: 1in;
+        @top-center {
+            content: "Payment Management Report - " date();
+        }
+    }
+}
+
+/* Responsive improvements */
+@media (max-width: 576px) {
+    .container-fluid {
+        padding: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        border: none;
+    }
+    
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+}
+</style>
 
 <?= $this->endSection() ?>

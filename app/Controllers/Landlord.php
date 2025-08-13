@@ -7,6 +7,8 @@ use App\Models\PropertyModel;
 use App\Models\LeaseModel;
 use App\Models\PaymentModel;
 use App\Models\MaintenanceRequestModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class Landlord extends BaseController
 {
@@ -32,7 +34,8 @@ class Landlord extends BaseController
     {
         // Check landlord access
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $landlordId = $this->getCurrentUserId();
 
@@ -65,7 +68,8 @@ class Landlord extends BaseController
     public function properties()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $landlordId = $this->getCurrentUserId();
         $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
@@ -84,7 +88,8 @@ class Landlord extends BaseController
     public function tenants()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $landlordId = $this->getCurrentUserId();
 
@@ -125,7 +130,8 @@ class Landlord extends BaseController
     public function maintenance()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $landlordId = $this->getCurrentUserId();
         $maintenance_requests = $this->maintenanceModel->getRequestsByLandlord($landlordId);
@@ -146,7 +152,8 @@ class Landlord extends BaseController
     public function payments()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $landlordId = $this->getCurrentUserId();
         $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
@@ -190,7 +197,8 @@ class Landlord extends BaseController
     public function reports()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $landlordId = $this->getCurrentUserId();
         $year = $this->request->getGet('year') ?? date('Y');
@@ -220,12 +228,13 @@ class Landlord extends BaseController
     }
 
     /**
-     * Profile Management
+     * Profile Management - UPDATED VERSION
      */
     public function profile()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $userId = $this->getCurrentUserId();
         $user = $this->userModel->find($userId);
@@ -245,260 +254,428 @@ class Landlord extends BaseController
         $data = [
             'title' => 'My Profile',
             'user' => $user,
-            'stats' => $stats,
-            'login_history' => [] // You can implement this later
+            'stats' => $stats
         ];
 
         return view('landlord/profile', $data);
     }
 
     /**
-     * Update Profile
+     * Update Profile - FIXED VERSION
      */
     public function updateProfile()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $userId = $this->getCurrentUserId();
 
+        if (!$userId) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'User session not found'
+                ]);
+            }
+            return redirect()->to('/auth/login');
+        }
+
+        // Validation rules based on actual database columns
         $rules = [
             'first_name' => 'required|min_length[2]|max_length[50]',
             'last_name' => 'required|min_length[2]|max_length[50]',
-            'email' => "required|valid_email|is_unique[users.email,id,{$userId}]",
-            'phone' => 'max_length[20]',
-            'address' => 'max_length[500]'
+            'phone' => 'permit_empty|max_length[20]',
+            'address' => 'permit_empty|max_length[500]'
         ];
 
         if (!$this->validate($rules)) {
-            return $this->respondWithError('Validation failed', 400);
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $this->validator->getErrors()
+                ]);
+            }
+            return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
+        // Prepare update data with only existing columns
         $updateData = [
             'first_name' => $this->request->getPost('first_name'),
             'last_name' => $this->request->getPost('last_name'),
-            'email' => $this->request->getPost('email'),
             'phone' => $this->request->getPost('phone'),
             'address' => $this->request->getPost('address'),
-            'city' => $this->request->getPost('city'),
-            'state' => $this->request->getPost('state'),
-            'zip_code' => $this->request->getPost('zip_code'),
-            'bio' => $this->request->getPost('bio'),
-            'business_name' => $this->request->getPost('business_name'),
-            'business_type' => $this->request->getPost('business_type'),
-            'tax_id' => $this->request->getPost('tax_id'),
-            'license_number' => $this->request->getPost('license_number')
+            'updated_at' => date('Y-m-d H:i:s')
         ];
 
-        // Remove empty fields
-        $updateData = array_filter($updateData, function ($value) {
-            return $value !== null && $value !== '';
-        });
+        try {
+            $result = $this->userModel->update($userId, $updateData);
 
-        if ($this->userModel->update($userId, $updateData)) {
-            return $this->respondWithSuccess([], 'Profile updated successfully');
-        } else {
-            return $this->respondWithError('Failed to update profile');
+            if ($result) {
+                // Update session data
+                session()->set([
+                    'full_name' => $updateData['first_name'] . ' ' . $updateData['last_name']
+                ]);
+
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Profile updated successfully!'
+                    ]);
+                }
+
+                $this->setSuccess('Profile updated successfully');
+                return redirect()->to('/landlord/profile');
+            } else {
+                // Get database errors
+                $db = \Config\Database::connect();
+                $error = $db->error();
+
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Database error: ' . ($error['message'] ?? 'Unknown error')
+                    ]);
+                }
+
+                $this->setError('Failed to update profile: ' . ($error['message'] ?? 'Unknown error'));
+                return redirect()->back()->withInput();
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Profile update error: ' . $e->getMessage());
+
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
+
+            $this->setError('Failed to update profile: ' . $e->getMessage());
+            return redirect()->back()->withInput();
         }
     }
 
     /**
-     * Get Property Request Details
+     * Change Password - NEW METHOD
      */
-    public function getPropertyRequestDetails($requestId)
+    public function changePassword()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
-        $landlordId = $this->getCurrentUserId();
+        $userId = $this->getCurrentUserId();
 
-        $db = \Config\Database::connect();
-        $request = $db->table('property_requests')
-            ->where('id', $requestId)
-            ->where('landlord_id', $landlordId)
-            ->get()
-            ->getRowArray();
-
-        if (!$request) {
-            return $this->respondWithError('Request not found');
+        if (!$userId) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'User session not found'
+                ]);
+            }
+            return redirect()->to('/auth/login');
         }
 
-        if ($this->request->isAJAX()) {
-            $data = ['request' => $request];
-            return view('landlord/property_request_details_modal', $data);
+        // Validation rules
+        $rules = [
+            'current_password' => 'required',
+            'new_password' => 'required|min_length[6]',
+            'confirm_password' => 'required|matches[new_password]'
+        ];
+
+        if (!$this->validate($rules)) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $this->validator->getErrors()
+                ]);
+            }
+            return redirect()->back()->with('validation', $this->validator);
         }
 
-        return $this->respondWithError('Invalid request');
+        try {
+            // Get current user
+            $user = $this->userModel->find($userId);
+
+            if (!$user) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'User not found'
+                    ]);
+                }
+                $this->setError('User not found');
+                return redirect()->back();
+            }
+
+            // Verify current password
+            if (!password_verify($this->request->getPost('current_password'), $user['password'])) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Current password is incorrect'
+                    ]);
+                }
+                $this->setError('Current password is incorrect');
+                return redirect()->back();
+            }
+
+            // Update password
+            $newPasswordHash = password_hash($this->request->getPost('new_password'), PASSWORD_DEFAULT);
+
+            $updateData = [
+                'password' => $newPasswordHash,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            // Add last_password_change if column exists
+            $db = \Config\Database::connect();
+            $fields = $db->getFieldNames('users');
+            if (in_array('last_password_change', $fields)) {
+                $updateData['last_password_change'] = date('Y-m-d H:i:s');
+            }
+
+            $result = $this->userModel->update($userId, $updateData);
+
+            if ($result) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Password changed successfully!'
+                    ]);
+                }
+
+                $this->setSuccess('Password changed successfully');
+                return redirect()->to('/landlord/profile');
+            } else {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Failed to update password'
+                    ]);
+                }
+
+                $this->setError('Failed to update password');
+                return redirect()->back();
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Password change error: ' . $e->getMessage());
+
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
+
+            $this->setError('Failed to change password: ' . $e->getMessage());
+            return redirect()->back();
+        }
     }
 
     /**
-     * Request New Property (shows form to contact admin)
+     * Add Property Directly (No Admin Approval)
+     */
+    public function addProperty()
+    {
+        $redirect = $this->requireLandlord();
+        if ($redirect)
+            return $redirect;
+
+        $rules = [
+            'property_name' => 'required|min_length[3]|max_length[100]',
+            'number_of_landlords' => 'required|integer|greater_than[0]|less_than_equal_to[100]',
+            'property_address' => 'required|min_length[5]|max_length[1000]',
+            'landlord_names' => 'required',
+            'ownership_percentages' => 'required',
+            'estimated_rent' => 'required|decimal|greater_than[0]',
+            'expenses' => 'required|decimal|greater_than_equal_to[0]',
+            'management_company' => 'required|max_length[100]',
+            'management_percentage' => 'required|decimal|greater_than_equal_to[0]|less_than_equal_to[50]'
+        ];
+
+        if (!$this->validate($rules)) {
+            // Fixed: Use $this->validator->getErrors() instead of just getErrors()
+            $errors = $this->validator->getErrors();
+            $errorMessages = [];
+
+            foreach ($errors as $field => $error) {
+                $errorMessages[] = $error;
+            }
+
+            return $this->respondWithError('Please fill all required fields: ' . implode(', ', $errorMessages), 400);
+        }
+
+        // Validate ownership percentages total exactly 100%
+        $ownershipPercentages = $this->request->getPost('ownership_percentages');
+        $landlordNames = $this->request->getPost('landlord_names');
+
+        // Ensure arrays have same length
+        if (count($landlordNames) !== count($ownershipPercentages)) {
+            return $this->respondWithError('Mismatch between number of landlord names and ownership percentages', 400);
+        }
+
+        $totalOwnership = array_sum(array_map('floatval', $ownershipPercentages));
+
+        if (abs($totalOwnership - 100) >= 0.01) {
+            return $this->respondWithError('Total ownership percentage must equal exactly 100%', 400);
+        }
+
+        $currentLandlordId = $this->getCurrentUserId();
+        $db = \Config\Database::connect();
+
+        // Start transaction
+        $db->transStart();
+
+        try {
+            // Insert property
+            $propertyData = [
+                'property_name' => $this->request->getPost('property_name'),
+                'address' => $this->request->getPost('property_address'),
+                'base_rent' => $this->request->getPost('estimated_rent'),
+                'expenses' => $this->request->getPost('expenses'),
+                'management_company' => $this->request->getPost('management_company'),
+                'management_percentage' => $this->request->getPost('management_percentage'),
+                'number_of_landlords' => count($landlordNames),
+                'status' => 'vacant', // Default status
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            $result = $db->table('properties')->insert($propertyData);
+
+            if (!$result) {
+                throw new \Exception('Failed to insert property');
+            }
+
+            $propertyId = $db->insertID();
+
+            // Insert property ownership for each landlord
+            for ($i = 0; $i < count($landlordNames); $i++) {
+                $ownershipData = [
+                    'property_id' => $propertyId,
+                    'landlord_id' => $currentLandlordId, // All ownerships linked to current user for now
+                    'landlord_name' => trim($landlordNames[$i]),
+                    'ownership_percentage' => floatval($ownershipPercentages[$i]),
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+
+                $ownershipResult = $db->table('property_ownership')->insert($ownershipData);
+
+                if (!$ownershipResult) {
+                    throw new \Exception('Failed to insert property ownership for ' . $landlordNames[$i]);
+                }
+            }
+
+            // Complete transaction
+            $db->transComplete();
+
+            if ($db->transStatus() === FALSE) {
+                throw new \Exception('Database transaction failed');
+            }
+
+            return $this->respondWithSuccess([], 'Property "' . $this->request->getPost('property_name') . '" added successfully with ' . count($landlordNames) . ' landlord(s)!');
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'Add property error: ' . $e->getMessage());
+            return $this->respondWithError('Failed to add property: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Request New Property (shows form to add property)
      */
     public function requestProperty()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
-
-        $landlordId = $this->getCurrentUserId();
-
-        // Get previous requests
-        $db = \Config\Database::connect();
-        $previous_requests = $db->table('property_requests')
-            ->where('landlord_id', $landlordId)
-            ->orderBy('created_at', 'DESC')
-            ->limit(10)
-            ->get()
-            ->getResultArray();
+        if ($redirect)
+            return $redirect;
 
         $data = [
-            'title' => 'Request New Property',
-            'previous_requests' => $previous_requests
+            'title' => 'Add New Property'
         ];
 
         return view('landlord/request_property', $data);
     }
 
     /**
-     * Submit Property Request
+     * Send Admin Message
      */
-    public function submitPropertyRequest()
+    public function sendAdminMessage()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
-
-        // Updated validation rules with more reasonable lengths
-        $rules = [
-            'property_name' => 'required|min_length[3]|max_length[100]',
-            'property_address' => 'required|min_length[5]|max_length[500]', 
-            'ownership_percentage' => 'required|decimal|greater_than[0]|less_than_equal_to[100]',
-            'property_type' => 'max_length[50]',
-            'bedrooms' => 'permit_empty|integer|greater_than_equal_to[0]',
-            'bathrooms' => 'permit_empty|integer|greater_than_equal_to[1]',
-            'square_feet' => 'permit_empty|integer|greater_than_equal_to[0]',
-            'estimated_rent' => 'permit_empty|decimal|greater_than_equal_to[0]',
-            'property_description' => 'max_length[1000]',
-            'message' => 'max_length[1000]'
-        ];
-
-        if (!$this->validate($rules)) {
-            $errors = $this->validator->getErrors();
-            log_message('debug', 'Validation failed: ' . json_encode($errors));
-            return $this->respondWithError('Validation failed: ' . implode(', ', $errors), 400);
-        }
-
-        $landlordId = $this->getCurrentUserId();
-
-        // Insert property request with ALL form fields
-        $db = \Config\Database::connect();
-        $requestData = [
-            'landlord_id' => $landlordId,
-            'property_name' => $this->request->getPost('property_name'),
-            'property_address' => $this->request->getPost('property_address'),
-            'property_type' => $this->request->getPost('property_type'),
-            'bedrooms' => $this->request->getPost('bedrooms') ?: null,
-            'bathrooms' => $this->request->getPost('bathrooms') ?: null,
-            'square_feet' => $this->request->getPost('square_feet') ?: null,
-            'estimated_rent' => $this->request->getPost('estimated_rent') ?: null,
-            'ownership_percentage' => $this->request->getPost('ownership_percentage'),
-            'property_description' => $this->request->getPost('property_description'),
-            'message' => $this->request->getPost('message'),
-            'status' => 'pending',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
-        // Remove empty values to avoid database issues
-        $requestData = array_filter($requestData, function ($value) {
-            return $value !== null && $value !== '';
-        });
-
-        if ($db->table('property_requests')->insert($requestData)) {
-            return $this->respondWithSuccess([], 'Property request submitted successfully');
-        } else {
-            $error = $db->error();
-            log_message('error', 'Database insert failed: ' . json_encode($error));
-            return $this->respondWithError('Failed to submit property request: ' . $error['message'], 500);
-        }
-    }
-
-    // Separate method for file handling
-    /*private function handleFileUploads($requestId, $db)
-    {
-        $uploadedImageCount = 0;
+        if ($redirect)
+            return $redirect;
 
         try {
-            $files = $this->request->getFiles();
+            // Get form data
+            $subject = $this->request->getPost('subject');
+            $message = $this->request->getPost('message');
+            $priority = $this->request->getPost('priority') ?: 'normal';
 
-            if (!isset($files['supporting_documents'])) {
-                return $uploadedImageCount;
+            // Basic validation
+            if (empty($subject)) {
+                return $this->respondWithError('Subject is required');
             }
 
-            // Create upload directory
-            $imageUploadPath = WRITEPATH . 'uploads/property_images/';
-            if (!is_dir($imageUploadPath)) {
-                if (!mkdir($imageUploadPath, 0755, true)) {
-                    throw new \Exception('Failed to create upload directory');
-                }
+            if (empty($message)) {
+                return $this->respondWithError('Message is required');
             }
 
-            foreach ($files['supporting_documents'] as $file) {
-                if ($file->isValid() && !$file->hasMoved()) {
-                    $mimeType = $file->getMimeType();
+            if (strlen($message) < 3) {
+                return $this->respondWithError('Message must be at least 3 characters');
+            }
 
-                    // Only handle images for now
-                    if (strpos($mimeType, 'image/') === 0) {
-                        $newName = $file->getRandomName();
-
-                        if ($file->move($imageUploadPath, $newName)) {
-                            $imagePath = 'property_images/' . $newName;
-
-                            // Insert into property_images table
-                            $imageData = [
-                                'property_request_id' => $requestId,
-                                'image_path' => $imagePath,
-                                'alt_text' => 'Property Request Image',
-                                'sort_order' => $uploadedImageCount + 1,
-                                'is_primary' => $uploadedImageCount === 0 ? 1 : 0,
-                                'created_at' => date('Y-m-d H:i:s'),
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ];
-
-                            if ($db->table('property_images')->insert($imageData)) {
-                                $uploadedImageCount++;
-                            }
-                        }
-                    }
+            // Handle custom subject
+            if ($subject === 'Other') {
+                $customSubject = $this->request->getPost('custom_subject');
+                if (empty($customSubject)) {
+                    return $this->respondWithError('Custom subject is required when "Other" is selected');
                 }
+                $subject = $customSubject;
+            }
+
+            $landlordId = $this->getCurrentUserId();
+            $landlord = $this->userModel->find($landlordId);
+
+            if (!$landlord) {
+                return $this->respondWithError('User not found');
+            }
+
+            // Insert message into database
+            $db = \Config\Database::connect();
+
+            $messageData = [
+                'landlord_id' => $landlordId,
+                'landlord_name' => $landlord['first_name'] . ' ' . $landlord['last_name'],
+                'landlord_email' => $landlord['email'],
+                'subject' => $subject,
+                'message' => $message,
+                'priority' => $priority,
+                'status' => 'unread',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            $result = $db->table('admin_messages')->insert($messageData);
+
+            if ($result) {
+                return $this->respondWithSuccess([], 'Your message has been sent to the administrator successfully!');
+            } else {
+                $error = $db->error();
+                log_message('error', 'Database insert failed: ' . json_encode($error));
+                return $this->respondWithError('Failed to send message: ' . $error['message']);
             }
         } catch (\Exception $e) {
-            log_message('error', 'File upload error: ' . $e->getMessage());
-            // Don't throw - just log and continue
+            log_message('error', 'Admin message error: ' . $e->getMessage());
+            return $this->respondWithError('Error: ' . $e->getMessage());
         }
-
-        return $uploadedImageCount;
     }
-
-    // Fallback method if property_images doesn't exist
-    private function saveRequestWithoutImages($db, $landlordId)
-    {
-        $requestData = [
-            'landlord_id' => $landlordId,
-            'property_name' => $this->request->getPost('property_name'),
-            'property_address' => $this->request->getPost('property_address'),
-            'ownership_percentage' => $this->request->getPost('ownership_percentage'),
-            'message' => $this->request->getPost('message'),
-            'status' => 'pending',
-            'created_at' => date('Y-m-d H:i:s')
-        ];
-
-        if ($db->table('property_requests')->insert($requestData)) {
-            return $this->respondWithSuccess([], 'Property request submitted successfully (images will be handled later)');
-        } else {
-            return $this->respondWithError('Failed to submit property request');
-        }
-    }*/
-
-    // ... (keeping all your existing methods)
 
     /**
      * Helper Methods for Error Handling
@@ -711,7 +888,8 @@ class Landlord extends BaseController
 
     private function calculateOccupancyRate($properties)
     {
-        if (count($properties) === 0) return 0;
+        if (count($properties) === 0)
+            return 0;
 
         $occupiedCount = count(array_filter($properties, function ($p) {
             return isset($p['lease_status']) && $p['lease_status'] === 'active';
@@ -719,8 +897,6 @@ class Landlord extends BaseController
 
         return ($occupiedCount / count($properties)) * 100;
     }
-
-    // ... (keep all your existing private methods like getLandlordStats, verifyPropertyOwnership, etc.)
 
     /**
      * Get Landlord Statistics
@@ -762,6 +938,23 @@ class Landlord extends BaseController
 
         return $stats;
     }
+
+    /**
+     * Help & Support Page
+     */
+    public function help()
+    {
+        $redirect = $this->requireLandlord();
+        if ($redirect)
+            return $redirect;
+
+        $data = [
+            'title' => 'Help & Support'
+        ];
+
+        return view('landlord/help', $data);
+    }
+
 
     /**
      * Verify Property Ownership
@@ -809,75 +1002,5 @@ class Landlord extends BaseController
             ->getRowArray();
 
         return $query;
-    }
-
-    public function sendAdminMessage()
-    {
-        $redirect = $this->requireLandlord();
-        if ($redirect) return $redirect;
-
-        try {
-            // Get form data
-            $subject = $this->request->getPost('subject');
-            $message = $this->request->getPost('message');
-            $priority = $this->request->getPost('priority') ?: 'normal';
-
-            // Basic validation
-            if (empty($subject)) {
-                return $this->respondWithError('Subject is required');
-            }
-
-            if (empty($message)) {
-                return $this->respondWithError('Message is required');
-            }
-
-            if (strlen($message) < 3) {
-                return $this->respondWithError('Message must be at least 3 characters');
-            }
-
-            // Handle custom subject
-            if ($subject === 'Other') {
-                $customSubject = $this->request->getPost('custom_subject');
-                if (empty($customSubject)) {
-                    return $this->respondWithError('Custom subject is required when "Other" is selected');
-                }
-                $subject = $customSubject;
-            }
-
-            $landlordId = $this->getCurrentUserId();
-            $landlord = $this->userModel->find($landlordId);
-
-            if (!$landlord) {
-                return $this->respondWithError('User not found');
-            }
-
-            // Insert message into database
-            $db = \Config\Database::connect();
-
-            $messageData = [
-                'landlord_id' => $landlordId,
-                'landlord_name' => $landlord['first_name'] . ' ' . $landlord['last_name'],
-                'landlord_email' => $landlord['email'],
-                'subject' => $subject,
-                'message' => $message,
-                'priority' => $priority,
-                'status' => 'unread',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            $result = $db->table('admin_messages')->insert($messageData);
-
-            if ($result) {
-                return $this->respondWithSuccess([], 'Your message has been sent to the administrator successfully!');
-            } else {
-                $error = $db->error();
-                log_message('error', 'Database insert failed: ' . json_encode($error));
-                return $this->respondWithError('Failed to send message: ' . $error['message']);
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Admin message error: ' . $e->getMessage());
-            return $this->respondWithError('Error: ' . $e->getMessage());
-        }
     }
 }

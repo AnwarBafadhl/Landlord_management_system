@@ -10,15 +10,13 @@
             <i class="fas fa-building"></i> My Properties
         </h1>
         <div>
-            <a href="<?= site_url('landlord/properties/add') ?>" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Request New Property
-            </a>
+            <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-primary">Add Property</a>
         </div>
     </div>
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -38,51 +36,7 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Occupied
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= isset($properties) ? array_reduce($properties, function ($carry, $prop) {
-                                    return $carry + ($prop['lease_status'] === 'active' ? 1 : 0);
-                                }, 0) : 0 ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-home fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Vacant
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= isset($properties) ? array_reduce($properties, function ($carry, $prop) {
-                                    return $carry + ($prop['lease_status'] !== 'active' ? 1 : 0);
-                                }, 0) : 0 ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-door-open fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -92,8 +46,8 @@
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 $<?= isset($properties) ? number_format(array_reduce($properties, function ($carry, $prop) {
-                                        return $carry + (($prop['rent_amount'] ?? $prop['base_rent']) * $prop['ownership_percentage'] / 100);
-                                    }, 0), 2) : '0.00' ?>
+                                    return $carry + (($prop['rent_amount'] ?? $prop['base_rent']) * $prop['ownership_percentage'] / 100);
+                                }, 0), 2) : '0.00' ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -105,20 +59,42 @@
         </div>
     </div>
 
+    <!-- Search and Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Search & Filter Properties</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="search_properties" class="form-label">Search Properties</label>
+                    <input type="text" class="form-control" id="search_properties"
+                        placeholder="Search by name, address, or tenant..." onkeyup="searchProperties()">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="filter_status" class="form-label">Status</label>
+                    <select class="form-control" id="filter_status" onchange="filterProperties()">
+                        <option value="all">All Properties</option>
+                        <option value="active">With Active Lease</option>
+                        <option value="vacant">Vacant</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Properties Table -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
             <h6 class="m-0 font-weight-bold text-primary">Properties Overview</h6>
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-filter"></i> Filter
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="filterProperties('all')">All Properties</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="filterProperties('occupied')">Occupied Only</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="filterProperties('vacant')">Vacant Only</a></li>
-                </ul>
-            </div>
+            <span class="badge badge-primary" id="property_count"><?= isset($properties) ? count($properties) : 0 ?>
+                properties</span>
         </div>
         <div class="card-body">
             <?php if (!empty($properties)): ?>
@@ -137,7 +113,9 @@
                         </thead>
                         <tbody>
                             <?php foreach ($properties as $property): ?>
-                                <tr class="property-row" data-status="<?= $property['lease_status'] ?>">
+                                <tr class="property-row" data-status="<?= $property['lease_status'] ?>"
+                                    data-ownership="<?= $property['ownership_percentage'] ?>"
+                                    data-search="<?= strtolower(esc($property['property_name'] . ' ' . $property['address'] . ' ' . ($property['tenant_first_name'] ?? '') . ' ' . ($property['tenant_last_name'] ?? ''))) ?>">
                                     <td>
                                         <div>
                                             <strong><?= esc($property['property_name']) ?></strong>
@@ -193,11 +171,13 @@
                                     </td>
                                     <td>
                                         <div>
-                                            <strong class="text-success">$<?= number_format($property['rent_amount'] ?? $property['base_rent'], 2) ?></strong>
+                                            <strong
+                                                class="text-success">$<?= number_format($property['rent_amount'] ?? $property['base_rent'], 2) ?></strong>
                                             <small class="text-muted">/month</small>
                                             <br>
                                             <small class="text-muted">Your share:</small>
-                                            <strong class="text-primary">$<?= number_format(($property['rent_amount'] ?? $property['base_rent']) * $property['ownership_percentage'] / 100, 2) ?></strong>
+                                            <strong
+                                                class="text-primary">$<?= number_format(($property['rent_amount'] ?? $property['base_rent']) * $property['ownership_percentage'] / 100, 2) ?></strong>
                                         </div>
                                     </td>
                                     <td>
@@ -206,16 +186,22 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-<?= $property['lease_status'] === 'active' ? 'success' : 'warning' ?>">
+                                        <span
+                                            class="badge badge-<?= $property['lease_status'] === 'active' ? 'success' : 'warning' ?>">
                                             <?= $property['lease_status'] === 'active' ? 'Occupied' : 'Vacant' ?>
                                         </span>
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>"
-                                                class="btn btn-sm btn-outline-primary" title="View Details">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                onclick="viewPropertyDetails(<?= $property['id'] ?>)" title="View Details">
                                                 <i class="fas fa-eye"></i>
-                                            </a>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info"
+                                                onclick="viewMaintenanceHistory(<?= $property['id'] ?>)"
+                                                title="Maintenance History">
+                                                <i class="fas fa-tools"></i>
+                                            </button>
                                             <a href="<?= site_url('landlord/properties/edit/' . $property['id']) ?>"
                                                 class="btn btn-sm btn-outline-secondary" title="Edit">
                                                 <i class="fas fa-edit"></i>
@@ -238,77 +224,52 @@
                     <i class="fas fa-building fa-4x text-gray-300 mb-3"></i>
                     <h4 class="text-gray-500">No Properties Found</h4>
                     <p class="text-muted">Contact your administrator to add properties to your account.</p>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contactAdminModal">
-                        <i class="fas fa-envelope"></i> Contact Admin
-                    </button>
+                    <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Property
+                    </a>
                 </div>
             <?php endif; ?>
-            <!-- Contact Admin Modal -->
-            <div class="modal fade" id="contactAdminModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                <i class="fas fa-envelope"></i> Send Message to Administrator
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form id="contactAdminForm">
-                            <?= csrf_field() ?>
-                            <div class="modal-body">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>Send a message to the administrator.</strong> You will receive email notifications when the admin replies.
-                                </div>
+        </div>
+    </div>
+</div>
 
-                                <div class="mb-3">
-                                    <label for="message_subject" class="form-label">Subject *</label>
-                                    <select class="form-control" id="message_subject" name="subject" required>
-                                        <option value="">Select a subject</option>
-                                        <option value="Property Request">Property Addition Request</option>
-                                        <option value="Property Issue">Property Issue/Problem</option>
-                                        <option value="Account Support">Account Support</option>
-                                        <option value="Technical Issue">Technical Issue</option>
-                                        <option value="Billing Question">Billing/Payment Question</option>
-                                        <option value="General Inquiry">General Inquiry</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
+<!-- Property Details Modal -->
+<div class="modal fade" id="propertyDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Property Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="propertyDetailsContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="editCurrentProperty()">
+                    <i class="fas fa-edit"></i> Edit Property
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-                                <div class="mb-3" id="customSubjectGroup" style="display: none;">
-                                    <label for="custom_subject" class="form-label">Custom Subject *</label>
-                                    <input type="text" class="form-control" id="custom_subject" name="custom_subject"
-                                        placeholder="Enter your subject" maxlength="200">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="admin_message" class="form-label">Message *</label>
-                                    <textarea class="form-control" id="admin_message" name="message" rows="6" required
-                                        placeholder="Type your message here..." maxlength="2000"></textarea>
-                                    <small class="text-muted">Maximum 2000 characters</small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="priority_level" class="form-label">Priority Level</label>
-                                    <select class="form-control" id="priority_level" name="priority">
-                                        <option value="normal">Normal</option>
-                                        <option value="high">High</option>
-                                        <option value="urgent">Urgent</option>
-                                    </select>
-                                    <small class="text-muted">Select urgency level for your message</small>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    <i class="fas fa-times"></i> Cancel
-                                </button>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-paper-plane"></i> Send Message
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+<!-- Maintenance History Modal -->
+<div class="modal fade" id="maintenanceHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Maintenance History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="maintenanceHistoryContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="addMaintenanceRequest()">
+                    <i class="fas fa-plus"></i> Add Maintenance Request
+                </button>
             </div>
         </div>
     </div>
@@ -348,7 +309,8 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="rent_amount" class="form-label">Monthly Rent *</label>
-                            <input type="number" class="form-control" id="rent_amount" name="rent_amount" step="0.01" min="0" required>
+                            <input type="number" class="form-control" id="rent_amount" name="rent_amount" step="0.01"
+                                min="0" required>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="lease_start" class="form-label">Lease Start *</label>
@@ -361,7 +323,8 @@
                     </div>
                     <div class="mb-3">
                         <label for="security_deposit" class="form-label">Security Deposit</label>
-                        <input type="number" class="form-control" id="security_deposit" name="security_deposit" step="0.01" min="0">
+                        <input type="number" class="form-control" id="security_deposit" name="security_deposit"
+                            step="0.01" min="0">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -374,20 +337,153 @@
 </div>
 
 <script>
-    function filterProperties(status) {
+    let currentPropertyId = null;
+
+    function searchProperties() {
+        const searchTerm = document.getElementById('search_properties').value.toLowerCase();
         const rows = document.querySelectorAll('.property-row');
+        let visibleCount = 0;
+
         rows.forEach(row => {
-            const rowStatus = row.getAttribute('data-status');
-            if (status === 'all') {
+            const searchData = row.getAttribute('data-search');
+            if (searchData.includes(searchTerm)) {
                 row.style.display = '';
-            } else if (status === 'occupied' && rowStatus === 'active') {
-                row.style.display = '';
-            } else if (status === 'vacant' && rowStatus !== 'active') {
-                row.style.display = '';
+                visibleCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+
+        document.getElementById('property_count').textContent = visibleCount + ' properties';
+    }
+
+    function filterProperties() {
+        const statusFilter = document.getElementById('filter_status').value;
+        const ownershipFilter = document.getElementById('filter_ownership').value;
+        const rows = document.querySelectorAll('.property-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowOwnership = parseInt(row.getAttribute('data-ownership'));
+            let showRow = true;
+
+            // Status filter
+            if (statusFilter === 'active' && rowStatus !== 'active') {
+                showRow = false;
+            } else if (statusFilter === 'vacant' && rowStatus === 'active') {
+                showRow = false;
+            }
+
+            // Ownership filter
+            if (ownershipFilter === 'high' && rowOwnership < 75) {
+                showRow = false;
+            } else if (ownershipFilter === 'medium' && (rowOwnership < 50 || rowOwnership >= 75)) {
+                showRow = false;
+            } else if (ownershipFilter === 'low' && rowOwnership >= 50) {
+                showRow = false;
+            }
+
+            if (showRow) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        document.getElementById('property_count').textContent = visibleCount + ' properties';
+    }
+
+    function clearFilters() {
+        document.getElementById('search_properties').value = '';
+        document.getElementById('filter_status').value = 'all';
+        document.getElementById('filter_ownership').value = 'all';
+
+        const rows = document.querySelectorAll('.property-row');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+
+        document.getElementById('property_count').textContent = rows.length + ' properties';
+    }
+
+    function viewPropertyDetails(propertyId) {
+        currentPropertyId = propertyId;
+
+        // Show loading
+        document.getElementById('propertyDetailsContent').innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-2">Loading property details...</p>
+        </div>
+    `;
+
+        new bootstrap.Modal(document.getElementById('propertyDetailsModal')).show();
+
+        // Fetch property details
+        fetch(`<?= site_url('landlord/property-details') ?>/${propertyId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('propertyDetailsContent').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('propertyDetailsContent').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Error loading property details: ${error.message}
+            </div>
+        `;
+            });
+    }
+
+    function viewMaintenanceHistory(propertyId) {
+        currentPropertyId = propertyId;
+
+        // Show loading
+        document.getElementById('maintenanceHistoryContent').innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-2">Loading maintenance history...</p>
+        </div>
+    `;
+
+        new bootstrap.Modal(document.getElementById('maintenanceHistoryModal')).show();
+
+        // Fetch maintenance history
+        fetch(`<?= site_url('landlord/maintenance-history') ?>/${propertyId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('maintenanceHistoryContent').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('maintenanceHistoryContent').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Error loading maintenance history: ${error.message}
+            </div>
+        `;
+            });
+    }
+
+    function editCurrentProperty() {
+        if (currentPropertyId) {
+            window.location.href = `<?= site_url('landlord/properties/edit') ?>/${currentPropertyId}`;
+        }
+    }
+
+    function addMaintenanceRequest() {
+        if (currentPropertyId) {
+            window.location.href = `<?= site_url('landlord/add-maintenance') ?>?property_id=${currentPropertyId}`;
+        }
     }
 
     function showAddTenantModal(propertyId) {
@@ -395,18 +491,18 @@
         new bootstrap.Modal(document.getElementById('addTenantModal')).show();
     }
 
-    document.getElementById('addTenantForm').addEventListener('submit', function(e) {
+    document.getElementById('addTenantForm').addEventListener('submit', function (e) {
         e.preventDefault();
 
         const formData = new FormData(this);
 
         fetch('<?= site_url('landlord/tenants/add') ?>', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -421,129 +517,51 @@
     });
 
     // Auto-populate lease end date (1 year from start)
-    document.getElementById('lease_start').addEventListener('change', function() {
+    document.getElementById('lease_start').addEventListener('change', function () {
         const startDate = new Date(this.value);
         const endDate = new Date(startDate.setFullYear(startDate.getFullYear() + 1));
         document.getElementById('lease_end').value = endDate.toISOString().split('T')[0];
     });
-
-
-    document.addEventListener('DOMContentLoaded', function() {
-
-        // Contact Admin Form Submission
-        document.getElementById('contactAdminForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(this);
-
-            fetch('<?= site_url('landlord/send-admin-message') ?>', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show success message
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                        alertDiv.innerHTML = `
-                    <i class="fas fa-check-circle"></i>
-                    <strong>Success!</strong> ${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                        // Add alert to modal body
-                        this.querySelector('.modal-body').insertBefore(alertDiv, this.querySelector('.modal-body').firstChild);
-
-                        // Reset form
-                        this.reset();
-                        document.getElementById('customSubjectGroup').style.display = 'none';
-
-                        // Close modal after 3 seconds
-                        setTimeout(() => {
-                            bootstrap.Modal.getInstance(document.getElementById('contactAdminModal')).hide();
-                        }, 3000);
-                    } else {
-                        // Show error message
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-                        alertDiv.innerHTML = `
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Error!</strong> ${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                        this.querySelector('.modal-body').insertBefore(alertDiv, this.querySelector('.modal-body').firstChild);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-                    alertDiv.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i>
-                <strong>Error!</strong> Failed to send message. Please try again.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-                    this.querySelector('.modal-body').insertBefore(alertDiv, this.querySelector('.modal-body').firstChild);
-                })
-                .finally(() => {
-                    // Restore button
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                });
-        });
-
-        // Show/hide custom subject field
-        document.getElementById('message_subject').addEventListener('change', function() {
-            const customSubjectGroup = document.getElementById('customSubjectGroup');
-            const customSubjectInput = document.getElementById('custom_subject');
-
-            if (this.value === 'Other') {
-                customSubjectGroup.style.display = 'block';
-                customSubjectInput.required = true;
-            } else {
-                customSubjectGroup.style.display = 'none';
-                customSubjectInput.required = false;
-                customSubjectInput.value = '';
-            }
-        });
-
-        // Character counter for message
-        document.getElementById('admin_message').addEventListener('input', function() {
-            const maxLength = 2000;
-            const currentLength = this.value.length;
-            const remaining = maxLength - currentLength;
-
-            let counterElement = this.parentNode.querySelector('.char-counter');
-            if (!counterElement) {
-                counterElement = document.createElement('small');
-                counterElement.className = 'char-counter text-muted';
-                this.parentNode.appendChild(counterElement);
-            }
-
-            counterElement.textContent = `${remaining} characters remaining`;
-
-            if (remaining < 100) {
-                counterElement.className = 'char-counter text-warning';
-            } else if (remaining < 0) {
-                counterElement.className = 'char-counter text-danger';
-            } else {
-                counterElement.className = 'char-counter text-muted';
-            }
-        });
-
-    });
-
-    // Existing functions (filterProperties, showAddTenantModal, etc.)
 </script>
+
+<style>
+    .badge-lg {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .table th {
+        background-color: #f8f9fc;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .btn-group .btn {
+        margin-right: 0;
+    }
+
+    .property-row {
+        transition: all 0.3s ease;
+    }
+
+    .property-row:hover {
+        background-color: #f8f9fc;
+    }
+
+    @media (max-width: 768px) {
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+
+        .btn-group .btn {
+            margin-bottom: 0.25rem;
+            border-radius: 0.25rem !important;
+        }
+    }
+</style>
+
 <?= $this->endSection() ?>
