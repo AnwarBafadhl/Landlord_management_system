@@ -23,6 +23,7 @@ $routes->group('auth', function ($routes) {
     // Reset Password Routes
     $routes->get('reset-password/(:any)', 'Auth::resetPassword/$1');
     $routes->post('process-reset-password', 'Auth::processResetPassword');
+
 });
 
 // Admin Routes
@@ -91,19 +92,22 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->post('generate-monthly-payments', 'Admin\Ajax::generateMonthlyPayments');
 });
 
-// Landlord Routes - CORRECTED VERSION
-$routes->group('landlord', function ($routes) {  // Removed namespace
+// Landlord Routes - FIXED VERSION for cPanel
+$routes->group('landlord', function ($routes) {  // No namespace here
 
     // Dashboard
     $routes->get('/', 'Landlord::dashboard');
     $routes->get('dashboard', 'Landlord::dashboard');
+    
+    // Add this new route
+    $routes->get('get-current-user', 'Landlord::getCurrentUser');
 
     // Properties
     $routes->get('properties', 'Landlord::properties');
     $routes->get('properties/view/(:num)', 'Landlord::viewProperty/$1');
     $routes->post('properties/update/(:num)', 'Landlord::updateProperty/$1');
 
-    // Add property routes (both patterns for flexibility)
+    // Add property routes
     $routes->get('request-property', 'Landlord::requestProperty');
     $routes->get('properties/add', 'Landlord::requestProperty');
     $routes->post('add-property', 'Landlord::addProperty');
@@ -143,10 +147,10 @@ $routes->group('landlord', function ($routes) {  // Removed namespace
     $routes->delete('reports/delete/(:num)', 'Reports::delete/$1');
     $routes->get('reports/download/(:num)', 'Reports::download/$1');
 
-    // Profile routes - FIXED TO USE MAIN LANDLORD CONTROLLER
+    // Profile routes - CORRECT URLS
     $routes->get('profile', 'Landlord::profile');
-    $routes->post('profile/update', 'Landlord::updateProfile');
-    $routes->post('profile/change-password', 'Landlord::changePassword');  // Match your method name
+    $routes->post('profile/update', 'Landlord::updateProfile');  // Note: updateProfile, not update
+    $routes->post('profile/change-password', 'Landlord::changePassword');
 
     // Help & Support
     $routes->get('help', 'Landlord::help');

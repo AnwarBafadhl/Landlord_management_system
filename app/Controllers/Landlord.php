@@ -542,114 +542,201 @@ class Landlord extends BaseController
     }
 
     /**
-     * Add Property Directly (No Admin Approval)
-     */
-    public function addProperty()
-    {
-        $redirect = $this->requireLandlord();
-        if ($redirect)
-            return $redirect;
+ * Updated addProperty method with optional fields and better ownership handling
+ */
+public function addProperty()
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
 
-        $rules = [
-            'property_name' => 'required|min_length[3]|max_length[100]',
-            'number_of_landlords' => 'required|integer|greater_than[0]|less_than_equal_to[100]',
-            'property_address' => 'required|min_length[5]|max_length[1000]',
-            'landlord_names' => 'required',
-            'ownership_percentages' => 'required',
-            'estimated_rent' => 'required|decimal|greater_than[0]',
-            'expenses' => 'required|decimal|greater_than_equal_to[0]',
-            'management_company' => 'required|max_length[100]',
-            'management_percentage' => 'required|decimal|greater_than_equal_to[0]|less_than_equal_to[50]'
+    $rules = [
+        'property_name' => 'required|min_length[3]|max_length[100]',
+        'property_type' => 'required|in_list[rest_house,chalet,other]',
+        'number_of_landlords' => 'required|integer|greater_than[0]|less_than_equal_to[100]',
+        'property_address' => 'required|min_length[5]|max_length[1000]',
+        'number_of_units' => 'required|integer|greater_than[0]|less_than_equal_to[500]',
+        'landlord_names' => 'required',
+        'ownership_percentages' => 'required',
+        'unit_names' => 'required',
+        'expense_names' => 'required',
+        'expense_amounts' => 'required',
+        'management_company' => 'permit_empty|max_length[100]',
+        'management_percentage' => 'permit_empty|decimal|greater_than_equal_to[0]|less_than_equal_to[50]'
+    ];
+
+    if (!$this->validate($rules)) {
+        $errors = $this->validator->getErrors();
+        $errorMessages = [];
+
+        foreach ($errors as $field => $error) {
+            $errorMessages[] = $error;
+        }
+
+        return $this->respondWithError('Please fill all required fields: ' . implode(', ', $errorMessages), 400);
+    }
+
+    // Get form data
+    $landlordNames = $this->request->getPost('landlord_names');
+    $landlordUsernames = $this->request->getPost('landlord_usernames');
+    $ownershipPercentages = $this->request->getPost('ownership_percentages');
+    $unitNames = $this->request->getPost('unit_names');
+    $expenseNames = $this->request->getPost('expense_names');
+    $expenseAmounts = $this->request->getPost('expense_amounts');
+
+    // Validate arrays have same length
+    if (count($landlordNames) !== count($ownershipPercentages)) {
+        return $this->respondWithError('Mismatch between number of landlord names and ownership percentages', 400);
+    }
+
+    if (count($landlordNames) !== count($landlordUsernames)) {
+        return $this->respondWithError('Mismatch between number of landlord names and usernames', 400);
+    }
+
+    if (count($expenseNames) !== count($expenseAmounts)) {
+        return $this->respondWithError('Mismatch between expense names and amounts', 400);
+    }
+
+    // Validate ownership percentages total exactly 100%
+    $totalOwnership = array_sum(array_map('floatval', $ownershipPercentages));
+
+    if (abs($totalOwnership - 100) >= 0.01) {
+        return $this->respondWithError('Total ownership percentage must equal exactly 100%', 400);
+    }
+
+    // Validate expenses
+    foreach ($expenseAmounts as $amount) {
+        if (floatval($amount) < 0) {
+            return $this->respondWithError('Expense amounts cannot be negative', 400);
+        }
+    }
+
+    $currentLandlordId = $this->getCurrentUserId();
+    $db = \Config\Database::connect();
+
+    // Start transaction
+    $db->transStart();
+
+    try {
+        // Prepare property data
+        $managementCompany = $this->request->getPost('management_company');
+        $managementPercentage = $this->request->getPost('management_percentage');
+        
+        // Insert property
+        $propertyData = [
+            'property_name' => $this->request->getPost('property_name'),
+            'property_type' => $this->request->getPost('property_type'),
+            'address' => $this->request->getPost('property_address'),
+            'number_of_units' => $this->request->getPost('number_of_units'),
+            'management_company' => !empty($managementCompany) ? $managementCompany : null,
+            'management_percentage' => !empty($managementPercentage) ? floatval($managementPercentage) : 0,
+            'number_of_landlords' => count($landlordNames),
+            'status' => 'vacant',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
         ];
 
-        if (!$this->validate($rules)) {
-            // Fixed: Use $this->validator->getErrors() instead of just getErrors()
-            $errors = $this->validator->getErrors();
-            $errorMessages = [];
+        $result = $db->table('properties')->insert($propertyData);
 
-            foreach ($errors as $field => $error) {
-                $errorMessages[] = $error;
-            }
-
-            return $this->respondWithError('Please fill all required fields: ' . implode(', ', $errorMessages), 400);
+        if (!$result) {
+            throw new \Exception('Failed to insert property');
         }
 
-        // Validate ownership percentages total exactly 100%
-        $ownershipPercentages = $this->request->getPost('ownership_percentages');
-        $landlordNames = $this->request->getPost('landlord_names');
+        $propertyId = $db->insertID();
 
-        // Ensure arrays have same length
-        if (count($landlordNames) !== count($ownershipPercentages)) {
-            return $this->respondWithError('Mismatch between number of landlord names and ownership percentages', 400);
-        }
-
-        $totalOwnership = array_sum(array_map('floatval', $ownershipPercentages));
-
-        if (abs($totalOwnership - 100) >= 0.01) {
-            return $this->respondWithError('Total ownership percentage must equal exactly 100%', 400);
-        }
-
-        $currentLandlordId = $this->getCurrentUserId();
-        $db = \Config\Database::connect();
-
-        // Start transaction
-        $db->transStart();
-
-        try {
-            // Insert property
-            $propertyData = [
-                'property_name' => $this->request->getPost('property_name'),
-                'address' => $this->request->getPost('property_address'),
-                'base_rent' => $this->request->getPost('estimated_rent'),
-                'expenses' => $this->request->getPost('expenses'),
-                'management_company' => $this->request->getPost('management_company'),
-                'management_percentage' => $this->request->getPost('management_percentage'),
-                'number_of_landlords' => count($landlordNames),
-                'status' => 'vacant', // Default status
+        // Insert property units
+        for ($i = 0; $i < count($unitNames); $i++) {
+            $unitData = [
+                'property_id' => $propertyId,
+                'unit_name' => trim($unitNames[$i]),
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
-            $result = $db->table('properties')->insert($propertyData);
+            $unitResult = $db->table('property_units')->insert($unitData);
 
-            if (!$result) {
-                throw new \Exception('Failed to insert property');
+            if (!$unitResult) {
+                throw new \Exception('Failed to insert unit: ' . $unitNames[$i]);
             }
+        }
 
-            $propertyId = $db->insertID();
+        // Insert property expenses
+        for ($i = 0; $i < count($expenseNames); $i++) {
+            $expenseData = [
+                'property_id' => $propertyId,
+                'expense_name' => trim($expenseNames[$i]),
+                'expense_amount' => floatval($expenseAmounts[$i]),
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
 
-            // Insert property ownership for each landlord
-            for ($i = 0; $i < count($landlordNames); $i++) {
-                $ownershipData = [
-                    'property_id' => $propertyId,
-                    'landlord_id' => $currentLandlordId, // All ownerships linked to current user for now
-                    'landlord_name' => trim($landlordNames[$i]),
-                    'ownership_percentage' => floatval($ownershipPercentages[$i]),
-                    'created_at' => date('Y-m-d H:i:s')
-                ];
+            $expenseResult = $db->table('property_expenses')->insert($expenseData);
 
-                $ownershipResult = $db->table('property_ownership')->insert($ownershipData);
+            if (!$expenseResult) {
+                throw new \Exception('Failed to insert expense: ' . $expenseNames[$i]);
+            }
+        }
 
-                if (!$ownershipResult) {
-                    throw new \Exception('Failed to insert property ownership for ' . $landlordNames[$i]);
+        // Insert property ownership for each landlord
+        for ($i = 0; $i < count($landlordNames); $i++) {
+            $username = trim($landlordUsernames[$i]);
+            $userId = null;
+
+            // Look up user ID if username is provided
+            if (!empty($username)) {
+                $user = $db->table('users')->where('username', $username)->get()->getRowArray();
+                if ($user) {
+                    $userId = $user['id'];
+                } else {
+                    // Username provided but doesn't exist
+                    log_message('warning', 'Username not found during property creation: ' . $username);
                 }
             }
 
-            // Complete transaction
-            $db->transComplete();
+            $ownershipData = [
+                'property_id' => $propertyId,
+                'user_id' => $userId,
+                'landlord_name' => trim($landlordNames[$i]),
+                'username' => !empty($username) ? $username : null,
+                'ownership_percentage' => floatval($ownershipPercentages[$i]),
+                'created_at' => date('Y-m-d H:i:s')
+            ];
 
-            if ($db->transStatus() === FALSE) {
-                throw new \Exception('Database transaction failed');
+            $ownershipResult = $db->table('property_ownership')->insert($ownershipData);
+
+            if (!$ownershipResult) {
+                throw new \Exception('Failed to insert property ownership for ' . $landlordNames[$i]);
             }
-
-            return $this->respondWithSuccess([], 'Property "' . $this->request->getPost('property_name') . '" added successfully with ' . count($landlordNames) . ' landlord(s)!');
-
-        } catch (\Exception $e) {
-            $db->transRollback();
-            log_message('error', 'Add property error: ' . $e->getMessage());
-            return $this->respondWithError('Failed to add property: ' . $e->getMessage(), 500);
         }
+
+        // Complete transaction
+        $db->transComplete();
+
+        if ($db->transStatus() === FALSE) {
+            throw new \Exception('Database transaction failed');
+        }
+
+        $sharedLandlords = array_filter($landlordUsernames, function($username) {
+            return !empty(trim($username));
+        });
+
+        $managementInfo = !empty($managementCompany) 
+            ? " with {$managementCompany} as management company" 
+            : " (self-managed)";
+
+        $sharingInfo = count($sharedLandlords) > 1 
+            ? " Property has been shared with " . (count($sharedLandlords) - 1) . " other landlord(s)."
+            : "";
+
+        return $this->respondWithSuccess([], 
+            'Property "' . $this->request->getPost('property_name') . '" added successfully with ' . 
+            count($landlordNames) . ' landlord(s)' . $managementInfo . $sharingInfo);
+
+    } catch (\Exception $e) {
+        $db->transRollback();
+        log_message('error', 'Add property error: ' . $e->getMessage());
+        return $this->respondWithError('Failed to add property: ' . $e->getMessage(), 500);
     }
+}
 
     /**
      * Request New Property (shows form to add property)
@@ -783,7 +870,32 @@ class Landlord extends BaseController
 
     protected function getCurrentUserId()
     {
-        return session()->get('user_id');
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
+
+    try {
+        $userId = $this->getCurrentUserId();
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            return $this->respondWithError('User not found', 404);
+        }
+
+        // Return only the necessary user data
+        $userData = [
+            'id' => $user['id'],
+            'first_name' => $user['first_name'] ?? '',
+            'last_name' => $user['last_name'] ?? '',
+            'username' => $user['username'] ?? '',
+            'email' => $user['email'] ?? ''
+        ];
+
+        return $this->respondWithSuccess(['user' => $userData], 'User data retrieved successfully');
+
+    } catch (\Exception $e) {
+        log_message('error', 'Get current user error: ' . $e->getMessage());
+        return $this->respondWithError('Failed to get user data: ' . $e->getMessage(), 500);
+    }
     }
 
     protected function requireLandlord()

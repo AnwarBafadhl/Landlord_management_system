@@ -325,4 +325,5 @@ class Auth extends BaseController
     {
         return session()->get('role') === 'admin';
     }
+
 }
