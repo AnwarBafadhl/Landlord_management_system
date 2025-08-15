@@ -14,7 +14,7 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-plus-circle"></i> Request New Property
         </h1>
-        <a href="./properties" class="btn btn-secondary">
+        <a href="<?= site_url('landlord/properties') ?>" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back to Properties
         </a>
     </div>
@@ -191,7 +191,7 @@
 
                         <!-- Form Actions -->
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='./properties'">
+                            <button type="button" class="btn btn-secondary me-md-2" onclick="window.location.href='<?= site_url('landlord/properties') ?>'">
                                 <i class="fas fa-times"></i> Cancel
                             </button>
                             <button type="submit" class="btn btn-success" id="submitBtn">
@@ -206,18 +206,6 @@
 </div>
 
 <script>
-// Function to get the correct base path
-function getBasePath() {
-    // Since domain is https://www.tab3ni.online/landlord/
-    // We should return just '/' for relative paths or './'' for current directory
-    return './';
-}
-
-// Safe navigation function
-function goBackSafely() {
-    // Navigate to properties page relative to current location
-    window.location.href = './properties';
-}
 
 // Current user data - use simpler approach for now
 let currentUser = {
@@ -644,18 +632,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData(this);
 
-            fetch('<?= base_url('landlord/add-property') ?>', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
+            fetch('<?= site_url('landlord/add-property') ?>', {
+    method: 'POST',
+    body: formData,
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+})
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert('Property added successfully! Other landlords will now see this property in their accounts.');
-                    window.location.href = './properties';
+                    window.location.href = '<?= site_url('landlord/properties') ?>';
                 } else {
                     alert('Error: ' + data.message);
                     submitBtn.innerHTML = originalText;
