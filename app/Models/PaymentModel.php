@@ -533,4 +533,38 @@ class PaymentModel extends Model
             ]
         ];
     }
+    
+    public function getPaymentsByLandlordAndPeriod($landlordId, $startDate, $endDate)
+    {
+        $db = \Config\Database::connect();
+        
+        // Check if all required tables exist
+        if (!$db->tableExists('payments') || !$db->tableExists('leases') || !$db->tableExists('properties')) {
+            return []; // Return empty array if tables don't exist
+        }
+        
+        $builder = $db->table('payments p');
+        $builder->select('p.*, p.property_id, prop.name as property_name, u.first_name, u.last_name');
+        $builder->join('leases l', 'l.id = p.lease_id', 'left');
+        $builder->join('properties prop', 'prop.id = p.property_id', 'left'); // Use p.property_id directly
+        $builder->join('property_owners po', 'po.property_id = prop.id', 'inner');
+        $builder->join('users u', 'u.id = l.tenant_id', 'left');
+        $builder->where('po.user_id', $landlordId);
+        $builder->where('p.payment_date >=', $startDate);
+        $builder->where('p.payment_date <=', $endDate);
+        $builder->where('p.status', 'paid'); // Only include paid payments
+        $builder->orderBy('p.payment_date', 'DESC');
+        
+        $results = $builder->get()->getResultArray();
+        
+        // Add tenant_name for easier processing
+        foreach ($results as &$payment) {
+            $payment['tenant_name'] = trim(($payment['first_name'] ?? '') . ' ' . ($payment['last_name'] ?? ''));
+            if (empty($payment['tenant_name'])) {
+                $payment['tenant_name'] = 'Unknown Tenant';
+            }
+        }
+        
+        return $results;
+    }
 }

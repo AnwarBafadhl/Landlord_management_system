@@ -45,12 +45,8 @@ class PublicAuth extends BaseController
             'terms' => 'required'
         ];
 
-        // Add role-specific validation
-        $role = $this->request->getPost('role');
-        if ($role === 'landlord') {
-            $rules['bank_account'] = 'required';
-            $rules['bank_name'] = 'required';
-        }
+        // REMOVED: Bank account validation since you deleted those fields
+        // No more role-specific validation needed
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('validation', $this->validator);
@@ -62,24 +58,23 @@ class PublicAuth extends BaseController
             'username' => $this->request->getPost('username'),
             'email' => $this->request->getPost('email'),
             'password' => $this->request->getPost('password'),
-            'role' => $role,
+            'role' => $this->request->getPost('role'),
             'first_name' => $this->request->getPost('first_name'),
             'last_name' => $this->request->getPost('last_name'),
             'phone' => $this->request->getPost('phone'),
             'address' => $this->request->getPost('address'),
-            'bank_account' => $this->request->getPost('bank_account'),
-            'bank_name' => $this->request->getPost('bank_name'),
+            // REMOVED: bank_account and bank_name since you deleted those fields
             'is_active' => 0  // All public registrations need admin approval
         ];
 
         try {
             if ($userModel->insert($userData)) {
                 // Different messages based on role
-                $message = $this->getSuccessMessage($role);
+                $message = $this->getSuccessMessage($this->request->getPost('role'));
                 
                 return redirect()->to('/register/pending')
                                ->with('success', $message)
-                               ->with('pending_user_role', $role);
+                               ->with('pending_user_role', $this->request->getPost('role'));
             } else {
                 $errors = $userModel->errors();
                 if (!empty($errors)) {
@@ -143,13 +138,13 @@ class PublicAuth extends BaseController
     }
 
     /**
-     * Get success message based on role
+     * Get success message based on role (UPDATED - No bank info mention)
      */
     private function getSuccessMessage($role)
     {
         switch ($role) {
             case 'landlord':
-                return 'Your landlord account has been created and is pending admin approval. You will be notified once your bank information is verified and your account is activated.';
+                return 'Your landlord account has been created and is pending admin approval. You will be notified once your account is activated.';
             case 'tenant':
                 return 'Your tenant account has been created and is pending approval. A landlord will need to assign you to a property before you can access the system.';
             case 'maintenance':

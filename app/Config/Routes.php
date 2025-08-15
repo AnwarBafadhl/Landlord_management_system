@@ -136,12 +136,12 @@ $routes->get('landlord/debug-property-display', 'Landlord::debugPropertyDisplay'
     // Maintenance
     $routes->get('maintenance', 'Landlord::maintenance');
 
-    // Reports - ADD THESE LINES
-    $routes->get('reports', 'Reports::index');
-    $routes->post('reports/generate-pdf', 'Reports::generatePdf');
-    $routes->post('reports/chart-data', 'Reports::getChartData');
-    $routes->delete('reports/delete/(:num)', 'Reports::delete/$1');
-    $routes->get('reports/download/(:num)', 'Reports::download/$1');
+
+// Reports - Updated routes for new PDF generation
+    $routes->get('reports', 'Landlord::reports');
+    $routes->post('reports/generate-ownership-pdf', 'Landlord::generateOwnershipPdf');
+    $routes->post('reports/generate-income-pdf', 'Landlord::generateIncomePdf');
+    $routes->get('reports/download/(:num)', 'Landlord::downloadReport/$1');
 
     // Profile
     $routes->get('profile', 'Landlord::profile');

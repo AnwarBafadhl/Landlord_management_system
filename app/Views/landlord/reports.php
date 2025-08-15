@@ -1,28 +1,205 @@
 <?= $this->extend('layouts/landlord') ?>
 
-<?= $this->section('title') ?>Reports & Analytics<?= $this->endSection() ?>
+<?= $this->section('title') ?>
+Reports & Analytics
+<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="container-fluid">
-    <!-- Page Header -->
+
+    <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-chart-bar"></i> Reports & Analytics
         </h1>
-        <div class="d-flex gap-2">
-            <select class="form-select" id="report_year" onchange="updateReports()">
-                <?php for ($year = date('Y'); $year >= date('Y') - 5; $year--): ?>
-                    <option value="<?= $year ?>" <?= $year == date('Y') ? 'selected' : '' ?>><?= $year ?></option>
-                <?php endfor; ?>
-            </select>
-            <button class="btn btn-success" onclick="exportReports()">
-                <i class="fas fa-download"></i> Export
-            </button>
+        <div class="d-none d-lg-inline-block">
+            <a href="<?= site_url('landlord/help') ?>" class="btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-question-circle fa-sm text-white-50"></i> Help Guide
+            </a>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
+    <!-- Success/Error Messages -->
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?= session()->getFlashdata('success') ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?= session()->getFlashdata('error') ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Report Generation Cards -->
+    <div class="row">
+        <!-- Ownership Report Card -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-primary">
+                    <h6 class="m-0 font-weight-bold text-white">
+                        <i class="fas fa-building"></i> Ownership Report
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Generate a comprehensive report containing property information, owner details, and their ownership percentages.
+                    </p>
+                    
+                    <form method="POST" action="<?= site_url('landlord/reports/generate-ownership-pdf') ?>">
+                        <?= csrf_field() ?>
+                        
+                        <!-- Property Selection -->
+                        <div class="form-group">
+                            <label for="ownership_property">Select Property</label>
+                            <select class="form-control" id="ownership_property" name="property_id">
+                                <option value="">All Properties</option>
+                                <?php if (!empty($properties) && is_array($properties)): ?>
+                                    <?php foreach ($properties as $property): ?>
+                                        <option value="<?= $property['id'] ?? '' ?>">
+                                            <?= esc($property['name'] ?? $property['property_name'] ?? 'Property') ?> 
+                                            <?php if (isset($property['address'])): ?>
+                                                - <?= esc($property['address']) ?>
+                                            <?php endif; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+
+                        <!-- Report Options -->
+                        <div class="form-group">
+                            <label>Include Details</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_property_details" name="include_property_details" value="1" checked>
+                                <label class="form-check-label" for="include_property_details">
+                                    Property Information
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_owner_details" name="include_owner_details" value="1" checked>
+                                <label class="form-check-label" for="include_owner_details">
+                                    Owner Information
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_percentages" name="include_percentages" value="1" checked>
+                                <label class="form-check-label" for="include_percentages">
+                                    Ownership Percentages
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-file-pdf"></i> Generate Ownership Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Owner Income Report Card -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 bg-success">
+                    <h6 class="m-0 font-weight-bold text-white">
+                        <i class="fas fa-dollar-sign"></i> Owner Income Report
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Generate detailed income and expense reports with owner-specific profit calculations and distributions.
+                    </p>
+                    
+                    <form method="POST" action="<?= site_url('landlord/reports/generate-income-pdf') ?>">
+                        <?= csrf_field() ?>
+                        
+                        <!-- Property Selection -->
+                        <div class="form-group">
+                            <label for="income_property">Select Property</label>
+                            <select class="form-control" id="income_property" name="property_id">
+                                <option value="">All Properties</option>
+                                <?php if (!empty($properties) && is_array($properties)): ?>
+                                    <?php foreach ($properties as $property): ?>
+                                        <option value="<?= $property['id'] ?? '' ?>">
+                                            <?= esc($property['name'] ?? $property['property_name'] ?? 'Property') ?>
+                                            <?php if (isset($property['address'])): ?>
+                                                - <?= esc($property['address']) ?>
+                                            <?php endif; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+
+                        <!-- Period Selection -->
+                        <div class="form-group">
+                            <label for="report_period">Report Period</label>
+                            <select class="form-control" id="report_period" name="report_period" required>
+                                <option value="monthly">Monthly</option>
+                                <option value="quarterly">Every 3 Months (Quarterly)</option>
+                                <option value="semi_annual">Every 6 Months (Semi-Annual)</option>
+                                <option value="annual">Annual (Yearly)</option>
+                            </select>
+                        </div>
+
+                        <!-- Date Range -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="start_date">Start Date</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="end_date">End Date</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Report Options -->
+                        <div class="form-group">
+                            <label>Include Details</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_income_breakdown" name="include_income_breakdown" value="1" checked>
+                                <label class="form-check-label" for="include_income_breakdown">
+                                    Income Breakdown
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_expense_breakdown" name="include_expense_breakdown" value="1" checked>
+                                <label class="form-check-label" for="include_expense_breakdown">
+                                    Expense Breakdown
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_owner_distributions" name="include_owner_distributions" value="1" checked>
+                                <label class="form-check-label" for="include_owner_distributions">
+                                    Owner Profit Distributions
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-block">
+                            <i class="fas fa-file-pdf"></i> Generate Income Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Cards -->
+    <div class="row">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
@@ -32,7 +209,7 @@
                                 Total Income (YTD)
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($financial_summary['total_income'] ?? 0, 2) ?>
+                                $<?= number_format(($financial_summary['total_income'] ?? 0), 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -44,15 +221,15 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                                 Total Expenses (YTD)
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($financial_summary['total_expenses'] ?? 0, 2) ?>
+                                $<?= number_format(($financial_summary['total_expenses'] ?? 0), 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -72,7 +249,7 @@
                                 Net Income (YTD)
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format(($financial_summary['total_income'] ?? 0) - ($financial_summary['total_expenses'] ?? 0), 2) ?>
+                                $<?= number_format((($financial_summary['total_income'] ?? 0) - ($financial_summary['total_expenses'] ?? 0)), 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -89,14 +266,14 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Occupancy Rate
+                                Properties
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= number_format($report_data['occupancy_rate'] ?? 0, 1) ?>%
+                                <?= count($properties ?? []) ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-home fa-2x text-gray-300"></i>
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -104,436 +281,155 @@
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="row mb-4">
-        <!-- Income Chart -->
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-chart-area"></i> Monthly Income Trend
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="incomeChart" width="400" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Property Status Chart -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-chart-pie"></i> Property Status
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="propertyChart" width="400" height="400"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tables Row -->
+    <!-- Recent Generated Reports -->
     <div class="row">
-        <!-- Property Performance -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-building"></i> Property Performance
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <?php if (!empty($property_performance)): ?>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Property</th>
-                                        <th>Income</th>
-                                        <th>Occupancy</th>
-                                        <th>ROI</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($property_performance as $property): ?>
-                                        <tr>
-                                            <td>
-                                                <strong><?= esc($property['property_name']) ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?= esc($property['address']) ?></small>
-                                            </td>
-                                            <td>
-                                                <span class="text-success">
-                                                    $<?= number_format($property['total_income'] ?? 0, 0) ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-<?= ($property['occupancy_rate'] ?? 0) >= 90 ? 'success' : (($property['occupancy_rate'] ?? 0) >= 70 ? 'warning' : 'danger') ?>">
-                                                    <?= number_format($property['occupancy_rate'] ?? 0, 1) ?>%
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="text-<?= ($property['roi'] ?? 0) >= 8 ? 'success' : 'warning' ?>">
-                                                    <?= number_format($property['roi'] ?? 0, 1) ?>%
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-chart-bar fa-3x mb-3"></i>
-                            <p>No property performance data available</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Maintenance Summary -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-tools"></i> Maintenance Summary
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <?php if (!empty($maintenance_summary)): ?>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Category</th>
-                                        <th>Requests</th>
-                                        <th>Total Cost</th>
-                                        <th>Avg Cost</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($maintenance_summary as $category): ?>
-                                        <tr>
-                                            <td>
-                                                <i class="fas fa-<?= $category['category'] === 'Plumbing' ? 'faucet' : ($category['category'] === 'Electrical' ? 'bolt' : ($category['category'] === 'HVAC' ? 'snowflake' : 'tools')) ?> text-primary me-2"></i>
-                                                <?= esc($category['category']) ?>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-info"><?= $category['count'] ?></span>
-                                            </td>
-                                            <td>
-                                                <span class="text-danger">$<?= number_format($category['total_cost'], 2) ?></span>
-                                            </td>
-                                            <td>
-                                                <span class="text-muted">$<?= number_format($category['avg_cost'], 2) ?></span>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-tools fa-3x mb-3"></i>
-                            <p>No maintenance data available</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Analysis -->
-    <div class="row">
-        <div class="col-12">
+        <div class="col-lg-12">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-credit-card"></i> Payment Analysis
+                        <i class="fas fa-history"></i> Recent Generated Reports
                     </h6>
+                    <?php if (!empty($generated_reports)): ?>
+                        <span class="badge badge-primary badge-pill"><?= count($generated_reports) ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
-                    <?php if (!empty($payment_analysis)): ?>
+                    <?php if (!empty($generated_reports) && is_array($generated_reports)): ?>
                         <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="table-light">
+                            <table class="table table-bordered table-hover">
+                                <thead class="thead-light">
                                     <tr>
-                                        <th>Month</th>
-                                        <th>Expected</th>
-                                        <th>Collected</th>
-                                        <th>Collection Rate</th>
-                                        <th>Outstanding</th>
-                                        <th>On-Time Payments</th>
+                                        <th width="15%">Report Type</th>
+                                        <th width="35%">Report Name</th>
+                                        <th width="20%">Property</th>
+                                        <th width="15%">Generated Date</th>
+                                        <th width="15%">Generated By</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($payment_analysis as $month_data): ?>
+                                    <?php foreach ($generated_reports as $report): ?>
                                         <tr>
                                             <td>
-                                                <strong><?= esc($month_data['month']) ?></strong>
+                                                <?php if (($report['report_kind'] ?? '') === 'Ownership Report'): ?>
+                                                    <span class="badge badge-primary" style="color: black !important;">
+    <i class="fas fa-building"></i> Ownership
+</span>
+                                                <?php elseif (($report['report_kind'] ?? '') === 'Income Report'): ?>
+                                                    <span class="badge badge-success" style="color: black !important;">
+    <i class="fas fa-dollar-sign"></i> Income
+</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-secondary">
+                                                        <?= esc($report['report_kind'] ?? 'Unknown') ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             </td>
                                             <td>
-                                                $<?= number_format($month_data['expected'], 2) ?>
+                                                <div class="font-weight-bold text-dark">
+                                                    <?= esc($report['report_name'] ?? 'Unknown Report') ?>
+                                                </div>
                                             </td>
                                             <td>
-                                                <span class="text-success">
-                                                    $<?= number_format($month_data['collected'], 2) ?>
+                                                <span class="text-primary">
+                                                    <i class="fas fa-home fa-sm"></i> 
+                                                    <?= esc($report['property_name'] ?? 'N/A') ?>
                                                 </span>
                                             </td>
                                             <td>
-                                                <?php $rate = $month_data['expected'] > 0 ? ($month_data['collected'] / $month_data['expected']) * 100 : 0; ?>
-                                                <span class="badge bg-<?= $rate >= 95 ? 'success' : ($rate >= 85 ? 'warning' : 'danger') ?>">
-                                                    <?= number_format($rate, 1) ?>%
-                                                </span>
+                                                <div class="text-dark">
+                                                    <?= date('M d, Y', strtotime($report['generated_date'] ?? date('Y-m-d'))) ?>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <?= date('g:i A', strtotime($report['generated_date'] ?? date('Y-m-d H:i:s'))) ?>
+                                                </small>
                                             </td>
                                             <td>
-                                                <?php $outstanding = $month_data['expected'] - $month_data['collected']; ?>
-                                                <span class="text-<?= $outstanding > 0 ? 'danger' : 'success' ?>">
-                                                    $<?= number_format($outstanding, 2) ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-info">
-                                                    <?= $month_data['on_time_payments'] ?>/<?= $month_data['total_payments'] ?>
-                                                </span>
+                                                <div class="text-dark">
+                                                    <i class="fas fa-user fa-sm text-muted"></i>
+                                                    <?= esc($report['generated_by'] ?? 'Unknown') ?>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <?php if (count($generated_reports) >= 10): ?>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Showing last 10 reports. Older reports are automatically archived.
+                                </small>
+                            </div>
+                        <?php endif; ?>
+                        
                     <?php else: ?>
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-credit-card fa-3x mb-3"></i>
-                            <p>No payment data available</p>
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-file-pdf fa-4x text-muted"></i>
+                            </div>
+                            <h5 class="text-muted">No Reports Generated Yet</h5>
+                            <p class="text-muted mb-4">
+                                Use the forms above to generate your first ownership or income report. 
+                                All generated reports will appear here for your reference.
+                            </p>
+                            <div class="row justify-content-center">
+                                <div class="col-md-8">
+                                    <div class="alert alert-info">
+                                        <strong><i class="fas fa-lightbulb"></i> Quick Start:</strong>
+                                        <ul class="mb-0 mt-2 text-left">
+                                            <li>Generate an <strong>Ownership Report</strong> to see property details and owner percentages</li>
+                                            <li>Create an <strong>Income Report</strong> to track earnings and expenses over time</li>
+                                            <li>All reports are saved as PDF files for easy sharing and record keeping</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Income Chart
-const incomeCtx = document.getElementById('incomeChart').getContext('2d');
-const incomeChart = new Chart(incomeCtx, {
-    type: 'line',
-    data: {
-        labels: <?= json_encode($chart_data['income']['labels'] ?? []) ?>,
-        datasets: [{
-            label: 'Monthly Income',
-            data: <?= json_encode($chart_data['income']['data'] ?? []) ?>,
-            borderColor: '#4e73df',
-            backgroundColor: 'rgba(78, 115, 223, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.3
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return '' + value.toLocaleString();
-                    }
-                }
-            }
-        }
+// Set default dates when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    if (startDateInput) {
+        startDateInput.value = firstDayOfMonth.toISOString().split('T')[0];
+    }
+    if (endDateInput) {
+        endDateInput.value = lastDayOfMonth.toISOString().split('T')[0];
     }
 });
 
-// Property Status Chart
-const propertyCtx = document.getElementById('propertyChart').getContext('2d');
-const propertyChart = new Chart(propertyCtx, {
-    type: 'doughnut',
-    data: {
-        labels: <?= json_encode($chart_data['property']['labels'] ?? ['Occupied', 'Vacant']) ?>,
-        datasets: [{
-            data: <?= json_encode($chart_data['property']['data'] ?? [0, 0]) ?>,
-            backgroundColor: [
-                '#1cc88a',
-                '#f6c23e'
-            ],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    padding: 20,
-                    usePointStyle: true
-                }
-            }
+// Show loading when generating reports
+document.querySelectorAll('form').forEach(function(form) {
+    form.addEventListener('submit', function() {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+            submitBtn.disabled = true;
+            
+            // Re-enable after 10 seconds as fallback
+            setTimeout(function() {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 10000);
         }
-    }
-});
-
-// Update reports function
-function updateReports() {
-    const year = document.getElementById('report_year').value;
-    window.location.href = `<?= site_url('landlord/reports') ?>?year=${year}`;
-}
-
-// Export reports function
-function exportReports() {
-    const year = document.getElementById('report_year').value;
-    
-    // Show loading
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-    btn.disabled = true;
-    
-    // Create export URL
-    const exportUrl = `<?= site_url('landlord/reports/export') ?>?year=${year}&format=pdf`;
-    
-    // Create temporary link and download
-    const link = document.createElement('a');
-    link.href = exportUrl;
-    link.download = `financial_report_${year}.pdf`;
-    link.click();
-    
-    // Restore button
-    setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }, 2000);
-}
-
-// Auto-refresh charts when window resizes
-window.addEventListener('resize', function() {
-    incomeChart.resize();
-    propertyChart.resize();
+    });
 });
 </script>
-
-<style>
-/* Reports Page Styling */
-.border-left-success {
-    border-left: 0.25rem solid #1cc88a !important;
-}
-
-.border-left-danger {
-    border-left: 0.25rem solid #e74a3b !important;
-}
-
-.border-left-primary {
-    border-left: 0.25rem solid #4e73df !important;
-}
-
-.border-left-info {
-    border-left: 0.25rem solid #36b9cc !important;
-}
-
-.text-gray-800 {
-    color: #5a5c69 !important;
-}
-
-.text-gray-300 {
-    color: #dddfeb !important;
-}
-
-.mr-2 {
-    margin-right: 0.5rem !important;
-}
-
-.no-gutters {
-    margin-right: 0;
-    margin-left: 0;
-}
-
-.no-gutters > .col,
-.no-gutters > [class*="col-"] {
-    padding-right: 0;
-    padding-left: 0;
-}
-
-/* Chart containers */
-#incomeChart {
-    height: 300px !important;
-}
-
-#propertyChart {
-    height: 250px !important;
-}
-
-/* Table enhancements */
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0,123,255,.075);
-}
-
-/* Card hover effects */
-.card {
-    transition: all 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .d-sm-flex {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .d-flex.gap-2 {
-        flex-direction: column;
-        gap: 0.5rem !important;
-    }
-    
-    .form-select,
-    .btn {
-        width: 100%;
-    }
-    
-    #incomeChart {
-        height: 250px !important;
-    }
-    
-    #propertyChart {
-        height: 200px !important;
-    }
-}
-
-@media (max-width: 576px) {
-    .table-responsive {
-        font-size: 0.85rem;
-    }
-    
-    .card-body {
-        padding: 1rem 0.75rem;
-    }
-}
-</style>
 
 <?= $this->endSection() ?>

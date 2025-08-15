@@ -196,7 +196,7 @@
                         <?php endif; ?>
 
                         <!-- Registration Form -->
-                        <form action="<?= site_url('register') ?>" method="post" id="registerForm">
+                        <form action="<?= site_url('auth/register') ?>" method="post" id="registerForm">
                             <?= csrf_field() ?>
 
 
@@ -381,6 +381,12 @@
                                     <a href="#" class="text-primary">Privacy Policy</a>
                                 </label>
                             </div>
+                            <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" value="1" id="terms" name="terms" required>
+    <label class="form-check-label" for="terms">
+        I agree to the <a href="#" target="_blank">Terms and Conditions</a>
+    </label>
+</div>
 
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-register">
