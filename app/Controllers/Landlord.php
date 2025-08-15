@@ -28,25 +28,72 @@ class Landlord extends BaseController
     }
 
     /**
+     * Get current user ID - FIXED VERSION (NO DUPLICATES)
+     */
+    protected function getCurrentUserId()
+    {
+        return session()->get('user_id');
+    }
+
+    /**
+     * Require landlord role - FIXED VERSION (NO DUPLICATES)
+     */
+    protected function requireLandlord()
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/auth/login');
+        }
+        return null;
+    }
+
+    /**
+     * Test method
+     */
+    public function test()
+    {
+        echo "Landlord controller is working!<br>";
+        echo "Session user_id: " . session()->get('user_id') . "<br>";
+        echo "Session role: " . session()->get('role') . "<br>";
+        echo "Session isLoggedIn: " . (session()->get('isLoggedIn') ? 'Yes' : 'No') . "<br>";
+        return;
+    }
+
+    /**
      * Landlord Dashboard
      */
     public function dashboard()
     {
         // Check landlord access
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $landlordId = $this->getCurrentUserId();
 
-        // Get landlord's properties
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        // Get landlord's properties with safe defaults
+        try {
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        } catch (\Exception $e) {
+            log_message('error', 'Properties error: ' . $e->getMessage());
+            $properties = [];
+        }
 
-        // Get recent payments for landlord's properties
-        $recentPayments = $this->paymentModel->getPaymentsByLandlord($landlordId, 10);
+        // Get recent payments with safe defaults
+        try {
+            $recentPayments = $this->paymentModel->getPaymentsByLandlord($landlordId, 10);
+        } catch (\Exception $e) {
+            log_message('error', 'Payments error: ' . $e->getMessage());
+            $recentPayments = [];
+        }
 
-        // Get maintenance requests for landlord's properties
-        $maintenanceRequests = $this->maintenanceModel->getRequestsByLandlord($landlordId, 10);
+        // Get maintenance requests with safe defaults
+        try {
+            $maintenanceRequests = $this->maintenanceModel->getRequestsByLandlord($landlordId, 10);
+        } catch (\Exception $e) {
+            log_message('error', 'Maintenance error: ' . $e->getMessage());
+            $maintenanceRequests = [];
+        }
 
         // Calculate dashboard statistics
         $stats = $this->getLandlordStats($landlordId);
@@ -68,11 +115,18 @@ class Landlord extends BaseController
     public function properties()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $landlordId = $this->getCurrentUserId();
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        
+        try {
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        } catch (\Exception $e) {
+            log_message('error', 'Properties page error: ' . $e->getMessage());
+            $properties = [];
+        }
 
         $data = [
             'title' => 'My Properties',
@@ -88,31 +142,38 @@ class Landlord extends BaseController
     public function tenants()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $landlordId = $this->getCurrentUserId();
 
-        // Get tenants from leases
-        $leases = $this->leaseModel->getLeasesByLandlord($landlordId);
-        $tenants = [];
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        try {
+            // Get tenants from leases
+            $leases = $this->leaseModel->getLeasesByLandlord($landlordId);
+            $tenants = [];
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
 
-        // Convert leases to tenant format for the view
-        foreach ($leases as $lease) {
-            $tenant = $this->userModel->find($lease['tenant_id']);
-            if ($tenant) {
-                $tenant['property_name'] = $lease['property_name'] ?? '';
-                $tenant['property_address'] = $lease['property_address'] ?? '';
-                $tenant['lease_start'] = $lease['start_date'];
-                $tenant['lease_end'] = $lease['end_date'];
-                $tenant['rent_amount'] = $lease['rent_amount'];
-                $tenant['ownership_percentage'] = $lease['ownership_percentage'] ?? 100;
-                $tenant['lease_status'] = $lease['status'];
-                $tenant['security_deposit'] = $lease['security_deposit'] ?? 0;
-                $tenant['payment_status'] = 'current'; // You might want to calculate this
-                $tenants[] = $tenant;
+            // Convert leases to tenant format for the view
+            foreach ($leases as $lease) {
+                $tenant = $this->userModel->find($lease['tenant_id']);
+                if ($tenant) {
+                    $tenant['property_name'] = $lease['property_name'] ?? '';
+                    $tenant['property_address'] = $lease['property_address'] ?? '';
+                    $tenant['lease_start'] = $lease['start_date'];
+                    $tenant['lease_end'] = $lease['end_date'];
+                    $tenant['rent_amount'] = $lease['rent_amount'];
+                    $tenant['ownership_percentage'] = $lease['ownership_percentage'] ?? 100;
+                    $tenant['lease_status'] = $lease['status'];
+                    $tenant['security_deposit'] = $lease['security_deposit'] ?? 0;
+                    $tenant['payment_status'] = 'current';
+                    $tenants[] = $tenant;
+                }
             }
+        } catch (\Exception $e) {
+            log_message('error', 'Tenants page error: ' . $e->getMessage());
+            $tenants = [];
+            $properties = [];
         }
 
         $data = [
@@ -130,12 +191,20 @@ class Landlord extends BaseController
     public function maintenance()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $landlordId = $this->getCurrentUserId();
-        $maintenance_requests = $this->maintenanceModel->getRequestsByLandlord($landlordId);
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        
+        try {
+            $maintenance_requests = $this->maintenanceModel->getRequestsByLandlord($landlordId);
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        } catch (\Exception $e) {
+            log_message('error', 'Maintenance page error: ' . $e->getMessage());
+            $maintenance_requests = [];
+            $properties = [];
+        }
 
         $data = [
             'title' => 'Maintenance Requests',
@@ -152,33 +221,42 @@ class Landlord extends BaseController
     public function payments()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
-
-        $landlordId = $this->getCurrentUserId();
-        $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
-
-        // Filter by month/year if requested
-        $month = $this->request->getGet('month');
-        $year = $this->request->getGet('year');
-        $status = $this->request->getGet('status');
-        $property_id = $this->request->getGet('property_id');
-
-        if ($month || $year || $status || $property_id) {
-            $payments = array_filter($payments, function ($payment) use ($month, $year, $status, $property_id) {
-                $paymentDate = strtotime($payment['payment_date']);
-                $matchMonth = !$month || date('m', $paymentDate) == $month;
-                $matchYear = !$year || date('Y', $paymentDate) == $year;
-                $matchStatus = !$status || $payment['status'] == $status;
-                $matchProperty = !$property_id || $payment['property_id'] == $property_id;
-
-                return $matchMonth && $matchYear && $matchStatus && $matchProperty;
-            });
         }
 
-        // Calculate payment statistics
-        $payment_stats = $this->calculatePaymentStats($payments);
+        $landlordId = $this->getCurrentUserId();
+        
+        try {
+            $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+
+            // Filter by month/year if requested
+            $month = $this->request->getGet('month');
+            $year = $this->request->getGet('year');
+            $status = $this->request->getGet('status');
+            $property_id = $this->request->getGet('property_id');
+
+            if ($month || $year || $status || $property_id) {
+                $payments = array_filter($payments, function ($payment) use ($month, $year, $status, $property_id) {
+                    $paymentDate = strtotime($payment['payment_date']);
+                    $matchMonth = !$month || date('m', $paymentDate) == $month;
+                    $matchYear = !$year || date('Y', $paymentDate) == $year;
+                    $matchStatus = !$status || $payment['status'] == $status;
+                    $matchProperty = !$property_id || $payment['property_id'] == $property_id;
+
+                    return $matchMonth && $matchYear && $matchStatus && $matchProperty;
+                });
+            }
+
+            // Calculate payment statistics
+            $payment_stats = $this->calculatePaymentStats($payments);
+        } catch (\Exception $e) {
+            log_message('error', 'Payments page error: ' . $e->getMessage());
+            $payments = [];
+            $properties = [];
+            $payment_stats = [];
+        }
 
         $data = [
             'title' => 'Payment History',
@@ -197,59 +275,79 @@ class Landlord extends BaseController
     public function reports()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $landlordId = $this->getCurrentUserId();
         $year = $this->request->getGet('year') ?? date('Y');
 
-        // Get data for reports
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
-        $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
-        $maintenance = $this->maintenanceModel->getRequestsByLandlord($landlordId);
+        try {
+            // Get data for reports
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+            $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
+            $maintenance = $this->maintenanceModel->getRequestsByLandlord($landlordId);
 
-        // Prepare report data
-        $report_data = $this->prepareReportData($payments, $maintenance, $properties);
-        $financial_summary = $this->calculateFinancialSummary($payments);
-        $chart_data = $this->getReportChartData($payments, $properties, $maintenance);
+            // Prepare report data
+            $report_data = $this->prepareReportData($payments, $maintenance, $properties);
+            $financial_summary = $this->calculateFinancialSummary($payments);
+            $chart_data = $this->getReportChartData($payments, $properties, $maintenance);
+        } catch (\Exception $e) {
+            log_message('error', 'Reports page error: ' . $e->getMessage());
+            $properties = [];
+            $report_data = [];
+            $financial_summary = [];
+            $chart_data = [];
+        }
 
         $data = [
             'title' => 'Reports & Analytics',
             'properties' => $properties ?? [],
             'report_data' => $report_data,
             'financial_summary' => $financial_summary,
-            'maintenance_summary' => $this->getMaintenanceSummary($maintenance),
+            'maintenance_summary' => $this->getMaintenanceSummary($maintenance ?? []),
             'chart_data' => $chart_data,
-            'generated_reports' => [], // You can implement this later
-            'scheduled_reports' => []  // You can implement this later
+            'generated_reports' => [],
+            'scheduled_reports' => []
         ];
 
         return view('landlord/reports', $data);
     }
 
     /**
-     * Profile Management - UPDATED VERSION
+     * Profile Management
      */
     public function profile()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $userId = $this->getCurrentUserId();
         $user = $this->userModel->find($userId);
 
-        // Get user statistics
-        $properties = $this->propertyModel->getPropertiesForLandlord($userId);
-        $leases = $this->leaseModel->getLeasesByLandlord($userId);
-        $payments = $this->paymentModel->getPaymentsByLandlord($userId);
+        try {
+            // Get user statistics
+            $properties = $this->propertyModel->getPropertiesForLandlord($userId);
+            $leases = $this->leaseModel->getLeasesByLandlord($userId);
+            $payments = $this->paymentModel->getPaymentsByLandlord($userId);
 
-        $stats = [
-            'total_properties' => count($properties),
-            'total_tenants' => count($leases),
-            'total_income' => '$' . number_format(array_sum(array_column($payments, 'amount')), 0),
-            'avg_occupancy' => $this->calculateOccupancyRate($properties)
-        ];
+            $stats = [
+                'total_properties' => count($properties),
+                'total_tenants' => count($leases),
+                'total_income' => '$' . number_format(array_sum(array_column($payments, 'amount')), 0),
+                'avg_occupancy' => $this->calculateOccupancyRate($properties)
+            ];
+        } catch (\Exception $e) {
+            log_message('error', 'Profile stats error: ' . $e->getMessage());
+            $stats = [
+                'total_properties' => 0,
+                'total_tenants' => 0,
+                'total_income' => '$0',
+                'avg_occupancy' => 0
+            ];
+        }
 
         $data = [
             'title' => 'My Profile',
@@ -261,13 +359,14 @@ class Landlord extends BaseController
     }
 
     /**
-     * Update Profile - FIXED VERSION
+     * Update Profile
      */
     public function updateProfile()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $userId = $this->getCurrentUserId();
 
@@ -281,7 +380,7 @@ class Landlord extends BaseController
             return redirect()->to('/auth/login');
         }
 
-        // Validation rules based on actual database columns
+        // Validation rules
         $rules = [
             'first_name' => 'required|min_length[2]|max_length[50]',
             'last_name' => 'required|min_length[2]|max_length[50]',
@@ -300,7 +399,7 @@ class Landlord extends BaseController
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
-        // Prepare update data with only existing columns
+        // Prepare update data
         $updateData = [
             'first_name' => $this->request->getPost('first_name'),
             'last_name' => $this->request->getPost('last_name'),
@@ -328,7 +427,6 @@ class Landlord extends BaseController
                 $this->setSuccess('Profile updated successfully');
                 return redirect()->to('/landlord/profile');
             } else {
-                // Get database errors
                 $db = \Config\Database::connect();
                 $error = $db->error();
 
@@ -358,18 +456,16 @@ class Landlord extends BaseController
     }
 
     /**
-     * DEBUG: Detailed password change debugging
-     * Replace your changePassword method with this temporarily
+     * Change Password
      */
     public function changePassword()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $userId = $this->getCurrentUserId();
-        log_message('info', '=== PASSWORD CHANGE DEBUG START ===');
-        log_message('info', 'User ID: ' . $userId);
 
         if (!$userId) {
             if ($this->request->isAJAX()) {
@@ -381,19 +477,6 @@ class Landlord extends BaseController
             return redirect()->to('/auth/login');
         }
 
-        // Log all POST data (careful - contains passwords)
-        $postData = $this->request->getPost();
-        log_message('info', 'POST fields received: ' . implode(', ', array_keys($postData)));
-
-        // Get the passwords
-        $currentPasswordInput = $this->request->getPost('current_password');
-        $newPassword = $this->request->getPost('new_password');
-        $confirmPassword = $this->request->getPost('confirm_password');
-
-        log_message('info', 'Current password input length: ' . strlen($currentPasswordInput ?? ''));
-        log_message('info', 'New password length: ' . strlen($newPassword ?? ''));
-        log_message('info', 'Current password (first 3 chars): ' . substr($currentPasswordInput ?? '', 0, 3));
-
         // Validation rules
         $rules = [
             'current_password' => 'required',
@@ -403,7 +486,6 @@ class Landlord extends BaseController
 
         if (!$this->validate($rules)) {
             $errors = $this->validator->getErrors();
-            log_message('error', 'Validation failed: ' . json_encode($errors));
 
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
@@ -418,7 +500,6 @@ class Landlord extends BaseController
         try {
             // Get current user
             $user = $this->userModel->find($userId);
-            log_message('info', 'User found: ' . ($user ? 'Yes' : 'No'));
 
             if (!$user) {
                 if ($this->request->isAJAX()) {
@@ -430,62 +511,26 @@ class Landlord extends BaseController
                 return redirect()->back();
             }
 
-            $storedPasswordHash = $user['password'];
-            log_message('info', 'Stored hash: ' . $storedPasswordHash);
-            log_message('info', 'Hash info: ' . json_encode(password_get_info($storedPasswordHash)));
+            $currentPasswordInput = $this->request->getPost('current_password');
+            $newPassword = $this->request->getPost('new_password');
 
-            // Test the exact input against the hash
-            log_message('info', 'Testing current password...');
-            $passwordVerified = password_verify($currentPasswordInput, $storedPasswordHash);
-            log_message('info', 'Password verification result: ' . ($passwordVerified ? 'SUCCESS' : 'FAILED'));
-
-            // If failed, let's test with different variations
-            if (!$passwordVerified) {
-                log_message('info', 'Testing password variations...');
-
-                // Test without whitespace
-                $trimmedInput = trim($currentPasswordInput);
-                $trimTest = password_verify($trimmedInput, $storedPasswordHash);
-                log_message('info', 'Trimmed password test: ' . ($trimTest ? 'SUCCESS' : 'FAILED'));
-
-                // Test common variations
-                $variations = [
-                    strtolower($currentPasswordInput),
-                    strtoupper($currentPasswordInput),
-                    ucfirst($currentPasswordInput)
-                ];
-
-                foreach ($variations as $i => $variation) {
-                    $result = password_verify($variation, $storedPasswordHash);
-                    log_message('info', 'Variation ' . ($i + 1) . ' test: ' . ($result ? 'SUCCESS' : 'FAILED'));
-                }
-            }
-
-            if (!$passwordVerified) {
-                log_message('error', 'All password verification attempts failed');
+            // Verify current password
+            if (!password_verify($currentPasswordInput, $user['password'])) {
                 if ($this->request->isAJAX()) {
                     return $this->response->setJSON([
                         'success' => false,
-                        'message' => 'Current password is incorrect. Please check your spelling and try again.'
+                        'message' => 'Current password is incorrect'
                     ]);
                 }
                 $this->setError('Current password is incorrect');
                 return redirect()->back();
             }
 
-            // If we get here, password verification succeeded
-            log_message('info', 'Password verification successful, proceeding with update...');
-
             // Hash the new password
             $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
 
             if (!$newPasswordHash) {
                 throw new \Exception('Failed to hash new password');
-            }
-
-            // Verify the new hash works
-            if (!password_verify($newPassword, $newPasswordHash)) {
-                throw new \Exception('Password hash verification failed');
             }
 
             // Update password
@@ -497,20 +542,7 @@ class Landlord extends BaseController
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
-            log_message('info', 'Database update result: ' . ($result ? 'SUCCESS' : 'FAILED'));
-
             if ($result) {
-                // Final verification
-                $updatedUser = $db->table('users')->where('id', $userId)->get()->getRowArray();
-                $finalVerification = password_verify($newPassword, $updatedUser['password']);
-                log_message('info', 'Final verification: ' . ($finalVerification ? 'SUCCESS' : 'FAILED'));
-
-                if (!$finalVerification) {
-                    throw new \Exception('Password update verification failed');
-                }
-
-                log_message('info', 'Password change completed successfully');
-
                 if ($this->request->isAJAX()) {
                     return $this->response->setJSON([
                         'success' => true,
@@ -522,7 +554,6 @@ class Landlord extends BaseController
                 return redirect()->to('/landlord/profile');
             } else {
                 $error = $db->error();
-                log_message('error', 'Database update failed: ' . json_encode($error));
                 throw new \Exception('Database update failed');
             }
 
@@ -542,210 +573,97 @@ class Landlord extends BaseController
     }
 
     /**
- * Updated addProperty method with optional fields and better ownership handling
- */
-public function addProperty()
-{
-    $redirect = $this->requireLandlord();
-    if ($redirect) return $redirect;
+     * Check Database
+     */
+    public function checkDatabase()
+    {
+        try {
+            $db = \Config\Database::connect();
 
-    $rules = [
-        'property_name' => 'required|min_length[3]|max_length[100]',
-        'property_type' => 'required|in_list[rest_house,chalet,other]',
-        'number_of_landlords' => 'required|integer|greater_than[0]|less_than_equal_to[100]',
-        'property_address' => 'required|min_length[5]|max_length[1000]',
-        'number_of_units' => 'required|integer|greater_than[0]|less_than_equal_to[500]',
-        'landlord_names' => 'required',
-        'ownership_percentages' => 'required',
-        'unit_names' => 'required',
-        'expense_names' => 'required',
-        'expense_amounts' => 'required',
-        'management_company' => 'permit_empty|max_length[100]',
-        'management_percentage' => 'permit_empty|decimal|greater_than_equal_to[0]|less_than_equal_to[50]'
-    ];
+            echo "<h3>Database Connection Test</h3>";
+            $result = $db->query("SELECT 1")->getResult();
+            echo "✅ Database connection successful!<br><br>";
 
-    if (!$this->validate($rules)) {
-        $errors = $this->validator->getErrors();
-        $errorMessages = [];
-
-        foreach ($errors as $field => $error) {
-            $errorMessages[] = $error;
-        }
-
-        return $this->respondWithError('Please fill all required fields: ' . implode(', ', $errorMessages), 400);
-    }
-
-    // Get form data
-    $landlordNames = $this->request->getPost('landlord_names');
-    $landlordUsernames = $this->request->getPost('landlord_usernames');
-    $ownershipPercentages = $this->request->getPost('ownership_percentages');
-    $unitNames = $this->request->getPost('unit_names');
-    $expenseNames = $this->request->getPost('expense_names');
-    $expenseAmounts = $this->request->getPost('expense_amounts');
-
-    // Validate arrays have same length
-    if (count($landlordNames) !== count($ownershipPercentages)) {
-        return $this->respondWithError('Mismatch between number of landlord names and ownership percentages', 400);
-    }
-
-    if (count($landlordNames) !== count($landlordUsernames)) {
-        return $this->respondWithError('Mismatch between number of landlord names and usernames', 400);
-    }
-
-    if (count($expenseNames) !== count($expenseAmounts)) {
-        return $this->respondWithError('Mismatch between expense names and amounts', 400);
-    }
-
-    // Validate ownership percentages total exactly 100%
-    $totalOwnership = array_sum(array_map('floatval', $ownershipPercentages));
-
-    if (abs($totalOwnership - 100) >= 0.01) {
-        return $this->respondWithError('Total ownership percentage must equal exactly 100%', 400);
-    }
-
-    // Validate expenses
-    foreach ($expenseAmounts as $amount) {
-        if (floatval($amount) < 0) {
-            return $this->respondWithError('Expense amounts cannot be negative', 400);
-        }
-    }
-
-    $currentLandlordId = $this->getCurrentUserId();
-    $db = \Config\Database::connect();
-
-    // Start transaction
-    $db->transStart();
-
-    try {
-        // Prepare property data
-        $managementCompany = $this->request->getPost('management_company');
-        $managementPercentage = $this->request->getPost('management_percentage');
-        
-        // Insert property
-        $propertyData = [
-            'property_name' => $this->request->getPost('property_name'),
-            'property_type' => $this->request->getPost('property_type'),
-            'address' => $this->request->getPost('property_address'),
-            'number_of_units' => $this->request->getPost('number_of_units'),
-            'management_company' => !empty($managementCompany) ? $managementCompany : null,
-            'management_percentage' => !empty($managementPercentage) ? floatval($managementPercentage) : 0,
-            'number_of_landlords' => count($landlordNames),
-            'status' => 'vacant',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
-        $result = $db->table('properties')->insert($propertyData);
-
-        if (!$result) {
-            throw new \Exception('Failed to insert property');
-        }
-
-        $propertyId = $db->insertID();
-
-        // Insert property units
-        for ($i = 0; $i < count($unitNames); $i++) {
-            $unitData = [
-                'property_id' => $propertyId,
-                'unit_name' => trim($unitNames[$i]),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+            echo "<h3>Required Tables Check</h3>";
+            $requiredTables = [
+                'properties' => [
+                    'id', 'property_name', 'property_type', 'address', 'number_of_units',
+                    'management_company', 'management_percentage', 'number_of_landlords',
+                    'status', 'created_at', 'updated_at'
+                ],
+                'property_units' => [
+                    'id', 'property_id', 'unit_name', 'created_at', 'updated_at'
+                ],
+                'property_expenses' => [
+                    'id', 'property_id', 'expense_name', 'expense_amount', 'created_at', 'updated_at'
+                ],
+                'property_ownership' => [
+                    'id', 'property_id', 'user_id', 'landlord_name', 'username',
+                    'ownership_percentage', 'created_at'
+                ]
             ];
 
-            $unitResult = $db->table('property_units')->insert($unitData);
+            foreach ($requiredTables as $tableName => $expectedColumns) {
+                if ($db->tableExists($tableName)) {
+                    echo "✅ Table '$tableName' exists<br>";
 
-            if (!$unitResult) {
-                throw new \Exception('Failed to insert unit: ' . $unitNames[$i]);
-            }
-        }
+                    $fields = $db->getFieldNames($tableName);
+                    $missingColumns = array_diff($expectedColumns, $fields);
+                    $extraColumns = array_diff($fields, $expectedColumns);
 
-        // Insert property expenses
-        for ($i = 0; $i < count($expenseNames); $i++) {
-            $expenseData = [
-                'property_id' => $propertyId,
-                'expense_name' => trim($expenseNames[$i]),
-                'expense_amount' => floatval($expenseAmounts[$i]),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
+                    if (empty($missingColumns)) {
+                        echo "&nbsp;&nbsp;&nbsp;✅ All required columns present<br>";
+                    } else {
+                        echo "&nbsp;&nbsp;&nbsp;❌ Missing columns: " . implode(', ', $missingColumns) . "<br>";
+                    }
 
-            $expenseResult = $db->table('property_expenses')->insert($expenseData);
+                    if (!empty($extraColumns)) {
+                        echo "&nbsp;&nbsp;&nbsp;ℹ️ Extra columns: " . implode(', ', $extraColumns) . "<br>";
+                    }
 
-            if (!$expenseResult) {
-                throw new \Exception('Failed to insert expense: ' . $expenseNames[$i]);
-            }
-        }
-
-        // Insert property ownership for each landlord
-        for ($i = 0; $i < count($landlordNames); $i++) {
-            $username = trim($landlordUsernames[$i]);
-            $userId = null;
-
-            // Look up user ID if username is provided
-            if (!empty($username)) {
-                $user = $db->table('users')->where('username', $username)->get()->getRowArray();
-                if ($user) {
-                    $userId = $user['id'];
                 } else {
-                    // Username provided but doesn't exist
-                    log_message('warning', 'Username not found during property creation: ' . $username);
+                    echo "❌ Table '$tableName' does not exist<br>";
                 }
+                echo "<br>";
             }
 
-            $ownershipData = [
-                'property_id' => $propertyId,
-                'user_id' => $userId,
-                'landlord_name' => trim($landlordNames[$i]),
-                'username' => !empty($username) ? $username : null,
-                'ownership_percentage' => floatval($ownershipPercentages[$i]),
-                'created_at' => date('Y-m-d H:i:s')
+            echo "<h3>Test Simple Insert</h3>";
+            $testData = [
+                'property_name' => 'Test Property - ' . date('Y-m-d H:i:s'),
+                'property_type' => 'other',
+                'address' => 'Test Address',
+                'number_of_units' => 1,
+                'number_of_landlords' => 1,
+                'status' => 'vacant',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
 
-            $ownershipResult = $db->table('property_ownership')->insert($ownershipData);
-
-            if (!$ownershipResult) {
-                throw new \Exception('Failed to insert property ownership for ' . $landlordNames[$i]);
+            $insertResult = $db->table('properties')->insert($testData);
+            if ($insertResult) {
+                $testId = $db->insertID();
+                echo "✅ Test insert successful! Property ID: $testId<br>";
+                $db->table('properties')->delete(['id' => $testId]);
+                echo "✅ Test data cleaned up<br>";
+            } else {
+                $error = $db->error();
+                echo "❌ Test insert failed: " . json_encode($error) . "<br>";
             }
+
+        } catch (\Exception $e) {
+            echo "❌ Database check failed: " . $e->getMessage() . "<br>";
         }
-
-        // Complete transaction
-        $db->transComplete();
-
-        if ($db->transStatus() === FALSE) {
-            throw new \Exception('Database transaction failed');
-        }
-
-        $sharedLandlords = array_filter($landlordUsernames, function($username) {
-            return !empty(trim($username));
-        });
-
-        $managementInfo = !empty($managementCompany) 
-            ? " with {$managementCompany} as management company" 
-            : " (self-managed)";
-
-        $sharingInfo = count($sharedLandlords) > 1 
-            ? " Property has been shared with " . (count($sharedLandlords) - 1) . " other landlord(s)."
-            : "";
-
-        return $this->respondWithSuccess([], 
-            'Property "' . $this->request->getPost('property_name') . '" added successfully with ' . 
-            count($landlordNames) . ' landlord(s)' . $managementInfo . $sharingInfo);
-
-    } catch (\Exception $e) {
-        $db->transRollback();
-        log_message('error', 'Add property error: ' . $e->getMessage());
-        return $this->respondWithError('Failed to add property: ' . $e->getMessage(), 500);
     }
-}
 
     /**
-     * Request New Property (shows form to add property)
+     * Request New Property
      */
     public function requestProperty()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
+        }
 
         $data = [
             'title' => 'Add New Property'
@@ -755,77 +673,20 @@ public function addProperty()
     }
 
     /**
-     * Send Admin Message
+     * Help & Support Page
      */
-    public function sendAdminMessage()
+    public function help()
     {
         $redirect = $this->requireLandlord();
-        if ($redirect)
+        if ($redirect) {
             return $redirect;
-
-        try {
-            // Get form data
-            $subject = $this->request->getPost('subject');
-            $message = $this->request->getPost('message');
-            $priority = $this->request->getPost('priority') ?: 'normal';
-
-            // Basic validation
-            if (empty($subject)) {
-                return $this->respondWithError('Subject is required');
-            }
-
-            if (empty($message)) {
-                return $this->respondWithError('Message is required');
-            }
-
-            if (strlen($message) < 3) {
-                return $this->respondWithError('Message must be at least 3 characters');
-            }
-
-            // Handle custom subject
-            if ($subject === 'Other') {
-                $customSubject = $this->request->getPost('custom_subject');
-                if (empty($customSubject)) {
-                    return $this->respondWithError('Custom subject is required when "Other" is selected');
-                }
-                $subject = $customSubject;
-            }
-
-            $landlordId = $this->getCurrentUserId();
-            $landlord = $this->userModel->find($landlordId);
-
-            if (!$landlord) {
-                return $this->respondWithError('User not found');
-            }
-
-            // Insert message into database
-            $db = \Config\Database::connect();
-
-            $messageData = [
-                'landlord_id' => $landlordId,
-                'landlord_name' => $landlord['first_name'] . ' ' . $landlord['last_name'],
-                'landlord_email' => $landlord['email'],
-                'subject' => $subject,
-                'message' => $message,
-                'priority' => $priority,
-                'status' => 'unread',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            $result = $db->table('admin_messages')->insert($messageData);
-
-            if ($result) {
-                return $this->respondWithSuccess([], 'Your message has been sent to the administrator successfully!');
-            } else {
-                $error = $db->error();
-                log_message('error', 'Database insert failed: ' . json_encode($error));
-                return $this->respondWithError('Failed to send message: ' . $error['message']);
-            }
-        } catch (\Exception $e) {
-            log_message('error', 'Admin message error: ' . $e->getMessage());
-            return $this->respondWithError('Error: ' . $e->getMessage());
         }
+
+        $data = [
+            'title' => 'Help & Support'
+        ];
+
+        return view('landlord/help', $data);
     }
 
     /**
@@ -868,49 +729,23 @@ public function addProperty()
         session()->setFlashdata('error', $message);
     }
 
-    protected function getCurrentUserId()
-    {
-    $redirect = $this->requireLandlord();
-    if ($redirect) return $redirect;
-
-    try {
-        $userId = $this->getCurrentUserId();
-        $user = $this->userModel->find($userId);
-
-        if (!$user) {
-            return $this->respondWithError('User not found', 404);
-        }
-
-        // Return only the necessary user data
-        $userData = [
-            'id' => $user['id'],
-            'first_name' => $user['first_name'] ?? '',
-            'last_name' => $user['last_name'] ?? '',
-            'username' => $user['username'] ?? '',
-            'email' => $user['email'] ?? ''
-        ];
-
-        return $this->respondWithSuccess(['user' => $userData], 'User data retrieved successfully');
-
-    } catch (\Exception $e) {
-        log_message('error', 'Get current user error: ' . $e->getMessage());
-        return $this->respondWithError('Failed to get user data: ' . $e->getMessage(), 500);
-    }
-    }
-
-    protected function requireLandlord()
-    {
-        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
-            return redirect()->to('/auth/login');
-        }
-        return null;
-    }
-
     /**
      * Helper method to calculate payment statistics
      */
     private function calculatePaymentStats($payments)
     {
+        if (empty($payments)) {
+            return [
+                'this_month_collected' => 0,
+                'this_month_expected' => 0,
+                'outstanding' => 0,
+                'year_to_date' => 0,
+                'total_collected' => 0,
+                'average_payment' => 0,
+                'methods' => []
+            ];
+        }
+
         $currentMonth = date('Y-m');
         $currentYear = date('Y');
 
@@ -927,9 +762,11 @@ public function addProperty()
         $paidPayments = array_filter($payments, function ($p) {
             return $p['status'] === 'paid';
         });
+
         $thisMonthPaid = array_filter($paidPayments, function ($p) use ($currentMonth) {
             return strpos($p['payment_date'], $currentMonth) === 0;
         });
+
         $thisYearPaid = array_filter($paidPayments, function ($p) use ($currentYear) {
             return strpos($p['payment_date'], $currentYear) === 0;
         });
@@ -939,7 +776,6 @@ public function addProperty()
         $stats['total_collected'] = array_sum(array_column($paidPayments, 'amount'));
         $stats['average_payment'] = count($paidPayments) > 0 ? $stats['total_collected'] / count($paidPayments) : 0;
 
-        // Calculate outstanding
         $outstandingPayments = array_filter($payments, function ($p) {
             return $p['status'] !== 'paid';
         });
@@ -980,17 +816,18 @@ public function addProperty()
         $totalIncome = array_sum(array_column(array_filter($payments, function ($p) {
             return $p['status'] === 'paid';
         }), 'amount'));
-        $totalExpected = array_sum(array_column($properties, 'base_rent'));
-        $occupiedProperties = count(array_filter($properties, function ($p) {
+        
+        $totalExpected = is_array($properties) ? array_sum(array_column($properties, 'base_rent')) : 0;
+        $occupiedProperties = is_array($properties) ? count(array_filter($properties, function ($p) {
             return isset($p['lease_status']) && $p['lease_status'] === 'active';
-        }));
+        })) : 0;
 
         return [
             'expected_income' => $totalExpected,
             'collected_income' => $totalIncome,
             'occupancy_rate' => count($properties) > 0 ? ($occupiedProperties / count($properties)) * 100 : 0,
-            'avg_maintenance_cost' => count($maintenance) > 0 ? array_sum(array_column($maintenance, 'estimated_cost')) / count($maintenance) : 0,
-            'avg_lease_duration' => 1.0, // You can calculate this based on actual lease data
+            'avg_maintenance_cost' => is_array($maintenance) && count($maintenance) > 0 ? array_sum(array_column($maintenance, 'estimated_cost')) / count($maintenance) : 0,
+            'avg_lease_duration' => 1.0,
             'alerts' => []
         ];
     }
@@ -1006,10 +843,10 @@ public function addProperty()
 
         return [
             'total_income' => $totalIncome,
-            'total_expenses' => $totalIncome * 0.25, // Estimate 25% expenses
+            'total_expenses' => $totalIncome * 0.25,
             'net_income' => $totalIncome * 0.75,
             'profit_margin' => 75.0,
-            'income_growth' => 5.2, // You can calculate this based on historical data
+            'income_growth' => 5.2,
             'expense_growth' => 3.1,
             'net_growth' => 6.8
         ];
@@ -1017,6 +854,10 @@ public function addProperty()
 
     private function getMaintenanceSummary($maintenance)
     {
+        if (empty($maintenance)) {
+            return [];
+        }
+
         $categories = [];
         foreach ($maintenance as $request) {
             $category = $request['category'] ?? 'General';
@@ -1057,15 +898,16 @@ public function addProperty()
             ],
             'maintenance' => [
                 'labels' => ['Plumbing', 'Electrical', 'HVAC', 'Other'],
-                'data' => [150, 100, 200, 75] // You can calculate this from actual data
+                'data' => [150, 100, 200, 75]
             ]
         ];
     }
 
     private function calculateOccupancyRate($properties)
     {
-        if (count($properties) === 0)
+        if (count($properties) === 0) {
             return 0;
+        }
 
         $occupiedCount = count(array_filter($properties, function ($p) {
             return isset($p['lease_status']) && $p['lease_status'] === 'active';
@@ -1079,9 +921,21 @@ public function addProperty()
      */
     private function getLandlordStats($landlordId)
     {
-        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
-        $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
-        $maintenance = $this->maintenanceModel->getRequestsByLandlord($landlordId);
+        try {
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+            $payments = $this->paymentModel->getPaymentsByLandlord($landlordId);
+            $maintenance = $this->maintenanceModel->getRequestsByLandlord($landlordId);
+        } catch (\Exception $e) {
+            log_message('error', 'Stats calculation error: ' . $e->getMessage());
+            return [
+                'total_properties' => 0,
+                'occupied_properties' => 0,
+                'vacant_properties' => 0,
+                'pending_maintenance' => 0,
+                'monthly_income' => 0,
+                'collected_this_month' => 0
+            ];
+        }
 
         $stats = [
             'total_properties' => count($properties),
@@ -1115,68 +969,936 @@ public function addProperty()
         return $stats;
     }
 
-    /**
-     * Help & Support Page
-     */
-    public function help()
-    {
-        $redirect = $this->requireLandlord();
-        if ($redirect)
-            return $redirect;
+/**
+ * Complete Add Property Method - FIXED for landlord_id column
+ */
+public function addProperty()
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
 
-        $data = [
-            'title' => 'Help & Support'
+    $rules = [
+        'property_name' => 'required|min_length[3]|max_length[100]',
+        'property_type' => 'required|in_list[rest_house,chalet,other]',
+        'number_of_landlords' => 'required|integer|greater_than[0]|less_than_equal_to[100]',
+        'property_address' => 'required|min_length[5]|max_length[1000]',
+        'number_of_units' => 'required|integer|greater_than[0]|less_than_equal_to[500]',
+        'landlord_names' => 'required',
+        'ownership_percentages' => 'required',
+        'unit_names' => 'required',
+        'expense_names' => 'required',
+        'expense_amounts' => 'required',
+        'management_company' => 'permit_empty|max_length[100]',
+        'management_percentage' => 'permit_empty|decimal|greater_than_equal_to[0]|less_than_equal_to[50]'
+    ];
+
+    if (!$this->validate($rules)) {
+        $errors = $this->validator->getErrors();
+        $errorMessages = [];
+
+        foreach ($errors as $field => $error) {
+            $errorMessages[] = $error;
+        }
+
+        return $this->respondWithError('Please fill all required fields: ' . implode(', ', $errorMessages), 400);
+    }
+
+    // Get form data
+    $landlordNames = $this->request->getPost('landlord_names');
+    $landlordUsernames = $this->request->getPost('landlord_usernames');
+    $ownershipPercentages = $this->request->getPost('ownership_percentages');
+    $unitNames = $this->request->getPost('unit_names');
+    $expenseNames = $this->request->getPost('expense_names');
+    $expenseAmounts = $this->request->getPost('expense_amounts');
+
+    // Convert to arrays if they're not already
+    if (!is_array($landlordNames)) $landlordNames = [$landlordNames];
+    if (!is_array($landlordUsernames)) $landlordUsernames = [$landlordUsernames];
+    if (!is_array($ownershipPercentages)) $ownershipPercentages = [$ownershipPercentages];
+    if (!is_array($unitNames)) $unitNames = [$unitNames];
+    if (!is_array($expenseNames)) $expenseNames = [$expenseNames];
+    if (!is_array($expenseAmounts)) $expenseAmounts = [$expenseAmounts];
+
+    // Log the arrays for debugging
+    log_message('info', 'Landlord names: ' . json_encode($landlordNames));
+    log_message('info', 'Ownership percentages: ' . json_encode($ownershipPercentages));
+
+    // Validate arrays have same length
+    if (count($landlordNames) !== count($ownershipPercentages)) {
+        return $this->respondWithError('Mismatch between number of landlord names and ownership percentages', 400);
+    }
+
+    if (count($landlordNames) !== count($landlordUsernames)) {
+        return $this->respondWithError('Mismatch between number of landlord names and usernames', 400);
+    }
+
+    if (count($expenseNames) !== count($expenseAmounts)) {
+        return $this->respondWithError('Mismatch between expense names and amounts', 400);
+    }
+
+    // Validate ownership percentages total exactly 100%
+    $totalOwnership = array_sum(array_map('floatval', $ownershipPercentages));
+    log_message('info', 'Total ownership: ' . $totalOwnership);
+
+    if (abs($totalOwnership - 100) >= 0.01) {
+        return $this->respondWithError('Total ownership percentage must equal exactly 100%. Current total: ' . $totalOwnership, 400);
+    }
+
+    // Validate expenses
+    foreach ($expenseAmounts as $amount) {
+        if (floatval($amount) < 0) {
+            return $this->respondWithError('Expense amounts cannot be negative', 400);
+        }
+    }
+
+    $currentLandlordId = $this->getCurrentUserId();
+    
+    try {
+        $db = \Config\Database::connect();
+        
+        // Test database connection first
+        $testQuery = $db->query("SELECT 1")->getResult();
+        log_message('info', 'Database connection successful');
+
+        // Start transaction
+        $db->transStart();
+
+        // Prepare property data - COMPLETE VERSION
+        $managementCompany = $this->request->getPost('management_company');
+        $managementPercentage = $this->request->getPost('management_percentage');
+        
+        $propertyData = [
+            'property_name' => $this->request->getPost('property_name'),
+            'property_type' => $this->request->getPost('property_type'),
+            'address' => $this->request->getPost('property_address'),
+            'number_of_units' => intval($this->request->getPost('number_of_units')),
+            'management_company' => !empty($managementCompany) ? $managementCompany : null,
+            'management_percentage' => !empty($managementPercentage) ? floatval($managementPercentage) : 0.00,
+            'number_of_landlords' => count($landlordNames),
+            'status' => 'vacant',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
         ];
 
-        return view('landlord/help', $data);
+        log_message('info', 'Inserting property data: ' . json_encode($propertyData));
+
+        // Insert property
+        $result = $db->table('properties')->insert($propertyData);
+
+        if (!$result) {
+            $error = $db->error();
+            log_message('error', 'Failed to insert property: ' . json_encode($error));
+            throw new \Exception('Failed to insert property: ' . ($error['message'] ?? 'Unknown error'));
+        }
+
+        $propertyId = $db->insertID();
+        log_message('info', 'Property inserted with ID: ' . $propertyId);
+
+        // Insert property units
+for ($i = 0; $i < count($landlordNames); $i++) {
+    $username = trim($landlordUsernames[$i]);
+    $ownerUserId = null; // ✅ CHANGED: Use different variable name to avoid conflict
+
+    // Look up user ID if username is provided
+    if (!empty($username)) {
+        $user = $db->table('users')->where('username', $username)->get()->getRowArray();
+        if ($user) {
+            $ownerUserId = $user['id']; // ✅ CHANGED: Use the new variable name
+            log_message('info', 'Found owner user ID ' . $ownerUserId . ' for username: ' . $username);
+        } else {
+            log_message('warning', 'Username not found during property creation: ' . $username);
+        }
     }
 
+    // If no username provided or user not found, use the current landlord's ID
+    if ($ownerUserId === null) {
+        $ownerUserId = $currentLandlordId; // ✅ Use current landlord as default
+    }
 
-    /**
-     * Verify Property Ownership
-     */
-    private function verifyPropertyOwnership($propertyId, $landlordId)
-    {
+    // Fill BOTH columns with the same user ID
+    $ownershipData = [
+        'property_id' => $propertyId,
+        'user_id' => $ownerUserId,       // ✅ Fill user_id column
+        'landlord_id' => $ownerUserId,   // ✅ Fill landlord_id column with same value
+        'landlord_name' => trim($landlordNames[$i]),
+        'username' => !empty($username) ? $username : null,
+        'ownership_percentage' => floatval($ownershipPercentages[$i]),
+        'created_at' => date('Y-m-d H:i:s')
+    ];
+
+    log_message('info', 'Inserting ownership: ' . json_encode($ownershipData));
+
+    $ownershipResult = $db->table('property_ownership')->insert($ownershipData);
+
+    if (!$ownershipResult) {
+        $error = $db->error();
+        log_message('error', 'Failed to insert ownership: ' . json_encode($error));
+        throw new \Exception('Failed to insert property ownership for ' . $landlordNames[$i] . ' - ' . ($error['message'] ?? 'Unknown error'));
+    }
+}
+
+        log_message('info', 'All ownership records inserted successfully');
+
+        // Complete transaction
+        $db->transComplete();
+
+        if ($db->transStatus() === FALSE) {
+            log_message('error', 'Transaction failed');
+            throw new \Exception('Database transaction failed');
+        }
+
+        log_message('info', 'Property added successfully with ID: ' . $propertyId);
+
+        // Count how many landlords have usernames (for sharing info)
+        $sharedLandlords = array_filter($landlordUsernames, function($username) {
+            return !empty(trim($username));
+        });
+
+        $managementInfo = !empty($managementCompany) 
+            ? " with {$managementCompany} as management company ({$managementPercentage}% fee)" 
+            : " (self-managed)";
+
+        $sharingInfo = count($sharedLandlords) > 1 
+            ? " Property has been shared with " . (count($sharedLandlords) - 1) . " other landlord(s)."
+            : "";
+
+        $successMessage = 'Property "' . $this->request->getPost('property_name') . '" added successfully with ' . 
+            count($landlordNames) . ' landlord(s), ' . count($unitNames) . ' unit(s), and ' . 
+            count($expenseNames) . ' expense(s)' . $managementInfo . $sharingInfo;
+
+        return $this->respondWithSuccess([
+            'property_id' => $propertyId,
+            'units_added' => count($unitNames),
+            'expenses_added' => count($expenseNames),
+            'owners_added' => count($landlordNames)
+        ], $successMessage);
+
+    } catch (\Exception $e) {
+        // Rollback transaction if it was started
+        if (isset($db)) {
+            $db->transRollback();
+        }
+        
+        log_message('error', 'Add property error: ' . $e->getMessage());
+        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+        
+        return $this->respondWithError('Failed to add property: ' . $e->getMessage(), 500);
+    }
+}
+
+/**
+ * View Property Details - FIXED for landlord_id column
+ */
+public function viewProperty($propertyId)
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) {
+        return $redirect;
+    }
+
+    $landlordId = $this->getCurrentUserId();
+
+    try {
         $db = \Config\Database::connect();
-        $query = $db->table('property_ownership')
+
+        // Get property basic info with ownership verification
+        $propertyQuery = $db->table('properties p')
+            ->select('p.*')
+            ->join('property_ownership po', 'po.property_id = p.id')
+            ->where('p.id', $propertyId)
+            ->groupStart()
+                ->where('po.user_id', $landlordId)
+                ->orWhere('po.landlord_id', $landlordId)
+            ->groupEnd()
+            ->get();
+
+        $property = $propertyQuery->getRowArray();
+
+        if (!$property) {
+            $this->setError('Property not found or you do not have access to it.');
+            return redirect()->to('/landlord/properties');
+        }
+
+        // Get all landlords/owners for this property
+        $ownersQuery = $db->table('property_ownership po')
+            ->select('po.*, 
+                      COALESCE(u1.first_name, u2.first_name) as first_name,
+                      COALESCE(u1.last_name, u2.last_name) as last_name,
+                      COALESCE(u1.email, u2.email) as email,
+                      COALESCE(u1.phone, u2.phone) as phone')
+            ->join('users u1', 'u1.id = po.user_id', 'left')
+            ->join('users u2', 'u2.id = po.landlord_id', 'left')
+            ->where('po.property_id', $propertyId)
+            ->orderBy('po.ownership_percentage', 'DESC')
+            ->get();
+
+        $owners = $ownersQuery->getResultArray();
+
+        // Get property units
+        $unitsQuery = $db->table('property_units')
             ->where('property_id', $propertyId)
-            ->where('landlord_id', $landlordId)
-            ->get()
-            ->getRowArray();
+            ->orderBy('unit_name')
+            ->get();
 
-        return $query ? true : false;
+        $units = $unitsQuery->getResultArray();
+
+        // Get property expenses
+        $expensesQuery = $db->table('property_expenses')
+            ->where('property_id', $propertyId)
+            ->orderBy('expense_name')
+            ->get();
+
+        $expenses = $expensesQuery->getResultArray();
+
+        // Calculate some statistics
+        $totalExpenses = array_sum(array_column($expenses, 'expense_amount'));
+        $yourOwnership = 0;
+        foreach ($owners as $owner) {
+            if ($owner['user_id'] == $landlordId || $owner['landlord_id'] == $landlordId) {
+                $yourOwnership = $owner['ownership_percentage'];
+                break;
+            }
+        }
+
+        $data = [
+            'title' => 'Property Details - ' . ($property['property_name'] ?? 'Unknown'),
+            'property' => $property,
+            'owners' => $owners ?? [],
+            'units' => $units ?? [],
+            'expenses' => $expenses ?? [],
+            'total_expenses' => $totalExpenses,
+            'your_ownership' => $yourOwnership
+        ];
+
+        return view('landlord/property_details', $data);
+
+    } catch (\Exception $e) {
+        log_message('error', 'Property details error: ' . $e->getMessage());
+        $this->setError('Error loading property details: ' . $e->getMessage());
+        return redirect()->to('/landlord/properties');
+    }
+}
+
+/**
+ * Get Property Units via AJAX
+ */
+public function getPropertyUnits($propertyId)
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Access denied']);
     }
 
-    /**
-     * Verify Tenant Access
-     */
-    private function verifyTenantAccess($tenantId, $landlordId)
-    {
+    $landlordId = $this->getCurrentUserId();
+
+    try {
         $db = \Config\Database::connect();
-        $query = $db->table('leases l')
-            ->join('property_ownership po', 'po.property_id = l.property_id')
-            ->where('l.tenant_id', $tenantId)
-            ->where('po.landlord_id', $landlordId)
-            ->where('l.status', 'active')
+
+        // Verify user has access to this property
+        $hasAccess = $db->table('property_ownership')
+            ->where('property_id', $propertyId)
+            ->groupStart()
+                ->where('user_id', $landlordId)
+                ->orWhere('landlord_id', $landlordId)
+            ->groupEnd()
+            ->countAllResults();
+
+        if (!$hasAccess) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Access denied']);
+        }
+
+        // Get property info
+        $property = $db->table('properties')->where('id', $propertyId)->get()->getRowArray();
+        
+        // Get units
+        $units = $db->table('property_units')
+            ->where('property_id', $propertyId)
+            ->orderBy('unit_name')
             ->get()
-            ->getRowArray();
+            ->getResultArray();
 
-        return $query;
+        return $this->response->setJSON([
+            'success' => true,
+            'property' => $property,
+            'units' => $units
+        ]);
+
+    } catch (\Exception $e) {
+        log_message('error', 'Get property units error: ' . $e->getMessage());
+        return $this->response->setJSON([
+            'success' => false, 
+            'message' => 'Error loading units: ' . $e->getMessage()
+        ]);
     }
+}
 
-    /**
-     * Verify Maintenance Access
-     */
-    private function verifyMaintenanceAccess($requestId, $landlordId)
-    {
+/**
+ * Calculate Property Statistics - FIXED for landlord_id
+ */
+private function calculatePropertyStats($propertyId, $property, $owners)
+{
+    try {
         $db = \Config\Database::connect();
-        $query = $db->table('maintenance_requests mr')
-            ->join('property_ownership po', 'po.property_id = mr.property_id')
-            ->where('mr.id', $requestId)
-            ->where('po.landlord_id', $landlordId)
-            ->get()
-            ->getRowArray();
 
-        return $query;
+        // Calculate total monthly expenses
+        $expensesQuery = $db->table('property_expenses')
+            ->selectSum('expense_amount', 'total_expenses')
+            ->where('property_id', $propertyId)
+            ->get();
+        
+        $totalExpenses = $expensesQuery->getRowArray()['total_expenses'] ?? 0;
+
+        // Count occupied vs vacant units
+        $occupiedQuery = $db->table('leases')
+            ->where('property_id', $propertyId)
+            ->where('status', 'active')
+            ->countAllResults();
+
+        $totalUnits = $property['number_of_units'] ?? 1;
+        $occupiedUnits = $occupiedQuery;
+        $vacantUnits = $totalUnits - $occupiedUnits;
+        $occupancyRate = $totalUnits > 0 ? ($occupiedUnits / $totalUnits) * 100 : 0;
+
+        // Calculate monthly income (from active leases)
+        $incomeQuery = $db->table('leases')
+            ->selectSum('rent_amount', 'total_monthly_rent')
+            ->where('property_id', $propertyId)
+            ->where('status', 'active')
+            ->get();
+
+        $monthlyIncome = $incomeQuery->getRowArray()['total_monthly_rent'] ?? 0;
+        $netIncome = $monthlyIncome - $totalExpenses;
+
+        // Get your ownership percentage - FIXED to use landlord_id
+       $currentUserId = $this->getCurrentUserId();
+$yourOwnership = 0;
+foreach ($owners as $owner) {
+    // Check both user_id and landlord_id columns
+    if ($owner['user_id'] == $currentUserId || $owner['landlord_id'] == $currentUserId) {
+        $yourOwnership = $owner['ownership_percentage'];
+        break;
     }
+}
+
+        return [
+            'total_units' => $totalUnits,
+            'occupied_units' => $occupiedUnits,
+            'vacant_units' => $vacantUnits,
+            'occupancy_rate' => round($occupancyRate, 1),
+            'monthly_income' => $monthlyIncome,
+            'monthly_expenses' => $totalExpenses,
+            'net_monthly_income' => $netIncome,
+            'your_ownership' => $yourOwnership,
+            'your_monthly_share' => $netIncome * ($yourOwnership / 100),
+            'total_owners' => count($owners)
+        ];
+
+    } catch (\Exception $e) {
+        log_message('error', 'Property stats calculation error: ' . $e->getMessage());
+        return [
+            'total_units' => $property['number_of_units'] ?? 1,
+            'occupied_units' => 0,
+            'vacant_units' => $property['number_of_units'] ?? 1,
+            'occupancy_rate' => 0,
+            'monthly_income' => 0,
+            'monthly_expenses' => 0,
+            'net_monthly_income' => 0,
+            'your_ownership' => 0,
+            'your_monthly_share' => 0,
+            'total_owners' => count($owners)
+        ];
+    }
+}
+
+public function debugProperties()
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
+
+    $landlordId = $this->getCurrentUserId();
+    
+    echo "<h2>Debug Properties for Landlord ID: $landlordId</h2>";
+    
+    try {
+        $db = \Config\Database::connect();
+        
+        // Check if property_ownership table exists and has data
+        echo "<h3>1. Check property_ownership table:</h3>";
+        $query = $db->query("SELECT * FROM property_ownership WHERE user_id = ? OR landlord_id = ?", [$landlordId, $landlordId]);
+        $ownerships = $query->getResultArray();
+        echo "Found " . count($ownerships) . " ownership records:<br>";
+        echo "<pre>" . print_r($ownerships, true) . "</pre>";
+        
+        // Check if properties table has data
+        echo "<h3>2. Check properties table:</h3>";
+        $query = $db->query("SELECT * FROM properties");
+        $allProperties = $query->getResultArray();
+        echo "Found " . count($allProperties) . " total properties:<br>";
+        foreach ($allProperties as $prop) {
+            echo "ID: {$prop['id']}, Name: {$prop['property_name']}<br>";
+        }
+        
+        // Test the join manually
+        echo "<h3>3. Test manual join:</h3>";
+        $query = $db->query("
+            SELECT p.*, po.ownership_percentage, po.landlord_name 
+            FROM properties p 
+            JOIN property_ownership po ON po.property_id = p.id 
+            WHERE po.user_id = ? OR po.landlord_id = ?
+        ", [$landlordId, $landlordId]);
+        $joinResults = $query->getResultArray();
+        echo "Manual join found " . count($joinResults) . " results:<br>";
+        echo "<pre>" . print_r($joinResults, true) . "</pre>";
+        
+        // Test the PropertyModel method
+        echo "<h3>4. Test PropertyModel method:</h3>";
+        $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+        echo "PropertyModel returned " . count($properties) . " results:<br>";
+        echo "<pre>" . print_r($properties, true) . "</pre>";
+        
+    } catch (\Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
+
+/**
+ * Edit Property Form - Add this to your Landlord controller
+ */
+public function editProperty($propertyId)
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) {
+        return $redirect;
+    }
+
+    $landlordId = $this->getCurrentUserId();
+
+    try {
+        $db = \Config\Database::connect();
+
+        // Get property with ownership verification
+        $propertyQuery = $db->table('properties p')
+            ->select('p.*')
+            ->join('property_ownership po', 'po.property_id = p.id')
+            ->where('p.id', $propertyId)
+            ->groupStart()
+                ->where('po.user_id', $landlordId)
+                ->orWhere('po.landlord_id', $landlordId)
+            ->groupEnd()
+            ->get();
+
+        $property = $propertyQuery->getRowArray();
+
+        if (!$property) {
+            $this->setError('Property not found or you do not have access to edit it.');
+            return redirect()->to('/landlord/properties');
+        }
+
+        // Get current ownership details
+        $owners = $db->table('property_ownership po')
+            ->select('po.*, 
+                      COALESCE(u1.first_name, u2.first_name) as first_name,
+                      COALESCE(u1.last_name, u2.last_name) as last_name,
+                      COALESCE(u1.username, u2.username) as username')
+            ->join('users u1', 'u1.id = po.user_id', 'left')
+            ->join('users u2', 'u2.id = po.landlord_id', 'left')
+            ->where('po.property_id', $propertyId)
+            ->orderBy('po.ownership_percentage', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        // Get current units
+        $units = $db->table('property_units')
+            ->where('property_id', $propertyId)
+            ->orderBy('unit_name')
+            ->get()
+            ->getResultArray();
+
+        // Get current expenses
+        $expenses = $db->table('property_expenses')
+            ->where('property_id', $propertyId)
+            ->orderBy('expense_name')
+            ->get()
+            ->getResultArray();
+
+        $data = [
+            'title' => 'Edit Property - ' . $property['property_name'],
+            'property' => $property,
+            'owners' => $owners,
+            'units' => $units,
+            'expenses' => $expenses,
+            'validation' => \Config\Services::validation()
+        ];
+
+        return view('landlord/edit_property', $data);
+
+    } catch (\Exception $e) {
+        log_message('error', 'Edit property error: ' . $e->getMessage());
+        $this->setError('Error loading property for editing: ' . $e->getMessage());
+        return redirect()->to('/landlord/properties');
+    }
+}
+
+/**
+ * Update Property - Process Edit Form
+ */
+public function updateProperty($propertyId)
+{
+    try {
+        $redirect = $this->requireLandlord();
+        if ($redirect) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Access denied']);
+        }
+
+        $landlordId = $this->getCurrentUserId();
+        
+        log_message('info', 'Update property called for property ID: ' . $propertyId);
+        log_message('info', 'Landlord ID: ' . $landlordId);
+        log_message('info', 'POST data: ' . json_encode($this->request->getPost()));
+
+        // Verify access
+        $db = \Config\Database::connect();
+        $hasAccess = $db->table('property_ownership')
+            ->where('property_id', $propertyId)
+            ->groupStart()
+                ->where('user_id', $landlordId)
+                ->orWhere('landlord_id', $landlordId)
+            ->groupEnd()
+            ->countAllResults();
+
+        if (!$hasAccess) {
+            log_message('error', 'Access denied for property ' . $propertyId . ' by landlord ' . $landlordId);
+            return $this->response->setJSON(['success' => false, 'message' => 'Access denied to this property']);
+        }
+
+        // Validation rules
+        $rules = [
+            'property_name' => 'required|min_length[3]|max_length[100]',
+            'property_type' => 'required|in_list[rest_house,chalet,other]',
+            'property_address' => 'required|min_length[5]|max_length[1000]',
+            'number_of_units' => 'required|integer|greater_than[0]|less_than_equal_to[500]'
+        ];
+
+        if (!$this->validate($rules)) {
+            $errors = $this->validator->getErrors();
+            log_message('error', 'Validation errors: ' . json_encode($errors));
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Validation failed: ' . implode(', ', $errors)
+            ]);
+        }
+
+        // Start transaction
+        $db->transStart();
+
+        // Update property basic info
+        $propertyData = [
+            'property_name' => $this->request->getPost('property_name'),
+            'property_type' => $this->request->getPost('property_type'),
+            'address' => $this->request->getPost('property_address'),
+            'number_of_units' => intval($this->request->getPost('number_of_units')),
+            'management_company' => $this->request->getPost('management_company') ?: null,
+            'management_percentage' => $this->request->getPost('management_percentage') ? floatval($this->request->getPost('management_percentage')) : 0.00,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        log_message('info', 'Updating property with data: ' . json_encode($propertyData));
+
+        $updateResult = $db->table('properties')->where('id', $propertyId)->update($propertyData);
+
+        if (!$updateResult) {
+            $error = $db->error();
+            log_message('error', 'Property update failed: ' . json_encode($error));
+            throw new \Exception('Failed to update property: ' . ($error['message'] ?? 'Unknown database error'));
+        }
+
+        log_message('info', 'Property basic info updated successfully');
+
+        // Update units if provided
+        $unitNames = $this->request->getPost('unit_names');
+        if (!empty($unitNames) && is_array($unitNames)) {
+            log_message('info', 'Updating units: ' . json_encode($unitNames));
+            
+            // Delete existing units
+            $deleteResult = $db->table('property_units')->where('property_id', $propertyId)->delete();
+            log_message('info', 'Deleted existing units, result: ' . ($deleteResult ? 'success' : 'failed'));
+            
+            // Insert new units
+            foreach ($unitNames as $unitName) {
+                if (!empty(trim($unitName))) {
+                    $unitData = [
+                        'property_id' => $propertyId,
+                        'unit_name' => trim($unitName),
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    $unitResult = $db->table('property_units')->insert($unitData);
+                    if (!$unitResult) {
+                        log_message('error', 'Failed to insert unit: ' . $unitName);
+                    }
+                }
+            }
+            log_message('info', 'Units updated successfully');
+        }
+
+        // Update expenses if provided
+        $expenseNames = $this->request->getPost('expense_names');
+        $expenseAmounts = $this->request->getPost('expense_amounts');
+        
+        if (!empty($expenseNames) && is_array($expenseNames) && 
+            !empty($expenseAmounts) && is_array($expenseAmounts) &&
+            count($expenseNames) === count($expenseAmounts)) {
+            
+            log_message('info', 'Updating expenses: ' . json_encode($expenseNames));
+            
+            // Delete existing expenses
+            $deleteResult = $db->table('property_expenses')->where('property_id', $propertyId)->delete();
+            log_message('info', 'Deleted existing expenses, result: ' . ($deleteResult ? 'success' : 'failed'));
+            
+            // Insert new expenses
+            for ($i = 0; $i < count($expenseNames); $i++) {
+                if (!empty(trim($expenseNames[$i])) && is_numeric($expenseAmounts[$i])) {
+                    $expenseData = [
+                        'property_id' => $propertyId,
+                        'expense_name' => trim($expenseNames[$i]),
+                        'expense_amount' => floatval($expenseAmounts[$i]),
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    $expenseResult = $db->table('property_expenses')->insert($expenseData);
+                    if (!$expenseResult) {
+                        log_message('error', 'Failed to insert expense: ' . $expenseNames[$i]);
+                    }
+                }
+            }
+            log_message('info', 'Expenses updated successfully');
+        }
+
+        // Complete transaction
+        $db->transComplete();
+
+        if ($db->transStatus() === FALSE) {
+            log_message('error', 'Transaction failed');
+            throw new \Exception('Database transaction failed');
+        }
+
+        log_message('info', 'Property update completed successfully');
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Property updated successfully!',
+            'data' => ['property_id' => $propertyId]
+        ]);
+
+    } catch (\Exception $e) {
+        if (isset($db)) {
+            $db->transRollback();
+        }
+        
+        log_message('error', 'Update property exception: ' . $e->getMessage());
+        log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+        
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Failed to update property: ' . $e->getMessage()
+        ]);
+    }
+}
+
+public function debugPropertyData($propertyId = null)
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
+
+    $landlordId = $this->getCurrentUserId();
+    
+    echo "<h2>🔍 Property Data Debug</h2>";
+    
+    try {
+        $db = \Config\Database::connect();
+        
+        if ($propertyId) {
+            // Debug specific property
+            echo "<h3>Property ID: $propertyId</h3>";
+            
+            $property = $db->table('properties')->where('id', $propertyId)->get()->getRowArray();
+            echo "<h4>Raw Property Data:</h4>";
+            echo "<pre>" . print_r($property, true) . "</pre>";
+            
+            $ownership = $db->table('property_ownership')->where('property_id', $propertyId)->get()->getResultArray();
+            echo "<h4>Ownership Data:</h4>";
+            echo "<pre>" . print_r($ownership, true) . "</pre>";
+            
+        } else {
+            // Debug all properties for this landlord
+            echo "<h3>All Properties for Landlord ID: $landlordId</h3>";
+            
+            // Raw query result
+            $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+            echo "<h4>PropertyModel Result (" . count($properties) . " properties):</h4>";
+            echo "<pre>" . print_r($properties, true) . "</pre>";
+            
+            // Check property_type specifically
+            if (!empty($properties)) {
+                echo "<h4>Property Types Check:</h4>";
+                foreach ($properties as $prop) {
+                    echo "Property ID {$prop['id']}: ";
+                    echo "property_type = '" . ($prop['property_type'] ?? 'NULL') . "'";
+                    echo " (length: " . strlen($prop['property_type'] ?? '') . ")";
+                    echo "<br>";
+                }
+            }
+        }
+        
+    } catch (\Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
+/**
+ * Fix Property Types - Add this temporary method to your Landlord controller
+ */
+public function fixPropertyTypes()
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
+
+    echo "<h2>🔧 Fixing Property Types</h2>";
+    
+    try {
+        $db = \Config\Database::connect();
+        
+        // First, let's see what types we currently have
+        echo "<h3>Current Property Types:</h3>";
+        $properties = $db->table('properties')->select('id, property_name, property_type')->get()->getResultArray();
+        
+        echo "<table border='1' cellpadding='5'>";
+        echo "<tr><th>ID</th><th>Name</th><th>Current Type</th><th>Length</th><th>Action</th></tr>";
+        
+        foreach ($properties as $property) {
+            $currentType = $property['property_type'] ?? '';
+            $typeLength = strlen($currentType);
+            
+            echo "<tr>";
+            echo "<td>{$property['id']}</td>";
+            echo "<td>{$property['property_name']}</td>";
+            echo "<td>'" . htmlspecialchars($currentType) . "'</td>";
+            echo "<td>{$typeLength}</td>";
+            
+            // If type is empty or null, set a default
+            if (empty($currentType) || trim($currentType) === '') {
+                $db->table('properties')->where('id', $property['id'])->update(['property_type' => 'other']);
+                echo "<td style='color: green;'>Updated to 'other'</td>";
+            } else {
+                echo "<td>No change needed</td>";
+            }
+            
+            echo "</tr>";
+        }
+        echo "</table>";
+        
+        echo "<h3>✅ Property types have been fixed!</h3>";
+        echo "<p><a href='" . site_url('landlord/properties') . "'>Go back to properties</a></p>";
+        
+    } catch (\Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
+/**
+ * Debug Property Display - Add this to your Landlord controller
+ */
+public function debugPropertyDisplay()
+{
+    $redirect = $this->requireLandlord();
+    if ($redirect) return $redirect;
+
+    $landlordId = $this->getCurrentUserId();
+    $properties = $this->propertyModel->getPropertiesForLandlord($landlordId);
+    
+    echo "<h2>🔍 Property Display Debug</h2>";
+    echo "<style>
+        .debug-box { border: 2px solid red; padding: 10px; margin: 10px 0; background: #f9f9f9; }
+        .hidden-content { background: yellow; }
+    </style>";
+    
+    if (!empty($properties)) {
+        foreach ($properties as $property) {
+            echo "<div class='debug-box'>";
+            echo "<h3>Property: " . esc($property['property_name']) . "</h3>";
+            echo "<p><strong>Raw property_type value:</strong> '" . ($property['property_type'] ?? 'NULL') . "'</p>";
+            echo "<p><strong>Length:</strong> " . strlen($property['property_type'] ?? '') . "</p>";
+            echo "<p><strong>Is empty:</strong> " . (empty($property['property_type']) ? 'YES' : 'NO') . "</p>";
+            
+            // Test the same logic as your view
+            $propertyType = $property['property_type'] ?? '';
+            $displayType = '';
+            
+            switch ($propertyType) {
+                case 'rest_house':
+                    $displayType = 'Rest House';
+                    break;
+                case 'chalet':
+                    $displayType = 'Chalet';
+                    break;
+                case 'other':
+                    $displayType = 'Other';
+                    break;
+                default:
+                    $displayType = 'Not Set';
+            }
+            
+            echo "<p><strong>Display Type:</strong> '$displayType'</p>";
+            
+            // Create the exact same badge as in your view
+            echo "<p><strong>Badge HTML:</strong></p>";
+            echo "<span class='badge badge-secondary' style='background: #6c757d; color: white; padding: 5px 10px; border-radius: 3px;'>";
+            echo $displayType;
+            echo "</span>";
+            
+            echo "<p><strong>All property data:</strong></p>";
+            echo "<pre>" . print_r($property, true) . "</pre>";
+            echo "</div>";
+        }
+    } else {
+        echo "<p>No properties found!</p>";
+    }
+    
+    echo "<p><a href='" . site_url('landlord/properties') . "'>Back to properties</a></p>";
+}
+public function checkCsrfConfig()
+{
+    echo "<h2>🔐 CSRF Configuration Check</h2>";
+    
+    $security = \Config\Services::security();
+    
+    echo "<p><strong>CSRF Token Name:</strong> " . csrf_token() . "</p>";
+    echo "<p><strong>CSRF Hash:</strong> " . csrf_hash() . "</p>";
+    echo "<p><strong>CSRF Field HTML:</strong> " . htmlspecialchars(csrf_field()) . "</p>";
+    
+    echo "<h3>Test Form with CSRF:</h3>";
+    echo '<form method="post" action="' . site_url('landlord/test-csrf') . '">';
+    echo csrf_field();
+    echo '<input type="text" name="test_field" value="test_value" placeholder="Test field">';
+    echo '<button type="submit">Test CSRF</button>';
+    echo '</form>';
+    
+    echo "<h3>Raw CSRF Field:</h3>";
+    echo "<textarea rows='3' cols='80'>" . csrf_field() . "</textarea>";
+}
+
+/**
+ * Test CSRF - Add this method too
+ */
+public function testCsrf()
+{
+    if ($this->request->getMethod() === 'POST') {
+        echo "<h2>✅ CSRF Test Successful!</h2>";
+        echo "<p>POST data received:</p>";
+        echo "<pre>" . print_r($this->request->getPost(), true) . "</pre>";
+        echo "<p><a href='" . site_url('landlord/check-csrf-config') . "'>Back to CSRF check</a></p>";
+    } else {
+        echo "<h2>❌ This should be a POST request</h2>";
+    }
+}
 }
