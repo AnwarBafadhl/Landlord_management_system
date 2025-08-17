@@ -4,17 +4,36 @@
 
 <?= $this->section('content') ?>
 <div class="container-fluid">
-    <!-- Page Header -->
+    <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-building"></i> My Properties
         </h1>
-        <div>
-            <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-primary">Add Property</a>
-        </div>
+        <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add New Property
+        </a>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Success/Error Messages -->
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <?= session()->getFlashdata('success') ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> <?= session()->getFlashdata('error') ?>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Properties Summary Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
@@ -25,7 +44,7 @@
                                 Total Properties
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= isset($properties) ? count($properties) : 0 ?>
+                                <?= count($properties ?? []) ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -42,50 +61,23 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Occupied
+                                Active Properties
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php 
-                                $occupied = 0;
-                                if (isset($properties)) {
-                                    foreach ($properties as $prop) {
-                                        if (($prop['status'] ?? '') === 'occupied') $occupied++;
+                                <?php
+                                $activeCount = 0;
+                                if (!empty($properties)) {
+                                    foreach ($properties as $property) {
+                                        if (($property['status'] ?? '') === 'active')
+                                            $activeCount++;
                                     }
                                 }
-                                echo $occupied;
+                                echo $activeCount;
                                 ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Vacant
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php 
-                                $vacant = 0;
-                                if (isset($properties)) {
-                                    foreach ($properties as $prop) {
-                                        if (($prop['status'] ?? '') === 'vacant') $vacant++;
-                                    }
-                                }
-                                echo $vacant;
-                                ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-home fa-2x text-gray-300"></i>
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -98,22 +90,52 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Units
+                                Total Value
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php 
-                                $totalUnits = 0;
-                                if (isset($properties)) {
-                                    foreach ($properties as $prop) {
-                                        $totalUnits += ($prop['number_of_units'] ?? 1);
+                                SAR <?php
+                                $totalValue = 0;
+                                if (!empty($properties)) {
+                                    foreach ($properties as $property) {
+                                        $value = ($property['property_value'] ?? 0);
+                                        $ownership = ($property['ownership_percentage'] ?? 100) / 100;
+                                        $totalValue += $value * $ownership;
                                     }
                                 }
-                                echo $totalUnits;
+                                echo number_format($totalValue, 0);
                                 ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-door-closed fa-2x text-gray-300"></i>
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                My Shares
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <?php
+                                $totalShares = 0;
+                                if (!empty($properties)) {
+                                    foreach ($properties as $property) {
+                                        $totalShares += ($property['my_shares'] ?? 0);
+                                    }
+                                }
+                                echo number_format($totalShares);
+                                ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -124,127 +146,199 @@
     <!-- Properties Table -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-            <h6 class="m-0 font-weight-bold text-primary">Properties Overview</h6>
-            <span class="badge badge-primary"><?= isset($properties) ? count($properties) : 0 ?> properties</span>
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list"></i> Properties List
+            </h6>
+            <div class="dropdown no-arrow">
+                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
+                    <div class="dropdown-header">Filter Options:</div>
+                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'all')">Show All</a>
+                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'vacant')">Vacant</a>
+                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'occupied')">Occupied</a>
+                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'maintenance')">Maintenance</a>
+                </div>
+            </div>
         </div>
         <div class="card-body">
-            <?php if (!empty($properties)): ?>
+            <?php if (!empty($properties) && is_array($properties)): ?>
                 <div class="table-responsive">
-                    <table class="table table-bordered">
+                    <table class="table table-bordered" id="propertiesTable" width="100%" cellspacing="0">
                         <thead>
                             <tr>
                                 <th>Property Details</th>
-                                <th>Type</th>
-                                <th>Units</th>
+                                <th>Value & Shares</th>
+                                <th>My Ownership</th>
                                 <th>Management</th>
-                                <th>Your Ownership</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($properties as $property): ?>
-                                <tr>
+                                <tr class="property-row" data-status="<?= esc($property['status'] ?? 'pending') ?>">
                                     <td>
-                                        <div>
-                                            <strong><?= esc($property['property_name']) ?></strong>
-                                            <br>
+                                        <div class="property-info">
+                                            <h6 class="mb-1 font-weight-bold">
+                                                <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>"
+                                                    class="text-primary text-decoration-none">
+                                                    <?= esc($property['property_name']) ?>
+                                                </a>
+                                            </h6>
+                                            <p class="text-muted small mb-1">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <?= esc(substr($property['address'] ?? '', 0, 50)) ?>
+                                                <?= strlen($property['address'] ?? '') > 50 ? '...' : '' ?>
+                                            </p>
                                             <small class="text-muted">
-                                                <i class="fas fa-map-marker-alt"></i> <?= esc($property['address']) ?>
+                                                <i class="fas fa-calendar"></i>
+                                                Added <?= date('M d, Y', strtotime($property['created_at'] ?? 'now')) ?>
                                             </small>
-                                            <?php if (!empty($property['created_at'])): ?>
-                                                <br>
-                                                <small class="text-info">
-                                                    Added: <?= date('M d, Y', strtotime($property['created_at'])) ?>
-                                                </small>
-                                            <?php endif; ?>
                                         </div>
                                     </td>
+
                                     <td>
-                                        <?php 
-                                        $propertyType = $property['property_type'] ?? '';
-                                        $displayType = '';
-                                        
-                                        switch ($propertyType) {
-                                            case 'rest_house':
-                                                $displayType = 'Rest House';
-                                                break;
-                                            case 'chalet':
-                                                $displayType = 'Chalet';
-                                                break;
-                                            case 'other':
-                                                $displayType = 'Other';
-                                                break;
-                                            default:
-                                                $displayType = 'Not Set';
-                                        }
-                                        ?>
-                                        <span class="badge badge-secondary" style="background: #6c757d !important; color: white !important; padding: 0.5rem 0.75rem; font-size: 0.875rem; display: inline-block;">
-                                            <?= $displayType ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <strong><?= $property['number_of_units'] ?? 1 ?></strong>
-                                        <small class="text-muted">units</small>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($property['management_company'])): ?>
-                                            <div>
-                                                <strong><?= esc($property['management_company']) ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?= $property['management_percentage'] ?? 0 ?>% fee</small>
+                                        <div class="value-info">
+                                            <div class="mb-1">
+                                                <strong class="text-success">SAR
+                                                    <?= number_format($property['property_value'] ?? 0, 0) ?></strong>
                                             </div>
-                                        <?php else: ?>
-                                            <span class="text-muted">Self-managed</span>
+                                            <div class="small text-muted">
+                                                <i class="fas fa-chart-pie"></i>
+                                                <?= number_format($property['total_shares'] ?? 0) ?> total shares
+                                            </div>
+                                            <div class="small text-muted">
+                                                <i class="fas fa-coins"></i>
+                                                SAR <?= number_format($property['share_value'] ?? 0, 2) ?> per share
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="ownership-info">
+                                            <div class="mb-1">
+                                                <span class="badge badge-pill badge-primary">
+                                                    <?= number_format($property['my_shares'] ?? 0) ?> shares
+                                                </span>
+                                            </div>
+                                            <div class="mb-1">
+                                                <span class="badge badge-pill badge-success">
+                                                    <?= number_format($property['ownership_percentage'] ?? 0, 2) ?>%
+                                                </span>
+                                            </div>
+                                            <div class="small text-muted">
+                                                Value: SAR
+                                                <?= number_format(($property['property_value'] ?? 0) * (($property['ownership_percentage'] ?? 0) / 100), 0) ?>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="management-info">
+                                            <div class="small mb-1">
+                                                <strong><?= esc($property['management_company'] ?? 'Not specified') ?></strong>
+                                            </div>
+                                            <div class="small text-muted">
+                                                <i class="fas fa-percentage"></i>
+                                                <?= $property['management_percentage'] ?? 0 ?>% fee
+                                            </div>
+                                            <div class="small text-muted">
+                                                <i class="fas fa-clock"></i>
+                                                <?= $property['contribution_duration'] ?? 0 ?> months
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <?php
+                                        $status = strtolower(trim($property['status'] ?? 'vacant'));
+                                        $badgeMap = [
+                                            'vacant' => 'badge-info',
+                                            'occupied' => 'badge-success',
+                                            'maintenance' => 'badge-warning',
+                                        ];
+                                        $badgeClass = $badgeMap[$status] ?? 'badge-secondary';
+                                        ?>
+                                        <span class="badge badge-pill <?= $badgeClass ?>">
+                                            <?= ucfirst($status) ?>
+                                        </span>
+
+                                        <?php if (isset($property['total_owners']) && $property['total_owners'] > 1): ?>
+                                            <div class="small text-muted mt-1">
+                                                <i class="fas fa-users"></i>
+                                                <?= $property['total_owners'] ?> owners
+                                            </div>
                                         <?php endif; ?>
                                     </td>
+
                                     <td>
-                                        <span class="badge badge-info badge-lg">
-                                            <?= $property['ownership_percentage'] ?? 100 ?>%
-                                        </span>
-                                        <?php if (($property['number_of_landlords'] ?? 1) > 1): ?>
-                                            <br>
-                                            <small class="text-muted">
-                                                Shared with <?= ($property['number_of_landlords'] - 1) ?> others
-                                            </small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-<?= ($property['status'] ?? 'vacant') === 'vacant' ? 'warning' : (($property['status'] ?? '') === 'occupied' ? 'success' : 'info') ?>">
-                                            <?= ucfirst($property['status'] ?? 'Vacant') ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    onclick="viewPropertyDetails(<?= $property['id'] ?>)" 
-                                                    title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <a href="<?= site_url('landlord/properties/edit/' . $property['id']) ?>" 
-                                               class="btn btn-sm btn-outline-secondary" 
-                                               title="Edit">
-                                                <i class="fas fa-edit"></i>
+                                        <div class="btn-group-vertical btn-group-sm" role="group">
+                                            <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>"
+                                                class="btn btn-primary btn-sm" title="View Details">
+                                                <i class="fas fa-eye"></i> View
                                             </a>
-                                            <button class="btn btn-sm btn-outline-info" 
-                                                    onclick="showUnitsModal(<?= $property['id'] ?>)" 
-                                                    title="View Units">
-                                                <i class="fas fa-door-open"></i>
-                                            </button>
+                                            <a href="<?= site_url('landlord/properties/edit/' . $property['id']) ?>"
+                                                class="btn btn-outline-primary btn-sm" title="Edit Property">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <style>
+                        /* Always show badge colors clearly */
+                        .badge-primary {
+                            background-color: #4e73df !important;
+                            color: #fff !important;
+                        }
+
+                        .badge-success {
+                            background-color: #1cc88a !important;
+                            color: #fff !important;
+                        }
+
+                        .badge-info {
+                            background-color: #36b9cc !important;
+                            color: #fff !important;
+                        }
+
+                        .badge-warning {
+                            background-color: #f6c23e !important;
+                            color: #212529 !important;
+                        }
+
+                        .badge-secondary {
+                            background-color: #858796 !important;
+                            color: #fff !important;
+                        }
+
+                        .badge-light {
+                            background-color: #e9ecef !important;
+                            color: #212529 !important;
+                        }
+
+                        .badge-pill {
+                            border-radius: 50rem;
+                            padding: .45rem .65rem;
+                            font-weight: 600;
+                        }
+                    </style>
                 </div>
             <?php else: ?>
                 <div class="text-center py-5">
-                    <i class="fas fa-building fa-4x text-gray-300 mb-3"></i>
-                    <h4 class="text-gray-500">No Properties Found</h4>
-                    <p class="text-muted">Start by adding your first property to get started.</p>
-                    <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add Your First Property
+                    <div class="mb-4">
+                        <i class="fas fa-building fa-5x text-gray-300"></i>
+                    </div>
+                    <h4 class="text-gray-600 mb-3">No Properties Found</h4>
+                    <p class="text-muted mb-4">
+                        You haven't added any properties yet. Start building your portfolio by adding your first property.
+                    </p>
+                    <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-success btn-lg">
+                        <i class="fas fa-plus-circle"></i> Add Your First Property
                     </a>
                 </div>
             <?php endif; ?>
@@ -252,155 +346,182 @@
     </div>
 </div>
 
-<!-- Property Details Modal -->
-<div class="modal fade" id="propertyDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Property Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="propertyDetailsContent">
-                <!-- Content loaded dynamically -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Units Modal -->
-<div class="modal fade" id="unitsModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Property Units</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="unitsContent">
-                <!-- Content loaded dynamically -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-function viewPropertyDetails(propertyId) {
-    // Redirect to the property details page
-    window.location.href = `<?= site_url('landlord/properties/view') ?>/${propertyId}`;
-}
+    // Filter properties by status
+    function filterProperties(el, status) {
+        const rows = document.querySelectorAll('.property-row');
 
-function showUnitsModal(propertyId) {
-    // Show loading in modal
-    document.getElementById('unitsContent').innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p class="mt-2">Loading units...</p>
-        </div>
-    `;
-    
-    // Show modal
-    new bootstrap.Modal(document.getElementById('unitsModal')).show();
-    
-    // Fetch units data
-    fetch(`<?= site_url('landlord/properties/units') ?>/${propertyId}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let html = `<h5 class="mb-3">${data.property.property_name}</h5>`;
-            
-            if (data.units && data.units.length > 0) {
-                html += '<div class="row">';
-                data.units.forEach(unit => {
-                    html += `
-                        <div class="col-md-6 mb-3">
-                            <div class="card border-left-info">
-                                <div class="card-body py-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Unit</div>
-                                    <div class="h6 mb-0 font-weight-bold text-gray-800">${unit.unit_name}</div>
-                                    <div class="text-xs text-muted">Added: ${new Date(unit.created_at).toLocaleDateString()}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            if (status === 'all' || rowStatus === status) {
+                row.style.display = '';
             } else {
-                html += '<p class="text-muted">No units defined for this property.</p>';
+                row.style.display = 'none';
             }
-            
-            document.getElementById('unitsContent').innerHTML = html;
-        } else {
-            document.getElementById('unitsContent').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Error: ${data.message}
-                </div>
-            `;
+        });
+
+        // Update active filter indicator
+        document.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
+        if (el) el.classList.add('active');
+    }
+
+    // Initialize DataTable if there are properties
+    document.addEventListener('DOMContentLoaded', function () {
+        const table = document.getElementById('propertiesTable');
+        if (!table || !table.querySelector('tbody tr')) return;
+
+        // If jQuery DataTables is present, use it
+        if (window.jQuery && jQuery.fn && jQuery.fn.DataTable) {
+            jQuery(table).DataTable({
+                pageLength: 10,
+                responsive: true,
+                order: [[0, 'asc']],
+                language: {
+                    search: 'Search properties:',
+                    lengthMenu: 'Show _MENU_ properties per page',
+                    info: 'Showing _START_ to _END_ of _TOTAL_ properties',
+                    emptyTable: 'No properties found'
+                },
+                columnDefs: [{ orderable: false, targets: [5] }]
+            });
         }
-    })
-    .catch(error => {
-        document.getElementById('unitsContent').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle"></i>
-                Error loading units: ${error.message}
-            </div>
-        `;
+        // Else if vanilla DataTables v2 is present, use that
+        else if (window.DataTable) {
+            new DataTable(table, {
+                pageLength: 10,
+                responsive: true,
+                order: [[0, 'asc']],
+                language: {
+                    search: 'Search properties:',
+                    lengthMenu: 'Show _MENU_ properties per page',
+                    info: 'Showing _START_ to _END_ of _TOTAL_ properties',
+                    emptyTable: 'No properties found'
+                },
+                columnDefs: [{ orderable: false, targets: [5] }]
+            });
+        } else {
+            console.warn('DataTables library not found. Table will render without enhancements.');
+        }
     });
-}
+
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(function () {
+        document.querySelectorAll('.alert.show').forEach(alert => {
+            alert.classList.remove('show');
+            setTimeout(() => alert.remove(), 150);
+        });
+    }, 5000);
 </script>
 
 <style>
-.badge-lg {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-}
+    .property-info h6 {
+        line-height: 1.2;
+    }
 
-.table th {
-    background-color: #f8f9fc;
-    font-weight: 600;
-    font-size: 0.85rem;
-}
+    .property-info p {
+        line-height: 1.3;
+    }
 
-.btn-group .btn {
-    margin-right: 0;
-}
+    .value-info,
+    .ownership-info,
+    .management-info {
+        min-height: 60px;
+    }
 
-/* Force badge styles */
-.badge {
-    display: inline-block !important;
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.875rem !important;
-    font-weight: 600 !important;
-    line-height: 1 !important;
-    color: #fff !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    vertical-align: baseline !important;
-    border-radius: 0.375rem !important;
-}
+    .badge {
+        font-size: 0.75em;
+    }
 
-.badge-secondary {
-    background-color: #6c757d !important;
-    color: #fff !important;
-}
+    .btn-group-vertical .btn {
+        margin-bottom: 2px;
+    }
 
-/* Debug styles */
-.debug-info {
-    background: yellow !important;
-    color: black !important;
-    font-weight: bold !important;
-    padding: 2px 5px !important;
-    border: 1px solid red !important;
-}
+    .btn-group-vertical .btn:last-child {
+        margin-bottom: 0;
+    }
+
+    .table td {
+        vertical-align: middle;
+        padding: 1rem 0.75rem;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #5a5c69;
+        background-color: #f8f9fc;
+    }
+
+    .text-decoration-none:hover {
+        text-decoration: underline !important;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+
+    .text-xs {
+        font-size: 0.7rem;
+    }
+
+    .fa-2x {
+        font-size: 2em;
+    }
+
+    .fa-5x {
+        font-size: 5em;
+    }
+
+    /* DataTables custom styling */
+    .dataTables_wrapper .dataTables_filter {
+        float: right;
+        text-align: right;
+        margin-bottom: 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_length {
+        float: left;
+        margin-bottom: 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_info {
+        clear: both;
+        float: left;
+        padding-top: 0.755em;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+        float: right;
+        text-align: right;
+        padding-top: 0.25em;
+    }
+
+    .page-link {
+        color: #4e73df;
+        border-color: #4e73df;
+    }
+
+    .page-item.active .page-link {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
 </style>
 
 <?= $this->endSection() ?>

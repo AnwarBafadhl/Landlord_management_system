@@ -92,64 +92,32 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->post('generate-monthly-payments', 'Admin\Ajax::generateMonthlyPayments');
 });
 
-// Landlord Routes - CLEAN VERSION (no duplicates)
 $routes->group('landlord', ['filter' => 'auth'], function ($routes) {
     // Dashboard
     $routes->get('/', 'Landlord::dashboard');
     $routes->get('dashboard', 'Landlord::dashboard');
-    
-    // User info
-    $routes->get('get-current-user', 'Landlord::getCurrentUser');
-    
-    // Test and debug routes
-    $routes->get('test', 'Landlord::test');
+
+    // Utilities / debug you actually use
     $routes->get('check-database', 'Landlord::checkDatabase');
 
-
     // Properties
-   $routes->get('properties', 'Landlord::properties');
-$routes->get('properties/view/(:num)', 'Landlord::viewProperty/$1');
-$routes->get('request-property', 'Landlord::requestProperty');
-$routes->post('add-property', 'Landlord::addProperty');  // This should call the complete method
-$routes->post('debug-add-property', 'Landlord::debugAddProperty');  // Keep this for debugging if needed
-
-    // Property detail routes
+    $routes->get('properties', 'Landlord::properties');
     $routes->get('properties/view/(:num)', 'Landlord::viewProperty/$1');
     $routes->get('properties/edit/(:num)', 'Landlord::editProperty/$1');
     $routes->post('properties/update/(:num)', 'Landlord::updateProperty/$1');
-    $routes->get('properties/units/(:num)', 'Landlord::getPropertyUnits/$1');
-    
-    $routes->get('landlord/debug-property-data/(:num)', 'Landlord::debugPropertyData/$1');
-$routes->get('landlord/debug-property-data', 'Landlord::debugPropertyData');
-$routes->get('landlord/fix-property-types', 'Landlord::fixPropertyTypes');
-$routes->get('landlord/check-csrf-config', 'Landlord::checkCsrfConfig');
-$routes->post('landlord/test-csrf', 'Landlord::testCsrf');
-$routes->get('landlord/debug-property-display', 'Landlord::debugPropertyDisplay');
 
+    // Add property (form + submit)
+    $routes->get('request-property', 'Landlord::requestProperty');
+    $routes->post('add-property', 'Landlord::addProperty');
 
-    // Tenants
+    // Tenants / Payments / Maintenance
     $routes->get('tenants', 'Landlord::tenants');
-
-    // Payments
     $routes->get('payments', 'Landlord::payments');
-
-    // Maintenance
     $routes->get('maintenance', 'Landlord::maintenance');
 
-
-// Reports - Updated routes for new PDF generation
+    // Reports you actually use
     $routes->get('reports', 'Landlord::reports');
     $routes->post('reports/generate-ownership-pdf', 'Landlord::generateOwnershipPdf');
-    $routes->post('reports/generate-income-pdf', 'Landlord::generateIncomePdf');
-    $routes->get('reports/download/(:num)', 'Landlord::downloadReport/$1');
-
-    // Profile
-    $routes->get('profile', 'Landlord::profile');
-    $routes->post('profile/update', 'Landlord::updateProfile');
-    $routes->post('profile/change-password', 'Landlord::changePassword');
-
-    // Help
-    $routes->get('help', 'Landlord::help');
 });
 
 
