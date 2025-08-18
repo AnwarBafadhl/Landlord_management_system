@@ -3,18 +3,18 @@
 $currentUser = $currentUser ?? (session('user') ?? []);
 
 $firstName = $currentUser['first_name'] ?? $currentUser['firstname'] ?? '';
-$lastName  = $currentUser['last_name']  ?? $currentUser['lastname']  ?? '';
-$email     = $currentUser['email']      ?? (session('email') ?? '');
-$username  = $currentUser['username']   ?? '';
+$lastName = $currentUser['last_name'] ?? $currentUser['lastname'] ?? '';
+$email = $currentUser['email'] ?? (session('email') ?? '');
+$username = $currentUser['username'] ?? '';
 
-$fullName  = trim($firstName . ' ' . $lastName);
+$fullName = trim($firstName . ' ' . $lastName);
 if ($fullName === '') {
     $fullName = $username ?: ($email ? strtok($email, '@') : '');
 }
 
 // Validation + “old input” flags without calling old()
 $validation = isset($validation) ? $validation : \Config\Services::validation();
-$hasErrors  = $validation && !empty($validation->getErrors());
+$hasErrors = $validation && !empty($validation->getErrors());
 
 // Check if there is any old input saved in session/flashdata
 $oldInput = session()->getFlashdata('_ci_old_input');
@@ -107,7 +107,7 @@ $hasOld = !empty($oldInput);
                     </div>
                 </div>
             </div>
-            
+
             <!-- Property Information Form -->
             <div class="card shadow mb-4" id="propertyFormCard"
                 style="<?= ($hasErrors || $hasOld) ? '' : 'display:none;' ?>">
@@ -177,15 +177,15 @@ $hasOld = !empty($oldInput);
                         <!-- Management Information -->
                         <div class="row">
                             <div class="col-md-8 mb-3">
-                                <label for="management_company" class="form-label">Management Company *</label>
+                                <label for="management_company" class="form-label">Management Company</label>
                                 <input type="text" class="form-control" id="management_company"
-                                    name="management_company" required placeholder="e.g., ABC Property Management">
+                                    name="management_company" placeholder="e.g., ABC Property Management">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="management_percentage" class="form-label">Management Percentage (%)
-                                    *</label>
+                                </label>
                                 <input type="number" class="form-control" id="management_percentage"
-                                    name="management_percentage" required min="0" max="50" step="0.1"
+                                    name="management_percentage" min="0" max="50" step="0.1"
                                     placeholder="e.g., 5, 10, 15">
                             </div>
                         </div>
@@ -447,35 +447,35 @@ $hasOld = !empty($oldInput);
 
 <script>
     // Check if all conditions are agreed
-      function checkConditions() {
-    const boxes = document.querySelectorAll('.condition-checkbox');
-    const allChecked = Array.from(boxes).every(b => b.checked);
+    function checkConditions() {
+        const boxes = document.querySelectorAll('.condition-checkbox');
+        const allChecked = Array.from(boxes).every(b => b.checked);
 
-    const ok   = document.getElementById('allConditionsAgreed');
-    const card = document.getElementById('propertyFormCard');
-    const btn  = document.getElementById('submitBtn');
+        const ok = document.getElementById('allConditionsAgreed');
+        const card = document.getElementById('propertyFormCard');
+        const btn = document.getElementById('submitBtn');
 
-    if (!ok || !card || !btn) return;
+        if (!ok || !card || !btn) return;
 
-    if (allChecked) {
-      ok.style.display = 'block';
-      card.style.display = 'block';
-      if (typeof updateSubmitButtonState === 'function') updateSubmitButtonState();
-    } else {
-      ok.style.display = 'none';
-      card.style.display = 'none';
-      btn.disabled = true;
+        if (allChecked) {
+            ok.style.display = 'block';
+            card.style.display = 'block';
+            if (typeof updateSubmitButtonState === 'function') updateSubmitButtonState();
+        } else {
+            ok.style.display = 'none';
+            card.style.display = 'none';
+            btn.disabled = true;
+        }
     }
-  }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // wire the 4 checkboxes
-    document.querySelectorAll('.condition-checkbox')
-      .forEach(cb => cb.addEventListener('change', checkConditions));
+    document.addEventListener('DOMContentLoaded', () => {
+        // wire the 4 checkboxes
+        document.querySelectorAll('.condition-checkbox')
+            .forEach(cb => cb.addEventListener('change', checkConditions));
 
-    // run once in case user had a validation error and came back with some checked
-    checkConditions();
-  });
+        // run once in case user had a validation error and came back with some checked
+        checkConditions();
+    });
 
     // Calculate share value when total shares or property value changes
     function calculateShareValue() {
@@ -670,19 +670,19 @@ $hasOld = !empty($oldInput);
 </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const hasOld    = <?= $hasOld   ? 'true' : 'false' ?>;
-  const hasErrors = <?= $hasErrors? 'true' : 'false' ?>;
+    document.addEventListener('DOMContentLoaded', function () {
+        const hasOld = <?= $hasOld ? 'true' : 'false' ?>;
+        const hasErrors = <?= $hasErrors ? 'true' : 'false' ?>;
 
-  if (hasOld || hasErrors) {
-    document.querySelectorAll('.condition-checkbox').forEach(cb => cb.checked = true);
-    const ok   = document.getElementById('allConditionsAgreed');
-    const card = document.getElementById('propertyFormCard');
-    if (ok)   ok.style.display   = 'block';
-    if (card) card.style.display = 'block';
-    if (typeof updateSubmitButtonState === 'function') updateSubmitButtonState();
-  }
-});
+        if (hasOld || hasErrors) {
+            document.querySelectorAll('.condition-checkbox').forEach(cb => cb.checked = true);
+            const ok = document.getElementById('allConditionsAgreed');
+            const card = document.getElementById('propertyFormCard');
+            if (ok) ok.style.display = 'block';
+            if (card) card.style.display = 'block';
+            if (typeof updateSubmitButtonState === 'function') updateSubmitButtonState();
+        }
+    });
 </script>
 
 <?= $this->endSection() ?>

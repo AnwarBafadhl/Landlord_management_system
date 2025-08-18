@@ -466,20 +466,6 @@
         }
     </style>
 
-    <!-- jQuery (only if you’re using jQuery DataTables or any $ code) -->
-    <script src="/assets/js/jquery-3.7.1.min.js"></script>
-
-    <!-- Bootstrap JS (bundle) -->
-    <script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-
-    <!-- DataTables (pick the one you actually use) -->
-    <!-- jQuery version: -->
-    <script src="/assets/vendor/datatables/jquery.dataTables.min.js"></script>
-    <script src="/assets/vendor/datatables/dataTables.bootstrap4.min.js"></script>
-
-    <!-- OR the non-jQuery v2 version: -->
-    <!-- <script src="/assets/vendor/datatables/dataTables.min.js"></script> -->
-
     <?= $this->renderSection('scripts') ?>
 </body>
 

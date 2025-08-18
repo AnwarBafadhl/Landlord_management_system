@@ -97,27 +97,33 @@ $routes->group('landlord', ['filter' => 'auth'], function ($routes) {
     $routes->get('/', 'Landlord::dashboard');
     $routes->get('dashboard', 'Landlord::dashboard');
 
-    // Utilities / debug you actually use
-    $routes->get('check-database', 'Landlord::checkDatabase');
-
     // Properties
     $routes->get('properties', 'Landlord::properties');
     $routes->get('properties/view/(:num)', 'Landlord::viewProperty/$1');
     $routes->get('properties/edit/(:num)', 'Landlord::editProperty/$1');
     $routes->post('properties/update/(:num)', 'Landlord::updateProperty/$1');
 
+    // Owner management routes
+    $routes->post('properties/add-owner/(:num)', 'Landlord::addOwner/$1');
+    $routes->post('properties/update-owner/(:num)/(:num)', 'Landlord::updateOwner/$1/$2');
+    $routes->post('properties/remove-owner/(:num)/(:num)', 'Landlord::removeOwner/$1/$2');
+
+    // NEW: Unit management routes
+    $routes->post('properties/add-unit/(:num)', 'Landlord::addUnit/$1');
+    $routes->post('properties/update-unit/(:num)/(:num)', 'Landlord::updateUnit/$1/$2');
+    $routes->post('properties/remove-unit/(:num)/(:num)', 'Landlord::removeUnit/$1/$2');
+
     // Add property (form + submit)
     $routes->get('request-property', 'Landlord::requestProperty');
     $routes->post('add-property', 'Landlord::addProperty');
 
-    // Tenants / Payments / Maintenance
+    // Other existing routes...
     $routes->get('tenants', 'Landlord::tenants');
     $routes->get('payments', 'Landlord::payments');
     $routes->get('maintenance', 'Landlord::maintenance');
-
-    // Reports you actually use
     $routes->get('reports', 'Landlord::reports');
     $routes->post('reports/generate-ownership-pdf', 'Landlord::generateOwnershipPdf');
+
 });
 
 

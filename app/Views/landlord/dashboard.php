@@ -141,7 +141,6 @@
                                         <tr>
                                             <td>
                                                 <strong><?= esc($p['property_name'] ?? 'N/A') ?></strong><br>
-                                                <small class="text-muted">Property ID: <?= esc($p['id'] ?? '-') ?></small>
                                             </td>
                                             <td>
                                                 <span class="badge bg-info text-white">

@@ -61,14 +61,14 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Active Properties
+                                Vacant Properties
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 <?php
                                 $activeCount = 0;
                                 if (!empty($properties)) {
                                     foreach ($properties as $property) {
-                                        if (($property['status'] ?? '') === 'active')
+                                        if (($property['status'] ?? '') === 'vacant')
                                             $activeCount++;
                                     }
                                 }
@@ -238,7 +238,7 @@
                                     <td>
                                         <div class="management-info">
                                             <div class="small mb-1">
-                                                <strong><?= esc($property['management_company'] ?? 'Not specified') ?></strong>
+                                                <strong><?= esc($property['management_company'] ?? 'Self-Management') ?></strong>
                                             </div>
                                             <div class="small text-muted">
                                                 <i class="fas fa-percentage"></i>
@@ -291,7 +291,7 @@
                     </table>
                     <style>
                         /* Always show badge colors clearly */
-                        .badge-primary {
+                        .badge-info {
                             background-color: #4e73df !important;
                             color: #fff !important;
                         }
@@ -301,7 +301,7 @@
                             color: #fff !important;
                         }
 
-                        .badge-info {
+                        .badge-primary {
                             background-color: #36b9cc !important;
                             color: #fff !important;
                         }
@@ -319,12 +319,6 @@
                         .badge-light {
                             background-color: #e9ecef !important;
                             color: #212529 !important;
-                        }
-
-                        .badge-pill {
-                            border-radius: 50rem;
-                            padding: .45rem .65rem;
-                            font-weight: 600;
                         }
                     </style>
                 </div>
@@ -346,72 +340,7 @@
     </div>
 </div>
 
-<script>
-    // Filter properties by status
-    function filterProperties(el, status) {
-        const rows = document.querySelectorAll('.property-row');
 
-        rows.forEach(row => {
-            const rowStatus = row.getAttribute('data-status');
-            if (status === 'all' || rowStatus === status) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        // Update active filter indicator
-        document.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
-        if (el) el.classList.add('active');
-    }
-
-    // Initialize DataTable if there are properties
-    document.addEventListener('DOMContentLoaded', function () {
-        const table = document.getElementById('propertiesTable');
-        if (!table || !table.querySelector('tbody tr')) return;
-
-        // If jQuery DataTables is present, use it
-        if (window.jQuery && jQuery.fn && jQuery.fn.DataTable) {
-            jQuery(table).DataTable({
-                pageLength: 10,
-                responsive: true,
-                order: [[0, 'asc']],
-                language: {
-                    search: 'Search properties:',
-                    lengthMenu: 'Show _MENU_ properties per page',
-                    info: 'Showing _START_ to _END_ of _TOTAL_ properties',
-                    emptyTable: 'No properties found'
-                },
-                columnDefs: [{ orderable: false, targets: [5] }]
-            });
-        }
-        // Else if vanilla DataTables v2 is present, use that
-        else if (window.DataTable) {
-            new DataTable(table, {
-                pageLength: 10,
-                responsive: true,
-                order: [[0, 'asc']],
-                language: {
-                    search: 'Search properties:',
-                    lengthMenu: 'Show _MENU_ properties per page',
-                    info: 'Showing _START_ to _END_ of _TOTAL_ properties',
-                    emptyTable: 'No properties found'
-                },
-                columnDefs: [{ orderable: false, targets: [5] }]
-            });
-        } else {
-            console.warn('DataTables library not found. Table will render without enhancements.');
-        }
-    });
-
-    // Auto-dismiss alerts after 5 seconds
-    setTimeout(function () {
-        document.querySelectorAll('.alert.show').forEach(alert => {
-            alert.classList.remove('show');
-            setTimeout(() => alert.remove(), 150);
-        });
-    }, 5000);
-</script>
 
 <style>
     .property-info h6 {
