@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -25,7 +26,7 @@
             border-radius: 15px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            max-width: 1000px;
+            max-width: 800px;
             margin: auto;
         }
 
@@ -85,75 +86,70 @@
             background: #f8f9fc;
             border-radius: 10px;
             padding: 1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .role-option {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
-            border-radius: 8px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         .role-option:hover {
-            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .role-option.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
         }
 
         .role-option input[type="radio"] {
-            margin-right: 0.75rem;
-            transform: scale(1.2);
+            margin: 0;
         }
 
         .role-icon {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 1rem;
+            font-size: 1.5rem;
             color: white;
         }
 
-        .role-icon.landlord {
-            background: #1cc88a;
-        }
+        .role-icon.landlord { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .role-icon.tenant { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+        .role-icon.maintenance { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
 
-        .role-icon.tenant {
-            background: #36b9cc;
-        }
-
-        .role-icon.maintenance {
-            background: #f6c23e;
-            color: #333;
-        }
-
-        .conditional-fields {
-            display: none;
-            background: #f8f9fc;
+        .terms-section {
+            background: #f8f9fa;
             border-radius: 10px;
             padding: 1rem;
-            margin-top: 1rem;
+            margin: 1.5rem 0;
         }
 
-        .conditional-fields.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .login-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -165,8 +161,9 @@
                 <div class="register-container">
                     <div class="register-form">
                         <div class="register-header">
-                            <h2><i class="fas fa-user-plus"></i> Create Account</h2>
-                            <p>Register for Property Management System</p>
+                            <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                            <h2>Create Your Account</h2>
+                            <p class="text-muted">Join our Property Management System</p>
                         </div>
 
                         <!-- Flash Messages -->
@@ -196,9 +193,8 @@
                         <?php endif; ?>
 
                         <!-- Registration Form -->
-                        <form action="<?= site_url('auth/register') ?>" method="post" id="registerForm">
+                        <form action="<?= site_url('register') ?>" method="post" id="registerForm">
                             <?= csrf_field() ?>
-
 
                             <!-- Role Selection -->
                             <div class="role-selection">
@@ -224,7 +220,7 @@
                                     <div>
                                         <strong>Tenant</strong>
                                         <br>
-                                        <small class="text-muted">Pay rent and submit maintenance requests</small>
+                                        <small class="text-muted">Access your rental information</small>
                                     </div>
                                 </div>
 
@@ -236,12 +232,12 @@
                                     <div>
                                         <strong>Maintenance</strong>
                                         <br>
-                                        <small class="text-muted">Handle repair and service requests</small>
+                                        <small class="text-muted">Manage maintenance tasks</small>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Basic Information -->
+                            <!-- Personal Information -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-floating">
@@ -305,99 +301,54 @@
                                 </div>
                             </div>
 
-                            <!-- Contact Information -->
+                            <!-- Optional Contact Information -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="tel" class="form-control" id="phone" name="phone"
                                             placeholder="Phone Number" value="<?= old('phone') ?>">
                                         <label for="phone">
-                                            <i class="fas fa-phone"></i> Phone Number
+                                            <i class="fas fa-phone"></i> Phone Number (Optional)
                                         </label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <textarea class="form-control" id="address" name="address"
-                                            placeholder="Address" style="height: 58px;"><?= old('address') ?></textarea>
+                                        <input type="text" class="form-control" id="address" name="address"
+                                            placeholder="Address" value="<?= old('address') ?>">
                                         <label for="address">
-                                            <i class="fas fa-map-marker-alt"></i> Address
+                                            <i class="fas fa-map-marker-alt"></i> Address (Optional)
                                         </label>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Landlord-specific fields -->
-                            <div id="landlord_fields" class="conditional-fields">
-                                <h6 class="mb-3"><i class="fas fa-building"></i> Landlord Information</h6>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control" id="bank_account" name="bank_account"
-                                                placeholder="Bank Account" value="<?= old('bank_account') ?>">
-                                            <label for="bank_account">
-                                                <i class="fas fa-university"></i> Bank Account Number
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control" id="bank_name" name="bank_name"
-                                                placeholder="Bank Name" value="<?= old('bank_name') ?>">
-                                            <label for="bank_name">
-                                                <i class="fas fa-university"></i> Bank Name
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>Note:</strong> Bank information is used for rent collection and will be verified before activation.
+                            <!-- Terms and Conditions -->
+                            <div class="terms-section">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="terms" id="terms" required>
+                                    <label class="form-check-label" for="terms">
+                                        <i class="fas fa-check"></i>
+                                        I agree to the <a href="#" class="text-primary">Terms of Service</a> 
+                                        and <a href="#" class="text-primary">Privacy Policy</a>
+                                    </label>
                                 </div>
                             </div>
 
-                            <!-- Tenant-specific fields -->
-                            <div id="tenant_fields" class="conditional-fields">
-                                <h6 class="mb-3"><i class="fas fa-home"></i> Tenant Information</h6>
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>Note:</strong> Your account will be activated once a landlord assigns you to a property.
-                                </div>
-                            </div>
-
-                            <!-- Maintenance-specific fields -->
-                            <div id="maintenance_fields" class="conditional-fields">
-                                <h6 class="mb-3"><i class="fas fa-tools"></i> Maintenance Staff Information</h6>
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>Note:</strong> Please provide any relevant certifications or experience details in the address field.
-                                </div>
-                            </div>
-
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
-                                <label class="form-check-label" for="terms">
-                                    I agree to the <a href="#" class="text-primary">Terms of Service</a> and
-                                    <a href="#" class="text-primary">Privacy Policy</a>
-                                </label>
-                            </div>
-                            <div class="form-check mb-3">
-    <input class="form-check-input" type="checkbox" value="1" id="terms" name="terms" required>
-    <label class="form-check-label" for="terms">
-        I agree to the <a href="#" target="_blank">Terms and Conditions</a>
-    </label>
-</div>
-
+                            <!-- Submit Button -->
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-register">
-                                    <i class="fas fa-user-plus"></i> Create Account
+                                <button type="submit" class="btn btn-register text-white">
+                                    <i class="fas fa-user-plus"></i> Create Account & Get Started
                                 </button>
                             </div>
                         </form>
 
-                        <div class="text-center mt-3">
-                            <p>Already have an account?
-                                <a href="<?= site_url('auth/login') ?>" class="text-primary">Sign In</a>
+                        <!-- Login Link -->
+                        <div class="login-link">
+                            <p class="mb-0">Already have an account? 
+                                <a href="<?= site_url('auth/login') ?>">
+                                    <i class="fas fa-sign-in-alt"></i> Sign In
+                                </a>
                             </p>
                         </div>
                     </div>
@@ -411,52 +362,22 @@
 
     <script>
         function selectRole(role) {
+            // Remove selected class from all options
+            document.querySelectorAll('.role-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            // Add selected class to clicked option
+            event.currentTarget.classList.add('selected');
+
             // Check the radio button
             document.getElementById('role_' + role).checked = true;
-
-            // Hide all conditional fields
-            document.querySelectorAll('.conditional-fields').forEach(function(field) {
-                field.classList.remove('show');
-            });
-
-            // Show relevant fields
-            document.getElementById(role + '_fields').classList.add('show');
-
-            // Update required fields based on role
-            updateRequiredFields(role);
         }
 
-        function updateRequiredFields(role) {
-            // Remove required attribute from all conditional fields
-            document.querySelectorAll('.conditional-fields input').forEach(function(input) {
-                input.removeAttribute('required');
-            });
-
-            // Add required attribute for landlord fields
-            if (role === 'landlord') {
-                document.getElementById('bank_account').setAttribute('required', 'required');
-                document.getElementById('bank_name').setAttribute('required', 'required');
-            }
-        }
-
-        // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                if (alert && !alert.classList.contains('alert-info')) {
-                    alert.style.transition = 'opacity 0.5s ease';
-                    alert.style.opacity = '0';
-                    setTimeout(function() {
-                        alert.remove();
-                    }, 500);
-                }
-            });
-        }, 5000);
-
-        // Add loading state to register button
+        // Handle form submission
         document.getElementById('registerForm').addEventListener('submit', function() {
             const button = document.querySelector('.btn-register');
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Your Account...';
             button.disabled = true;
         });
 

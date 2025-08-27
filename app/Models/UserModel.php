@@ -22,11 +22,10 @@ class UserModel extends Model
         'last_name',
         'phone',
         'address',
-        'bank_account',
-        'bank_name',
         'is_active',
         'reset_token',
         'reset_expires'
+        // Removed: 'bank_account', 'bank_name'
     ];
 
     // Dates
@@ -36,7 +35,7 @@ class UserModel extends Model
     protected $updatedField = 'updated_at';
     protected $deletedField = 'deleted_at';
 
-    // Validation
+    // Validation rules
     protected $validationRules = [
         'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username,id,{id}]',
         'email' => 'required|valid_email|is_unique[users.email,id,{id}]',
@@ -48,12 +47,41 @@ class UserModel extends Model
 
     protected $validationMessages = [
         'username' => [
-            'is_unique' => 'Username already exists'
+            'is_unique' => 'This username is already taken. Please choose a different username.'
         ],
         'email' => [
-            'is_unique' => 'Email already exists'
+            'is_unique' => 'This email address is already registered. Please use a different email or try logging in.',
+            'valid_email' => 'Please enter a valid email address.'
+        ],
+        'password' => [
+            'min_length' => 'Password must be at least 6 characters long.'
+        ],
+        'role' => [
+            'in_list' => 'Please select a valid account type.'
         ]
     ];
+
+    /**
+     * Add this method to check if email exists across the entire system
+     */
+    public function emailExists($email, $excludeUserId = null)
+    {
+        $query = $this->where('email', $email);
+
+        if ($excludeUserId) {
+            $query = $query->where('id !=', $excludeUserId);
+        }
+
+        return $query->countAllResults() > 0;
+    }
+
+    /**
+     * Get user by email (useful for login and password reset)
+     */
+    public function getUserByEmail($email)
+    {
+        return $this->where('email', $email)->first();
+    }
 
     protected $skipValidation = false;
     protected $cleanValidationRules = true;

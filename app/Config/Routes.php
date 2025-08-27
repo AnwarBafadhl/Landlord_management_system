@@ -17,14 +17,14 @@ $routes->group('auth', function ($routes) {
     $routes->get('forgot-password', 'Auth::forgotPassword');
     $routes->post('process-forgot-password', 'Auth::processForgotPassword');
 
-    $routes->get('register', 'PublicAuth::register');
-    $routes->post('register', 'PublicAuth::attemptRegister');
-
     // Reset Password Routes
     $routes->get('reset-password/(:any)', 'Auth::resetPassword/$1');
     $routes->post('process-reset-password', 'Auth::processResetPassword');
 
 });
+
+$routes->get('register', 'PublicAuth::register');
+$routes->post('register', 'PublicAuth::attemptRegister');
 
 // Admin Routes
 $routes->group('admin', ['filter' => 'auth'], function ($routes) {
@@ -94,36 +94,70 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
 
 $routes->group('landlord', ['filter' => 'auth'], function ($routes) {
     // Dashboard
-    $routes->get('/', 'Landlord::dashboard');
     $routes->get('dashboard', 'Landlord::dashboard');
+    $routes->get('profile', 'Landlord::profile');
+    $routes->post('profile/update', 'Landlord::updateProfile');
+    $routes->post('profile/change-password', 'Landlord::changePassword');
 
-    // Properties
+    // Properties Management
     $routes->get('properties', 'Landlord::properties');
     $routes->get('properties/view/(:num)', 'Landlord::viewProperty/$1');
     $routes->get('properties/edit/(:num)', 'Landlord::editProperty/$1');
     $routes->post('properties/update/(:num)', 'Landlord::updateProperty/$1');
 
-    // Owner management routes
+    // Owner/Shareholder management routes
     $routes->post('properties/add-owner/(:num)', 'Landlord::addOwner/$1');
     $routes->post('properties/update-owner/(:num)/(:num)', 'Landlord::updateOwner/$1/$2');
     $routes->post('properties/remove-owner/(:num)/(:num)', 'Landlord::removeOwner/$1/$2');
 
-    // NEW: Unit management routes
+    // Unit management routes
     $routes->post('properties/add-unit/(:num)', 'Landlord::addUnit/$1');
     $routes->post('properties/update-unit/(:num)/(:num)', 'Landlord::updateUnit/$1/$2');
     $routes->post('properties/remove-unit/(:num)/(:num)', 'Landlord::removeUnit/$1/$2');
 
-    // Add property (form + submit)
+    // Property creation
     $routes->get('request-property', 'Landlord::requestProperty');
     $routes->post('add-property', 'Landlord::addProperty');
 
-    // Other existing routes...
-    $routes->get('tenants', 'Landlord::tenants');
-    $routes->get('payments', 'Landlord::payments');
-    $routes->get('maintenance', 'Landlord::maintenance');
-    $routes->get('reports', 'Landlord::reports');
+    // UPDATED PAYMENT MANAGEMENT - Income/Expense Tracking
+    $routes->get('payments', 'Landlord::payments'); // Main payments page (updated)
+    
+    // Income Payment Routes
+    $routes->post('income-payment/store', 'Landlord::storeIncomePayment'); // Store income payment
+    
+    // Expense Payment Routes  
+    $routes->post('expense-payment/store', 'Landlord::storeExpensePayment'); // Store expense payment
+    
+    // Export Routes (updated for income/expense)
+    $routes->get('payments/export-excel', 'Landlord::exportPaymentsExcel'); // Export income/expense to Excel/CSV
+    $routes->get('payments/export-pdf', 'Landlord::exportPaymentsPDF'); // Export income/expense to PDF
+
+    // AJAX Routes
+    $routes->get('get-units-by-property/(:num)', 'Landlord::getUnitsByProperty/$1'); // Get units by property
+
+    // ENHANCED MONTHLY INCOME & EXPENSE TRACKING (Advanced Feature)
+    $routes->get('monthly-tracking', 'Landlord::monthlyTracking'); // Advanced monthly tracking page
+    $routes->post('monthly-income/store', 'Landlord::storeMonthlyIncome'); // Store/update monthly income
+    $routes->post('monthly-expenses/store', 'Landlord::storeMonthlyExpenses'); // Store/update monthly expenses
+    $routes->get('get-unit-monthly-data', 'Landlord::getUnitMonthlyData'); // Get unit monthly data (AJAX)
+
+    // LEGACY MAINTENANCE PAYMENT ROUTES (Keep for backward compatibility)
+    $routes->post('maintenance-payment/store', 'Landlord::storeMaintenancePayment'); // Legacy maintenance payment
+    $routes->get('get-maintenance-requests', 'Landlord::getMaintenanceRequests'); // Legacy maintenance requests
+
+    // ENHANCED REPORTS & EXPORT ROUTES
+    $routes->get('reports', 'Landlord::reports'); // Enhanced reports page
+    $routes->post('generate-monthly-report', 'Landlord::generateMonthlyReport'); // Generate comprehensive reports
+    
+    // Legacy Reports (keep for backward compatibility)
     $routes->post('reports/generate-ownership-pdf', 'Landlord::generateOwnershipPdf');
 
+    // Other existing routes
+    $routes->get('tenants', 'Landlord::tenants');
+    $routes->get('maintenance', 'Landlord::maintenance');
+
+    // Help & Support
+    $routes->get('help', 'Landlord::help');
 });
 
 

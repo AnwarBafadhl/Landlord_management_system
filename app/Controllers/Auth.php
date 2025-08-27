@@ -299,6 +299,65 @@ class Auth extends BaseController
         }
     }
 
+    public function processResetPassword()
+    {
+        $rules = [
+            'token' => 'required',
+            'password' => 'required|min_length[6]',
+            'confirm_password' => 'required|matches[password]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('validation', $this->validator);
+        }
+
+        $token = $this->request->getPost('token');
+        $password = $this->request->getPost('password');
+
+        $userModel = new UserModel();
+
+        // Find user with valid token
+        $user = $userModel->where('reset_token', $token)
+            ->where('reset_expires >', date('Y-m-d H:i:s'))
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$user) {
+            return redirect()->to('/auth/forgot-password')
+                ->with('error', 'Invalid or expired reset token. Please request a new password reset.');
+        }
+
+        try {
+            // Update password and clear reset token
+            $updateData = [
+                'password' => $password, // Will be hashed by the model
+                'reset_token' => null,
+                'reset_expires' => null
+            ];
+
+            if ($userModel->update($user['id'], $updateData)) {
+                log_message('info', 'Password reset successful for user: ' . $user['username']);
+
+                return redirect()->to('/auth/login')
+                    ->with('success', 'Password reset successfully! You can now login with your new password.');
+            } else {
+                $errors = $userModel->errors();
+                log_message('error', 'Password reset failed: ' . json_encode($errors));
+
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Failed to update password. Please try again.')
+                    ->with('validation', $userModel->errors());
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Password reset exception: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'An error occurred while resetting your password. Please try again.');
+        }
+    }
+
     /**
      * Get dashboard URL based on user role
      */

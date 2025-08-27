@@ -45,115 +45,95 @@ class PublicAuth extends BaseController
             'terms' => 'required'
         ];
 
-        // REMOVED: Bank account validation since you deleted those fields
-        // No more role-specific validation needed
-
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
         $userModel = new UserModel();
-        
-        $userData = [
-            'username' => $this->request->getPost('username'),
-            'email' => $this->request->getPost('email'),
-            'password' => $this->request->getPost('password'),
-            'role' => $this->request->getPost('role'),
-            'first_name' => $this->request->getPost('first_name'),
-            'last_name' => $this->request->getPost('last_name'),
-            'phone' => $this->request->getPost('phone'),
-            'address' => $this->request->getPost('address'),
-            // REMOVED: bank_account and bank_name since you deleted those fields
-            'is_active' => 0  // All public registrations need admin approval
-        ];
 
         try {
+            // Simplified user data - only basic fields, no bank account
+            $userData = [
+                'username' => $this->request->getPost('username'),
+                'email' => $this->request->getPost('email'),
+                'password' => $this->request->getPost('password'),
+                'role' => $this->request->getPost('role'),
+                'first_name' => $this->request->getPost('first_name'),
+                'last_name' => $this->request->getPost('last_name'),
+                'is_active' => 1  // User is active immediately
+            ];
+
+            // Add optional basic contact fields only if they have values
+            $phone = $this->request->getPost('phone');
+            $address = $this->request->getPost('address');
+
+            if (!empty($phone)) {
+                $userData['phone'] = $phone;
+            }
+
+            if (!empty($address)) {
+                $userData['address'] = $address;
+            }
+
+            // Try to insert the user
             if ($userModel->insert($userData)) {
-                // Different messages based on role
-                $message = $this->getSuccessMessage($this->request->getPost('role'));
-                
-                return redirect()->to('/register/pending')
-                               ->with('success', $message)
-                               ->with('pending_user_role', $this->request->getPost('role'));
+
+                // Get the newly created user
+                $newUser = $userModel->find($userModel->getInsertID());
+
+                if ($newUser) {
+                    // Log the user in immediately
+                    session()->set([
+                        'user_id' => $newUser['id'],
+                        'username' => $newUser['username'],
+                        'email' => $newUser['email'],
+                        'role' => $newUser['role'],
+                        'full_name' => $newUser['first_name'] . ' ' . $newUser['last_name'],
+                        'is_logged_in' => true,
+                        'isLoggedIn' => true
+                    ]);
+
+                    // Redirect directly to appropriate dashboard
+                    $dashboardUrl = $this->getDashboardUrl($newUser['role']);
+                    $welcomeMessage = "Welcome to Property Management System, " . $newUser['first_name'] . "! Your account has been created successfully.";
+
+                    return redirect()->to($dashboardUrl)->with('success', $welcomeMessage);
+                }
+
             } else {
+                // Failed - get validation errors from model
                 $errors = $userModel->errors();
+
                 if (!empty($errors)) {
                     return redirect()->back()
-                                   ->withInput()
-                                   ->with('validation', $userModel->errors());
+                        ->withInput()
+                        ->with('validation', $errors);
                 } else {
                     return redirect()->back()
-                                   ->withInput()
-                                   ->with('error', 'Failed to create account. Please try again.');
+                        ->withInput()
+                        ->with('error', 'Failed to create account. Please try again.');
                 }
             }
+
         } catch (\Exception $e) {
             log_message('error', 'Registration error: ' . $e->getMessage());
+
+            // Check if it's a database constraint error
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                if (strpos($e->getMessage(), 'email') !== false) {
+                    $errorMsg = 'This email address is already registered. Please use a different email or try logging in.';
+                } else {
+                    $errorMsg = 'Username already exists. Please choose a different username.';
+                }
+            } else {
+                $errorMsg = 'An error occurred while creating your account. Please try again.';
+            }
+
             return redirect()->back()
-                           ->withInput()
-                           ->with('error', 'An error occurred while creating your account. Please try again.');
+                ->withInput()
+                ->with('error', $errorMsg);
         }
     }
-
-    /**
-     * Show pending approval page
-     */
-    public function pending()
-    {
-        $data = [
-            'title' => 'Registration Pending - Property Management System',
-            'role' => session()->getFlashdata('pending_user_role') ?? 'user'
-        ];
-
-        return view('auth/pending', $data);
-    }
-
-    /**
-     * Request activation (for users who registered but haven't been activated)
-     */
-    public function requestActivation()
-    {
-        $rules = [
-            'email' => 'required|valid_email'
-        ];
-
-        if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('validation', $this->validator);
-        }
-
-        $userModel = new UserModel();
-        $email = $this->request->getPost('email');
-        $user = $userModel->where('email', $email)->where('is_active', 0)->first();
-
-        if ($user) {
-            // In a real application, you would send an email to admins
-            // For now, just show a success message
-            return redirect()->to('/register/pending')
-                           ->with('success', 'Activation request sent. An administrator will review your account shortly.');
-        } else {
-            return redirect()->back()
-                           ->withInput()
-                           ->with('error', 'Account not found or already activated.');
-        }
-    }
-
-    /**
-     * Get success message based on role (UPDATED - No bank info mention)
-     */
-    private function getSuccessMessage($role)
-    {
-        switch ($role) {
-            case 'landlord':
-                return 'Your landlord account has been created and is pending admin approval. You will be notified once your account is activated.';
-            case 'tenant':
-                return 'Your tenant account has been created and is pending approval. A landlord will need to assign you to a property before you can access the system.';
-            case 'maintenance':
-                return 'Your maintenance staff account has been created and is pending admin approval. You will be notified once your credentials are verified.';
-            default:
-                return 'Your account has been created and is pending approval.';
-        }
-    }
-
     /**
      * Get dashboard URL based on user role
      */

@@ -1,64 +1,105 @@
 <?= $this->extend('layouts/landlord') ?>
 
-<?= $this->section('title') ?>Payment Management<?= $this->endSection() ?>
-
 <?= $this->section('content') ?>
 <div class="container-fluid">
-    <!-- Page Header -->
+
+    <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-file-invoice-dollar"></i> Payment Management
+            <i class="fas fa-dollar-sign"></i> Payment Management
         </h1>
-        <div>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                <i class="fas fa-plus"></i> Add Income Payment
+            </button>
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                <i class="fas fa-minus"></i> Add Expense Payment
+            </button>
             <div class="btn-group" role="group">
-                <button class="btn btn-success" onclick="exportToExcel()">
-                    <i class="fas fa-file-excel"></i> Export Excel
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-download"></i> Export
                 </button>
-                <button class="btn btn-danger" onclick="exportToPDF()">
-                    <i class="fas fa-file-pdf"></i> Export PDF
-                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="exportPayments('excel')">
+                            <i class="fas fa-file-excel"></i> Export to Excel
+                        </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="exportPayments('pdf')">
+                            <i class="fas fa-file-pdf"></i> Export to PDF
+                        </a></li>
+                </ul>
             </div>
         </div>
     </div>
 
-    <!-- Payment Statistics -->
+    <!-- Flash Messages -->
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            <?= session()->getFlashdata('success') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            <?= session()->getFlashdata('error') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Summary Cards -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Total Payments
+                                Total Net Income
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= $stats['total_payments'] ?? 0 ?>
-                            </div>
-                            <div class="text-xs">
-                                All time
+                                SAR <?= number_format($totals['net_income'] ?? 0, 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                            <i class="fas fa-chart-line fa-2x text-success"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Expenses
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                SAR <?= number_format($totals['total_expenses'] ?? 0, 2) ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                This Month
+                                Monthly Net Income
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= $stats['current_month_payments'] ?? 0 ?>
-                            </div>
-                            <div class="text-xs">
-                                Payments received
+                                SAR <?= number_format($totals['monthly_net'] ?? 0, 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
@@ -68,113 +109,66 @@
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Average Payment
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($stats['average_payment'] ?? 0, 0) ?>
-                            </div>
-                            <div class="text-xs">
-                                Per transaction
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-info"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Total Income
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format($stats['total_income'] ?? 0, 0) ?>
-                            </div>
-                            <div class="text-xs">
-                                This Month
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-warning"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Filters and Search -->
+    <!-- Filter Form -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Filter Payment Records</h6>
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter"></i> Filter Payment Records
+            </h6>
         </div>
         <div class="card-body">
-            <form method="GET" action="<?= current_url() ?>" id="filterForm">
+            <form method="GET" action="<?= site_url('landlord/payments') ?>" id="filterForm">
                 <div class="row">
-                    <div class="col-md-2 mb-3">
-                        <label for="payment_type" class="form-label">Payment Type</label>
-                        <select class="form-control" id="payment_type" name="payment_type">
-                            <option value="">All Types</option>
-                            <option value="rent" <?= ($filters['payment_type'] ?? '') === 'rent' ? 'selected' : '' ?>>Rent</option>
-                            <option value="maintenance" <?= ($filters['payment_type'] ?? '') === 'maintenance' ? 'selected' : '' ?>>Maintenance</option>
-                        </select>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="payment_type">Payment Type</label>
+                            <select name="payment_type" id="payment_type" class="form-control">
+                                <option value="all" <?= ($filters['payment_type'] ?? 'all') === 'all' ? 'selected' : '' ?>>All Payments</option>
+                                <option value="income" <?= ($filters['payment_type'] ?? '') === 'income' ? 'selected' : '' ?>>Income</option>
+                                <option value="expense" <?= ($filters['payment_type'] ?? '') === 'expense' ? 'selected' : '' ?>>Expense</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label for="property" class="form-label">Property</label>
-                        <select class="form-control" id="property" name="property">
-                            <option value="">All Properties</option>
-                            <?php if (!empty($properties)): ?>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="property_id">Property</label>
+                            <select name="property_id" id="property_id" class="form-control">
+                                <option value="">All Properties</option>
                                 <?php foreach ($properties as $property): ?>
-                                    <option value="<?= $property['id'] ?>" <?= ($filters['property'] ?? '') == $property['id'] ? 'selected' : '' ?>>
+                                    <option value="<?= $property['id'] ?>" <?= ($filters['property_id'] ?? '') == $property['id'] ? 'selected' : '' ?>>
                                         <?= esc($property['property_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label for="date_from" class="form-label">From Date</label>
-                        <input type="date" class="form-control" id="date_from" name="date_from" value="<?= $filters['date_from'] ?? '' ?>">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="date_from">From Date</label>
+                            <input type="date" name="date_from" id="date_from" class="form-control"
+                                value="<?= esc($filters['date_from'] ?? '') ?>">
+                        </div>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label for="date_to" class="form-label">To Date</label>
-                        <input type="date" class="form-control" id="date_to" name="date_to" value="<?= $filters['date_to'] ?? '' ?>">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="date_to">To Date</label>
+                            <input type="date" name="date_to" id="date_to" class="form-control"
+                                value="<?= esc($filters['date_to'] ?? '') ?>">
+                        </div>
                     </div>
-                    <div class="col-md-2 mb-3">
-                        <label for="tenant" class="form-label">Tenant</label>
-                        <select class="form-control" id="tenant" name="tenant">
-                            <option value="">All Tenants</option>
-                            <?php if (!empty($tenants)): ?>
-                                <?php foreach ($tenants as $tenant): ?>
-                                    <option value="<?= $tenant['id'] ?>" <?= ($filters['tenant'] ?? '') == $tenant['id'] ? 'selected' : '' ?>>
-                                        <?= esc($tenant['first_name'] . ' ' . $tenant['last_name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid gap-2 d-md-flex">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-filter"></i> Filter
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
-                                <i class="fas fa-times"></i> Clear
-                            </button>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div class="d-grid gap-1">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search"></i> Filter
+                                </button>
+                                <a href="<?= site_url('landlord/payments') ?>" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -182,237 +176,212 @@
         </div>
     </div>
 
-    <!-- Payment Records Table -->
+    <!-- Payments Table -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-            <h6 class="m-0 font-weight-bold text-primary">Payment Records</h6>
-            <div>
-                <span class="badge badge-primary"><?= count($payment_receipts ?? []) ?> payments</span>
-                <button class="btn btn-sm btn-outline-primary ms-2" onclick="bulkActions()">
-                    <i class="fas fa-tasks"></i> Bulk Actions
-                </button>
-            </div>
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table"></i> Payment Records
+                <span class="badge bg-secondary ms-2"><?= count($payments ?? []) ?> records</span>
+            </h6>
         </div>
         <div class="card-body">
-            <?php if (!empty($payment_receipts)): ?>
+            <?php if (empty($payments)): ?>
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No payments found</h5>
+                    <p class="text-muted">Start recording your income and expense payments.</p>
+                    <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                        <i class="fas fa-plus"></i> Add Income
+                    </button>
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                        <i class="fas fa-minus"></i> Add Expense
+                    </button>
+                </div>
+            <?php else: ?>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover" width="100%" cellspacing="0" id="paymentsTable">
-                        <thead>
+                    <table class="table table-bordered" id="paymentsTable" width="100%" cellspacing="0">
+                        <thead class="table-dark">
                             <tr>
-                                <th width="40">
-                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                </th>
-                                <th>Receipt</th>
-                                <th>Property</th>
-                                <th>Tenant</th>
-                                <th>Amount</th>
-                                <th>Payment Date</th>
+                                <th>Date</th>
                                 <th>Type</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>Property</th>
+                                <th>Unit</th>
+                                <th>Amount</th>
+                                <th>Period</th>
+                                <th>Receipt</th>
+                                <th>Method</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($payment_receipts as $receipt): ?>
-                                <tr id="receipt-<?= $receipt['id'] ?>">
+                            <?php foreach ($payments as $payment): ?>
+                                <tr>
+                                    <td><?= date('M d, Y', strtotime($payment['date'] ?? $payment['created_at'])) ?></td>
                                     <td>
-                                        <input type="checkbox" class="receipt-checkbox" value="<?= $receipt['id'] ?>">
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($receipt['receipt_file'])): ?>
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    onclick="viewReceipt('<?= $receipt['receipt_file'] ?>')" 
-                                                    title="View Receipt">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
+                                        <?php if ($payment['type'] === 'income'): ?>
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-arrow-up"></i> Income
+                                            </span>
                                         <?php else: ?>
-                                            <span class="text-muted">
-                                                <i class="fas fa-receipt"></i> Receipt
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-arrow-down"></i> Expense
                                             </span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <strong><?= esc($receipt['property_name'] ?? 'N/A') ?></strong>
-                                        <br>
-                                        <small class="text-muted"><?= esc($receipt['property_address'] ?? '') ?></small>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-sm me-2">
-                                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
-                                                     style="width: 32px; height: 32px;">
-                                                    <span class="text-white fw-bold">
-                                                        <?= strtoupper(substr($receipt['tenant_first_name'] ?? 'T', 0, 1) . substr($receipt['tenant_last_name'] ?? 'T', 0, 1)) ?>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <strong><?= esc(($receipt['tenant_first_name'] ?? '') . ' ' . ($receipt['tenant_last_name'] ?? '')) ?></strong>
-                                                <br>
-                                                <small class="text-muted"><?= esc($receipt['tenant_email'] ?? '') ?></small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <strong class="text-success">$<?= number_format($receipt['amount'] ?? 0, 2) ?></strong>
-                                        <?php if (!empty($receipt['ownership_percentage']) && $receipt['ownership_percentage'] != 100): ?>
-                                            <br>
-                                            <small class="text-muted">
-                                                Your share: $<?= number_format(($receipt['amount'] ?? 0) * (($receipt['ownership_percentage'] ?? 100) / 100), 2) ?>
-                                                (<?= $receipt['ownership_percentage'] ?>%)
-                                            </small>
+                                        <strong><?= esc($payment['property_name'] ?? 'N/A') ?></strong>
+                                        <?php if (!empty($payment['property_address'])): ?>
+                                            <br><small class="text-muted"><?= esc($payment['property_address']) ?></small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?= !empty($receipt['payment_date']) ? date('M j, Y', strtotime($receipt['payment_date'])) : 'N/A' ?>
-                                        <br>
-                                        <small class="text-muted">
-                                            <?php
-                                            if (!empty($receipt['payment_date'])) {
-                                                $datetime = strtotime($receipt['payment_date']);
-                                                $now = time();
-                                                $diff = $now - $datetime;
-                                                $days = floor($diff / (60 * 60 * 24));
-                                                if ($days == 0) {
-                                                    echo 'Today';
-                                                } elseif ($days == 1) {
-                                                    echo 'Yesterday';
-                                                } elseif ($days < 30) {
-                                                    echo $days . ' days ago';
-                                                } else {
-                                                    echo date('M Y', $datetime);
-                                                }
-                                            }
-                                            ?>
-                                        </small>
+                                        <?php if (!empty($payment['unit_name'])): ?>
+                                            <span class="badge bg-info"><?= esc($payment['unit_name']) ?></span>
+                                        <?php else: ?>
+                                            <span class="text-muted">N/A</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-info"><?= ucfirst($receipt['payment_type'] ?? 'rent') ?></span>
+                                        <strong class="text-<?= $payment['type'] === 'income' ? 'success' : 'danger' ?>">
+                                            SAR <?= number_format($payment['amount'] ?? 0, 2) ?>
+                                        </strong>
+                                        <?php if (!empty($payment['source'])): ?>
+                                            <br><small class="text-muted"><?= esc($payment['source']) ?></small>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-success">
-                                            <i class="fas fa-check-circle"></i> Confirmed
+                                        <?php if (!empty($payment['period'])): ?>
+                                            <?= esc($payment['period']) ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">N/A</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($payment['receipt_file'])): ?>
+                                            <a href="#" onclick="viewReceipt('<?= esc($payment['receipt_file']) ?>')"
+                                                class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-file-alt"></i> View
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">No receipt</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            <?= ucfirst(str_replace('_', ' ', $payment['method'] ?? 'N/A')) ?>
                                         </span>
-                                        <br>
-                                        <small class="text-muted">
-                                            Processed: <?= !empty($receipt['created_at']) ? date('M j, Y', strtotime($receipt['created_at'])) : 'N/A' ?>
-                                        </small>
-                                        <?php if (!empty($receipt['notes'])): ?>
-                                            <br>
-                                            <small class="text-muted" title="<?= esc($receipt['notes']) ?>">
-                                                <i class="fas fa-comment"></i> Note
-                                            </small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="viewPaymentDetails(<?= $receipt['id'] ?>)" 
-                                                    title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <?php if (!empty($receipt['receipt_file'])): ?>
-                                                <a href="<?= site_url('landlord/download-receipt/' . $receipt['id']) ?>" 
-                                                   class="btn btn-sm btn-outline-primary" 
-                                                   title="Download Receipt">
-                                                    <i class="fas fa-download"></i>
-                                                </a>
-                                            <?php endif; ?>
-                                            <button class="btn btn-sm btn-outline-secondary" 
-                                                    onclick="addNote(<?= $receipt['id'] ?>)" 
-                                                    title="Add Note">
-                                                <i class="fas fa-comment-alt"></i>
-                                            </button>
-                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Pagination (if needed) -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div>
-                        Showing <?= count($payment_receipts) ?> of <?= $total_receipts ?? count($payment_receipts) ?> payments
-                    </div>
-                    <div>
-                        <nav>
-                            <ul class="pagination pagination-sm mb-0">
-                                <!-- Pagination links would go here -->
-                            </ul>
-                        </nav>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="text-center py-5">
-                    <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No Payment Records Found</h5>
-                    <p class="text-muted">No payment records match your current filters.</p>
-                    <div class="mt-3">
-                        <button class="btn btn-outline-primary" onclick="clearFilters()">
-                            <i class="fas fa-refresh"></i> Clear Filters
-                        </button>
-                    </div>
-                </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
 
-<!-- Payment Details Modal -->
-<div class="modal fade" id="paymentDetailsModal" tabindex="-1">
+<!-- Add Income Payment Modal -->
+<div class="modal fade" id="addIncomeModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Payment Details</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> Add Income Payment
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="paymentDetailsContent">
-                <!-- Content loaded via AJAX -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Receipt Viewer Modal -->
-<div class="modal fade" id="receiptViewerModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Payment Receipt</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center" id="receiptViewerContent">
-                <!-- Receipt image/PDF will be loaded here -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Note Modal -->
-<div class="modal fade" id="addNoteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Note to Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="addNoteForm">
+            <form action="<?= site_url('landlord/income-payment/store') ?>" method="post"
+                enctype="multipart/form-data" id="incomeForm">
+                <?= csrf_field() ?>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="payment_note" class="form-label">Note</label>
-                        <textarea class="form-control" id="payment_note" name="note" rows="3" 
-                                  placeholder="Add a note about this payment..."></textarea>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Record income received for a specific property and unit.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="income_date" class="form-label">Date *</label>
+                                <input type="date" name="date" id="income_date" class="form-control"
+                                    value="<?= date('Y-m-d') ?>" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="income_property" class="form-label">Property *</label>
+                                <select name="property_id" id="income_property" class="form-control" required
+                                    onchange="loadIncomeUnits()">
+                                    <option value="">Select Property</option>
+                                    <?php foreach ($properties as $property): ?>
+                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="income_unit" class="form-label">Unit *</label>
+                                <select name="unit_id" id="income_unit" class="form-control" required>
+                                    <option value="">Select Unit</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="income_amount" class="form-label">Income Amount *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">SAR</span>
+                                    <input type="number" name="amount" id="income_amount" class="form-control" step="0.01"
+                                        min="0" required placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="income_source" class="form-label">Income Source *</label>
+                        <input type="text" name="source" id="income_source" class="form-control" required
+                            placeholder="Enter income source (e.g., Rent Payment, Security Deposit, Late Fees, etc.)">
+                        <small class="form-text text-muted">
+                            Common sources: Rent Payment, Security Deposit, Late Fees, Parking Fees, Utility Reimbursement, Other Income
+                        </small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="income_description" class="form-label">Description *</label>
+                        <textarea name="description" id="income_description" class="form-control" rows="3"
+                            placeholder="Describe the income payment details" required></textarea>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="income_method" class="form-label">Payment Method</label>
+                        <select name="method" id="income_method" class="form-control">
+                            <option value="">Select Method</option>
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="check">Check</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="online">Online Payment</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="income_receipt" class="form-label">Receipt/Invoice (Optional)</label>
+                        <input type="file" name="receipt_file" id="income_receipt" class="form-control"
+                            accept=".pdf">
+                        <small class="form-text text-muted">
+                            Only PDF files are accepted (Max 5MB)
+                        </small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Note
+                    <button type="submit" class="btn btn-success" id="submitIncomeBtn">
+                        <i class="fas fa-save"></i> Add Income
                     </button>
                 </div>
             </form>
@@ -420,679 +389,372 @@
     </div>
 </div>
 
-<!-- Bulk Actions Modal -->
-<div class="modal fade" id="bulkActionsModal" tabindex="-1">
-    <div class="modal-dialog">
+<!-- Add Expense Payment Modal -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Bulk Actions</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-minus"></i> Add Expense Payment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="<?= site_url('landlord/expense-payment/store') ?>" method="post"
+                enctype="multipart/form-data" id="expenseForm">
+                <?= csrf_field() ?>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Note:</strong> Record expense payments made for a specific property and unit.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="expense_date" class="form-label">Date *</label>
+                                <input type="date" name="date" id="expense_date" class="form-control"
+                                    value="<?= date('Y-m-d') ?>" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="expense_property" class="form-label">Property *</label>
+                                <select name="property_id" id="expense_property" class="form-control" required
+                                    onchange="loadExpenseUnits()">
+                                    <option value="">Select Property</option>
+                                    <?php foreach ($properties as $property): ?>
+                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="expense_unit" class="form-label">Unit *</label>
+                                <select name="unit_id" id="expense_unit" class="form-control" required>
+                                    <option value="">Select Unit</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="expense_amount" class="form-label">Expense Amount *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">SAR</span>
+                                    <input type="number" name="amount" id="expense_amount" class="form-control" step="0.01"
+                                        min="0" required placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="expense_details" class="form-label">Expense Details *</label>
+                        <select name="expense_type" id="expense_details" class="form-control" required>
+                            <option value="">Select Expense Type</option>
+                            <option value="maintenance">Maintenance & Repairs</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="insurance">Insurance</option>
+                            <option value="property_tax">Property Tax</option>
+                            <option value="cleaning">Cleaning Services</option>
+                            <option value="advertising">Advertising & Marketing</option>
+                            <option value="legal">Legal Fees</option>
+                            <option value="management">Management Fees</option>
+                            <option value="other">Other Expenses</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="expense_description" class="form-label">Description *</label>
+                        <textarea name="description" id="expense_description" class="form-control" rows="3"
+                            placeholder="Describe the expense payment details" required></textarea>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="expense_method" class="form-label">Payment Method</label>
+                        <select name="method" id="expense_method" class="form-control">
+                            <option value="">Select Method</option>
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="check">Check</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="online">Online Payment</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="expense_receipt" class="form-label">Receipt/Invoice (Optional)</label>
+                        <input type="file" name="receipt_file" id="expense_receipt" class="form-control"
+                            accept=".pdf">
+                        <small class="form-text text-muted">
+                            Only PDF files are accepted (Max 5MB)
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning" id="submitExpenseBtn">
+                        <i class="fas fa-save"></i> Add Expense
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt"></i> Payment Receipt
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label for="bulk_action" class="form-label">Select Action</label>
-                    <select class="form-control" id="bulk_action" name="action">
-                        <option value="">Select Action</option>
-                        <option value="export_selected">Export Selected</option>
-                        <option value="add_notes">Add Notes to Selected</option>
-                        <option value="download_receipts">Download Receipts</option>
-                    </select>
+                <div id="receiptContent">
+                    <!-- Receipt content will be loaded here -->
                 </div>
-                <div class="mb-3" id="bulk_notes_section" style="display: none;">
-                    <label for="bulk_notes" class="form-label">Notes</label>
-                    <textarea class="form-control" id="bulk_notes" name="notes" rows="3" 
-                              placeholder="Add notes for selected payments..."></textarea>
-                </div>
-                <div class="alert alert-info">
-                    <span id="selected_count">0</span> payments selected
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="executeBulkAction()">
-                    <i class="fas fa-play"></i> Execute Action
-                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-let currentPaymentId = null;
-let selectedReceipts = [];
-
-function viewReceipt(filename) {
-    const fileExtension = filename.split('.').pop().toLowerCase();
-    const receiptUrl = `<?= base_url('uploads/receipts') ?>/${filename}`;
-    
-    let content = '';
-    if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-        content = `<img src="${receiptUrl}" class="img-fluid" alt="Payment Receipt">`;
-    } else if (fileExtension === 'pdf') {
-        content = `<embed src="${receiptUrl}" type="application/pdf" width="100%" height="500px">`;
-    } else {
-        content = `<p>Cannot preview this file type. <a href="${receiptUrl}" target="_blank">Click here to download</a></p>`;
-    }
-    
-    document.getElementById('receiptViewerContent').innerHTML = content;
-    new bootstrap.Modal(document.getElementById('receiptViewerModal')).show();
-}
-
-function viewPaymentDetails(paymentId) {
-    currentPaymentId = paymentId;
-    
-    // Show loading
-    document.getElementById('paymentDetailsContent').innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p class="mt-2">Loading payment details...</p>
-        </div>
-    `;
-    
-    new bootstrap.Modal(document.getElementById('paymentDetailsModal')).show();
-    
-    // Fetch payment details
-    fetch(`<?= site_url('landlord/payment-details') ?>/${paymentId}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+// Load units for income form
+    function loadIncomeUnits() {
+        const propertyId = document.getElementById('income_property').value;
+        const unitSelect = document.getElementById('income_unit');
+        
+        if (propertyId) {
+            // Show loading state
+            unitSelect.innerHTML = '<option value="">Loading units...</option>';
+            unitSelect.disabled = true;
+            
+            fetch(`<?= site_url('landlord/get-units-by-property') ?>/${propertyId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    unitSelect.disabled = false;
+                    
+                    if (data.error) {
+                        unitSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
+                        console.error('Server error:', data.error);
+                        return;
+                    }
+                    
+                    unitSelect.innerHTML = '<option value="">Select Unit</option>';
+                    if (Array.isArray(data) && data.length > 0) {
+                        data.forEach(unit => {
+                            const displayName = unit.unit_name || `Unit ${unit.id}`;
+                            unitSelect.innerHTML += `<option value="${unit.id}">${displayName}</option>`;
+                        });
+                    } else {
+                        unitSelect.innerHTML = '<option value="">No units found</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                    unitSelect.disabled = false;
+                    unitSelect.innerHTML = '<option value="">Failed to load units</option>';
+                    alert('Failed to load units. Please check your connection and try again.');
+                });
+        } else {
+            unitSelect.innerHTML = '<option value="">Select Unit</option>';
+            unitSelect.disabled = false;
         }
-    })
-    .then(response => response.text())
-    .then(html => {
-        document.getElementById('paymentDetailsContent').innerHTML = html;
-    })
-    .catch(error => {
-        document.getElementById('paymentDetailsContent').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle"></i>
-                Error loading payment details: ${error.message}
+    }
+
+    // Load units for expense form
+    function loadExpenseUnits() {
+        const propertyId = document.getElementById('expense_property').value;
+        const unitSelect = document.getElementById('expense_unit');
+        
+        if (propertyId) {
+            // Show loading state
+            unitSelect.innerHTML = '<option value="">Loading units...</option>';
+            unitSelect.disabled = true;
+            
+            fetch(`<?= site_url('landlord/get-units-by-property') ?>/${propertyId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    unitSelect.disabled = false;
+                    
+                    if (data.error) {
+                        unitSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
+                        console.error('Server error:', data.error);
+                        return;
+                    }
+                    
+                    unitSelect.innerHTML = '<option value="">Select Unit</option>';
+                    if (Array.isArray(data) && data.length > 0) {
+                        data.forEach(unit => {
+                            const displayName = unit.unit_name || `Unit ${unit.id}`;
+                            unitSelect.innerHTML += `<option value="${unit.id}">${displayName}</option>`;
+                        });
+                    } else {
+                        unitSelect.innerHTML = '<option value="">No units found</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading units:', error);
+                    unitSelect.disabled = false;
+                    unitSelect.innerHTML = '<option value="">Failed to load units</option>';
+                    alert('Failed to load units. Please check your connection and try again.');
+                });
+        } else {
+            unitSelect.innerHTML = '<option value="">Select Unit</option>';
+            unitSelect.disabled = false;
+        }
+    }
+
+    // Form validation
+    document.getElementById('incomeForm').addEventListener('submit', function(e) {
+        const propertyId = document.getElementById('income_property').value;
+        const unitId = document.getElementById('income_unit').value;
+        const amount = document.getElementById('income_amount').value;
+
+        if (!propertyId || !unitId || !amount || parseFloat(amount) <= 0) {
+            e.preventDefault();
+            alert('Please fill all required fields correctly.');
+            return false;
+        }
+
+        // Show loading state
+        const submitBtn = document.getElementById('submitIncomeBtn');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding Income...';
+        submitBtn.disabled = true;
+    });
+
+    document.getElementById('expenseForm').addEventListener('submit', function(e) {
+        const propertyId = document.getElementById('expense_property').value;
+        const unitId = document.getElementById('expense_unit').value;
+        const amount = document.getElementById('expense_amount').value;
+
+        if (!propertyId || !unitId || !amount || parseFloat(amount) <= 0) {
+            e.preventDefault();
+            alert('Please fill all required fields correctly.');
+            return false;
+        }
+
+        // Show loading state
+        const submitBtn = document.getElementById('submitExpenseBtn');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding Expense...';
+        submitBtn.disabled = true;
+    });
+
+    // Export payments function - FINAL VERSION
+    function exportPayments(format) {
+        const form = document.getElementById('filterForm');
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData).toString();
+        
+        // Create a form and submit it to trigger download
+        const exportForm = document.createElement('form');
+        exportForm.method = 'GET';
+        exportForm.style.display = 'none';
+        
+        if (format === 'pdf') {
+            exportForm.action = `<?= site_url('landlord/payments/export-pdf') ?>`;
+        } else {
+            exportForm.action = `<?= site_url('landlord/payments/export-excel') ?>`;
+        }
+        
+        // Add form parameters
+        const urlParams = new URLSearchParams(params);
+        for (const [key, value] of urlParams) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            exportForm.appendChild(input);
+        }
+        
+        document.body.appendChild(exportForm);
+        exportForm.submit();
+        document.body.removeChild(exportForm);
+    }
+
+    // View receipt function
+    function viewReceipt(filename) {
+        const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        const content = document.getElementById('receiptContent');
+
+        // For PDF files, show an embedded viewer
+        content.innerHTML = `
+            <div class="text-center">
+                <embed src="<?= base_url('writable/uploads/receipts/') ?>${filename}" 
+                       type="application/pdf" 
+                       width="100%" 
+                       height="500px"
+                       style="border: 1px solid #ddd;">
+                <div class="mt-3">
+                    <a href="<?= base_url('writable/uploads/receipts/') ?>${filename}" 
+                       class="btn btn-primary" 
+                       download="${filename}"
+                       target="_blank">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
+                </div>
             </div>
         `;
+
+        modal.show();
+    }
+
+    // Reset forms when modals are closed
+    document.getElementById('addIncomeModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('incomeForm').reset();
+        document.getElementById('submitIncomeBtn').innerHTML = '<i class="fas fa-save"></i> Add Income';
+        document.getElementById('submitIncomeBtn').disabled = false;
     });
-}
 
-function addNote(paymentId) {
-    currentPaymentId = paymentId;
-    document.getElementById('payment_note').value = '';
-    new bootstrap.Modal(document.getElementById('addNoteModal')).show();
-}
+    document.getElementById('addExpenseModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('expenseForm').reset();
+        document.getElementById('submitExpenseBtn').innerHTML = '<i class="fas fa-save"></i> Add Expense';
+        document.getElementById('submitExpenseBtn').disabled = false;
+    });
 
-function exportToExcel() {
-    // Check if there are any payments to export
-    if (<?= count($payment_receipts ?? []) ?> === 0) {
-        showAlert('warning', 'No payments available to export. Please add some payment records first.');
-        return;
-    }
-    
-    // Show loading message
-    showAlert('info', 'Preparing Excel export...');
-    
-    try {
-        // Fallback: Create CSV export using JavaScript
-        exportToCSV();
-    } catch (error) {
-        showAlert('danger', 'Export failed. Please try again or contact support.');
-        console.error('Export error:', error);
-    }
-}
-
-function exportToPDF() {
-    // Check if there are any payments to export
-    if (<?= count($payment_receipts ?? []) ?> === 0) {
-        showAlert('warning', 'No payments available to export. Please add some payment records first.');
-        return;
-    }
-    
-    // Show loading message
-    showAlert('info', 'Preparing PDF export...');
-    
-    try {
-        // Fallback: Print the current page
-        window.print();
-    } catch (error) {
-        showAlert('danger', 'Export failed. Please try again or contact support.');
-        console.error('Export error:', error);
-    }
-}
-
-function exportToCSV() {
-    const table = document.getElementById('paymentsTable');
-    if (!table) {
-        showAlert('warning', 'No payment data available to export.');
-        return;
-    }
-    
-    let csv = [];
-    const rows = table.querySelectorAll('tr');
-    
-    // Get headers (skip checkbox column)
-    const headerRow = rows[0];
-    const headers = [];
-    for (let i = 1; i < headerRow.cells.length; i++) { // Skip first checkbox column
-        headers.push(headerRow.cells[i].textContent.trim());
-    }
-    csv.push(headers.join(','));
-    
-    // Get data rows (skip header)
-    for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const rowData = [];
-        for (let j = 1; j < row.cells.length; j++) { // Skip first checkbox column
-            let cellText = row.cells[j].textContent.trim();
-            // Clean up the text and escape commas
-            cellText = cellText.replace(/\s+/g, ' ').replace(/"/g, '""');
-            if (cellText.includes(',')) {
-                cellText = `"${cellText}"`;
+    // Initialize DataTable if available - FIXED VERSION
+    document.addEventListener('DOMContentLoaded', function () {
+        const table = document.getElementById('paymentsTable');
+        if (table) {
+            // Check if DataTable library is loaded
+            if (typeof DataTable !== 'undefined') {
+                new DataTable(table, {
+                    "order": [[0, "desc"]], // Sort by date descending
+                    "pageLength": 25,
+                    "responsive": true,
+                    "columnDefs": [
+                        { "orderable": false, "targets": [6] } // Make receipt column non-sortable
+                    ]
+                });
+            } else if (window.jQuery && typeof window.jQuery.fn.DataTable === 'function') {
+                // Fallback to jQuery DataTable if available
+                window.jQuery(table).DataTable({
+                    "order": [[0, "desc"]],
+                    "pageLength": 25,
+                    "responsive": true,
+                    "columnDefs": [
+                        { "orderable": false, "targets": [6] }
+                    ]
+                });
             }
-            rowData.push(cellText);
         }
-        csv.push(rowData.join(','));
-    }
-    
-    // Download CSV
-    const csvContent = csv.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `payments_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showAlert('success', 'CSV export completed successfully!');
-}
-
-function clearFilters() {
-    document.getElementById('payment_type').value = '';
-    document.getElementById('property').value = '';
-    document.getElementById('tenant').value = '';
-    document.getElementById('date_from').value = '';
-    document.getElementById('date_to').value = '';
-    document.getElementById('filterForm').submit();
-}
-
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.receipt-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
     });
-    
-    updateSelectedReceipts();
-}
-
-function updateSelectedReceipts() {
-    selectedReceipts = Array.from(document.querySelectorAll('.receipt-checkbox:checked'))
-                           .map(checkbox => parseInt(checkbox.value));
-    
-    document.getElementById('selected_count').textContent = selectedReceipts.length;
-}
-
-function bulkActions() {
-    updateSelectedReceipts();
-    
-    if (selectedReceipts.length === 0) {
-        showAlert('warning', 'Please select at least one payment');
-        return;
-    }
-    
-    new bootstrap.Modal(document.getElementById('bulkActionsModal')).show();
-}
-
-function executeBulkAction() {
-    const action = document.getElementById('bulk_action').value;
-    const notes = document.getElementById('bulk_notes').value;
-    
-    if (!action) {
-        showAlert('warning', 'Please select an action');
-        return;
-    }
-    
-    if (selectedReceipts.length === 0) {
-        showAlert('warning', 'Please select at least one payment');
-        return;
-    }
-    
-    const data = {
-        action: action,
-        receipts: selectedReceipts,
-        notes: notes
-    };
-    
-    fetch(`<?= site_url('landlord/bulk-payment-action') ?>`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal')).hide();
-            showAlert('success', data.message);
-            if (action !== 'export_selected') {
-                setTimeout(() => location.reload(), 1500);
-            }
-        } else {
-            showAlert('danger', data.message);
-        }
-    })
-    .catch(error => {
-        showAlert('danger', 'Error: ' + error.message);
-    });
-}
-
-// Form submission for adding notes
-document.getElementById('addNoteForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    submitBtn.disabled = true;
-    
-    const formData = new FormData(this);
-    
-    fetch(`<?= site_url('landlord/add-payment-note') ?>/${currentPaymentId}`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
-            showAlert('success', data.message);
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showAlert('danger', data.message);
-        }
-    })
-    .catch(error => {
-        showAlert('danger', 'Error: ' + error.message);
-    })
-    .finally(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-});
-
-// Auto-submit on filter change
-document.querySelectorAll('#payment_type, #property, #tenant, #date_from, #date_to').forEach(element => {
-    element.addEventListener('change', function() {
-        document.getElementById('filterForm').submit();
-    });
-});
-
-// Update selected receipts when checkboxes change
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('receipt-checkbox')) {
-        updateSelectedReceipts();
-    }
-});
-
-// Show notes section for bulk add notes action
-document.getElementById('bulk_action').addEventListener('change', function() {
-    const notesSection = document.getElementById('bulk_notes_section');
-    if (this.value === 'add_notes') {
-        notesSection.style.display = 'block';
-        document.getElementById('bulk_notes').required = true;
-    } else {
-        notesSection.style.display = 'none';
-        document.getElementById('bulk_notes').required = false;
-    }
-});
-
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.top = '20px';
-    alertDiv.style.right = '20px';
-    alertDiv.style.zIndex = '9999';
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : (type === 'warning' ? 'exclamation-triangle' : 'times-circle')}"></i> ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.parentNode.removeChild(alertDiv);
-        }
-    }, 5000);
-}
 </script>
-
-<style>
-.table th {
-    background-color: #f8f9fc;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.badge {
-    font-size: 0.75rem;
-    padding: 0.375rem 0.75rem;
-}
-
-.btn-group .btn {
-    margin-right: 0;
-}
-
-.progress-sm {
-    height: 8px;
-}
-
-.card {
-    border: none;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-}
-
-.avatar-sm {
-    flex-shrink: 0;
-}
-
-.alert.position-fixed {
-    min-width: 300px;
-}
-
-.pagination-sm .page-link {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-}
-
-.border-left-primary {
-    border-left: 0.25rem solid #4e73df !important;
-}
-
-.border-left-success {
-    border-left: 0.25rem solid #1cc88a !important;
-}
-
-.border-left-warning {
-    border-left: 0.25rem solid #f6c23e !important;
-}
-
-.border-left-info {
-    border-left: 0.25rem solid #36b9cc !important;
-}
-
-.hover-shadow {
-    transition: box-shadow 0.15s ease-in-out;
-}
-
-.hover-shadow:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-
-@media (max-width: 768px) {
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-    
-    .btn-group {
-        flex-direction: column;
-    }
-    
-    .btn-group .btn {
-        margin-bottom: 0.25rem;
-        border-radius: 0.25rem !important;
-    }
-    
-    .d-flex.align-items-center {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    
-    .avatar-sm {
-        margin-bottom: 0.5rem;
-    }
-    
-    .d-sm-flex {
-        flex-direction: column !important;
-        gap: 1rem;
-    }
-    
-    .btn-group[role="group"] {
-        flex-direction: row;
-        gap: 0.5rem;
-    }
-}
-
-/* Enhanced card styling */
-.card.border-left-primary,
-.card.border-left-success,
-.card.border-left-warning,
-.card.border-left-info {
-    transition: transform 0.2s ease-in-out;
-}
-
-.card.border-left-primary:hover,
-.card.border-left-success:hover,
-.card.border-left-warning:hover,
-.card.border-left-info:hover {
-    transform: translateY(-2px);
-}
-
-/* Table row hover effect */
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.075);
-    transform: scale(1.002);
-    transition: all 0.2s ease;
-}
-
-/* Modal enhancements */
-.modal-header {
-    background-color: #f8f9fc;
-    border-bottom: 1px solid #e3e6f0;
-}
-
-.modal-title {
-    color: #5a5c69;
-    font-weight: 600;
-}
-
-/* Button enhancements */
-.btn {
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-/* Badge enhancements */
-.badge {
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
-
-/* Receipt viewer enhancements */
-#receiptViewerContent img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.375rem;
-    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-}
-
-/* Filter form enhancements */
-.form-control:focus {
-    border-color: #4e73df;
-    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
-}
-
-/* Statistics cards animation */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.card.border-left-primary,
-.card.border-left-success,
-.card.border-left-warning,
-.card.border-left-info {
-    animation: fadeInUp 0.6s ease-out;
-}
-
-.card.border-left-primary {
-    animation-delay: 0.1s;
-}
-
-.card.border-left-success {
-    animation-delay: 0.2s;
-}
-
-.card.border-left-warning {
-    animation-delay: 0.3s;
-}
-
-.card.border-left-info {
-    animation-delay: 0.4s;
-}
-
-/* Loading spinner */
-.fa-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Empty state styling */
-.text-center.py-5 {
-    padding: 3rem 1rem !important;
-}
-
-.text-center.py-5 i {
-    opacity: 0.5;
-}
-
-/* Print styles for PDF export */
-@media print {
-    .btn, .modal, .alert, .pagination, .card-header .btn-group {
-        display: none !important;
-    }
-    
-    .container-fluid {
-        width: 100% !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-    
-    .card {
-        border: 1px solid #dee2e6 !important;
-        box-shadow: none !important;
-        break-inside: avoid;
-    }
-    
-    .card-header {
-        background-color: #f8f9fc !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .table {
-        font-size: 12px !important;
-    }
-    
-    .table th {
-        background-color: #f8f9fc !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .badge {
-        border: 1px solid #000 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .text-success {
-        color: #28a745 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .text-primary {
-        color: #007bff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .text-warning {
-        color: #ffc107 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    .h3 {
-        margin-bottom: 1rem !important;
-    }
-    
-    /* Hide checkbox column when printing */
-    .table th:first-child,
-    .table td:first-child {
-        display: none !important;
-    }
-    
-    /* Ensure page breaks */
-    .row {
-        break-inside: avoid;
-    }
-    
-    /* Print header */
-    @page {
-        margin: 1in;
-        @top-center {
-            content: "Payment Management Report - " date();
-        }
-    }
-}
-
-/* Responsive improvements */
-@media (max-width: 576px) {
-    .container-fluid {
-        padding: 0.5rem;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .table-responsive {
-        border: none;
-    }
-    
-    .btn-group .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-    
-    .modal-dialog {
-        margin: 0.5rem;
-    }
-}
-</style>
 
 <?= $this->endSection() ?>
