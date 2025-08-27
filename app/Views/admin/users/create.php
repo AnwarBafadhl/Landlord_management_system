@@ -80,7 +80,6 @@
                                 <option value="">Select Role</option>
                                 <option value="admin" <?= old('role') === 'admin' ? 'selected' : '' ?>>Admin</option>
                                 <option value="landlord" <?= old('role') === 'landlord' ? 'selected' : '' ?>>Landlord</option>
-                                <option value="tenant" <?= old('role') === 'tenant' ? 'selected' : '' ?>>Tenant</option>
                                 <option value="maintenance" <?= old('role') === 'maintenance' ? 'selected' : '' ?>>Maintenance</option>
                             </select>
                         </div>

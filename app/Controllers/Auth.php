@@ -113,7 +113,7 @@ class Auth extends BaseController
             'email' => 'required|valid_email|is_unique[users.email]',
             'password' => 'required|min_length[6]',
             'confirm_password' => 'required|matches[password]',
-            'role' => 'required|in_list[admin,landlord,tenant,maintenance]',
+            'role' => 'required|in_list[admin,landlord,maintenance]',
             'first_name' => 'required|min_length[2]|max_length[50]',
             'last_name' => 'required|min_length[2]|max_length[50]'
         ];
@@ -368,8 +368,6 @@ class Auth extends BaseController
                 return '/admin/dashboard';
             case 'landlord':
                 return '/landlord/dashboard';
-            case 'tenant':
-                return '/tenant/dashboard';
             case 'maintenance':
                 return '/maintenance/dashboard';
             default:

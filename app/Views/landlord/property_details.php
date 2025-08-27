@@ -85,12 +85,6 @@
                                 </tr>
                                 <?php $unitCount = is_array($units ?? null) ? count($units) : (int) ($property['total_units'] ?? 0); ?>
 
-                                <tr>
-                                    <td><strong>Units:</strong></td>
-                                    <td class="value">
-                                        <span class="badge badge-info"><?= number_format($unitCount ?? 0) ?></span>
-                                    </td>
-                                </tr>
                             </table>
                         </div>
                         <div class="col-md-6">
@@ -109,25 +103,14 @@
                                     <td class="value"><?= $property['management_percentage'] ?? 0 ?>%</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Status:</strong></td>
-                                    <td>
-                                        <?php
-                                        $status = strtolower(trim($property['status'] ?? 'vacant'));
-                                        $badgeMap = [
-                                            'vacant' => 'badge-info',
-                                            'occupied' => 'badge-success',
-                                            'maintenance' => 'badge-warning',
-                                        ];
-                                        $badgeClass = $badgeMap[$status] ?? 'badge-secondary';
-                                        ?>
-                                        <span class="badge badge-info <?= $badgeClass ?>">
-                                            <?= ucfirst($status) ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
                                     <td><strong>Created Date:</strong></td>
                                     <td class="value"><?= date('M d, Y', strtotime($property['created_at'])) ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Units:</strong></td>
+                                    <td class="value">
+                                        <span class="badge badge-info"><?= number_format($unitCount ?? 0) ?></span>
+                                    </td>
                                 </tr>
                             </table>
                         </div>
@@ -149,24 +132,10 @@
                     <?php if (!empty($units) && is_array($units)): ?>
                         <ul class="list-group">
                             <?php foreach ($units as $u):
-                                $uStatus = strtolower(trim($u['status'] ?? 'vacant'));
-                                $statusMap = [
-                                    'vacant' => 'badge-warning',
-                                    'occupied' => 'badge-success',
-                                    'maintenance' => 'badge-secondary',
-                                ];
-                                $statusClass = $statusMap[$uStatus] ?? 'badge-light';
                                 ?>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <strong><?= esc($u['unit_name'] ?? 'Unit') ?></strong>
-                                    </div>
-                                    <div class="text-right">
-                                        <?php if (isset($u['rent_amount'])): ?>
-                                            <span class="badge badge-primary">SAR
-                                                <?= number_format((float) $u['rent_amount'], 2) ?></span>
-                                        <?php endif; ?>
-                                        <span class="badge <?= $statusClass ?> ml-1"><?= ucfirst($uStatus) ?></span>
                                     </div>
                                 </li>
                             <?php endforeach; ?>

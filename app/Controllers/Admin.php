@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\PropertyModel;
-use App\Models\LeaseModel;
 use App\Models\PaymentModel;
 use App\Models\MaintenanceRequestModel;
 
@@ -12,7 +11,6 @@ class Admin extends BaseController
 {
     protected $userModel;
     protected $propertyModel;
-    protected $leaseModel;
     protected $paymentModel;
     protected $maintenanceModel;
 
@@ -20,7 +18,6 @@ class Admin extends BaseController
     {
         $this->userModel = new UserModel();
         $this->propertyModel = new PropertyModel();
-        $this->leaseModel = new LeaseModel();
         $this->paymentModel = new PaymentModel();
         $this->maintenanceModel = new MaintenanceRequestModel();
     }
@@ -32,7 +29,8 @@ class Admin extends BaseController
     {
         // Check admin access
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         // Get dashboard statistics
         $data = [
@@ -52,7 +50,8 @@ class Admin extends BaseController
     public function users()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $role = $this->request->getGet('role');
         $search = $this->request->getGet('search');
@@ -75,7 +74,8 @@ class Admin extends BaseController
     public function createUser()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $data = [
             'title' => 'Create User',
@@ -91,13 +91,14 @@ class Admin extends BaseController
     public function storeUser()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $rules = [
             'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
             'email' => 'required|valid_email|is_unique[users.email]',
             'password' => 'required|min_length[6]',
-            'role' => 'required|in_list[admin,landlord,tenant,maintenance]',
+            'role' => 'required|in_list[admin,landlord,maintenance]',
             'first_name' => 'required|min_length[2]|max_length[50]',
             'last_name' => 'required|min_length[2]|max_length[50]'
         ];
@@ -135,7 +136,8 @@ class Admin extends BaseController
     public function editUser($id)
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $user = $this->userModel->find($id);
         if (!$user) {
@@ -158,7 +160,8 @@ class Admin extends BaseController
     public function updateUser($id)
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $user = $this->userModel->find($id);
         if (!$user) {
@@ -169,7 +172,7 @@ class Admin extends BaseController
         $rules = [
             'username' => "required|min_length[3]|max_length[50]|is_unique[users.username,id,{$id}]",
             'email' => "required|valid_email|is_unique[users.email,id,{$id}]",
-            'role' => 'required|in_list[admin,landlord,tenant,maintenance]',
+            'role' => 'required|in_list[admin,landlord,maintenance]',
             'first_name' => 'required|min_length[2]|max_length[50]',
             'last_name' => 'required|min_length[2]|max_length[50]'
         ];
@@ -215,7 +218,8 @@ class Admin extends BaseController
     public function deleteUser($id)
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         // Don't allow deletion of current admin user
         if ($id == $this->getCurrentUserId()) {
@@ -238,7 +242,8 @@ class Admin extends BaseController
     public function toggleUserStatus($id)
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         if ($this->userModel->toggleStatus($id)) {
             $this->setSuccess('User status updated successfully');
@@ -255,7 +260,8 @@ class Admin extends BaseController
     public function properties()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $properties = $this->propertyModel->getPropertiesWithLandlords();
 
@@ -273,7 +279,8 @@ class Admin extends BaseController
     public function financials()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $data = [
             'title' => 'Financial Management',
@@ -291,11 +298,12 @@ class Admin extends BaseController
     public function settings()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $db = \Config\Database::connect();
         $settings = $db->table('system_settings')->get()->getResultArray();
-        
+
         $settingsArray = [];
         foreach ($settings as $setting) {
             $settingsArray[$setting['setting_key']] = $setting['setting_value'];
@@ -315,7 +323,8 @@ class Admin extends BaseController
     public function updateSettings()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         $db = \Config\Database::connect();
         $postData = $this->request->getPost();
@@ -323,8 +332,8 @@ class Admin extends BaseController
         foreach ($postData as $key => $value) {
             if ($key !== 'csrf_token_name') {
                 $db->table('system_settings')
-                   ->where('setting_key', $key)
-                   ->update(['setting_value' => $value]);
+                    ->where('setting_key', $key)
+                    ->update(['setting_value' => $value]);
             }
         }
 
@@ -338,11 +347,10 @@ class Admin extends BaseController
     private function getDashboardStats()
     {
         $db = \Config\Database::connect();
-        
+
         $stats = [
             'total_users' => $this->userModel->countAllResults(),
             'total_landlords' => $this->userModel->where('role', 'landlord')->countAllResults(),
-            'total_tenants' => $this->userModel->where('role', 'tenant')->countAllResults(),
             'total_properties' => $this->propertyModel->countAllResults(),
             'occupied_properties' => $this->propertyModel->where('status', 'occupied')->countAllResults(),
             'vacant_properties' => $this->propertyModel->where('status', 'vacant')->countAllResults(),
@@ -379,7 +387,8 @@ class Admin extends BaseController
     public function sendPaymentReminder($paymentId)
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         if (!$this->request->isAJAX()) {
             return $this->respondWithError('Invalid request method', 405);
@@ -391,20 +400,11 @@ class Admin extends BaseController
             return $this->respondWithError('Payment not found', 404);
         }
 
-        // Get tenant details
-        $tenant = $this->userModel->find($payment['tenant_id']);
-        if (!$tenant) {
-            return $this->respondWithError('Tenant not found', 404);
-        }
-
         // In a real application, you would send an actual email
         // For now, we'll just simulate the reminder
         $reminderSent = true; // Simulate email sending
 
         if ($reminderSent) {
-            // Log the reminder (optional)
-            log_message('info', "Payment reminder sent to tenant {$tenant['email']} for payment {$paymentId}");
-            
             return $this->respondWithSuccess([], 'Payment reminder sent successfully');
         } else {
             return $this->respondWithError('Failed to send reminder');
@@ -417,7 +417,8 @@ class Admin extends BaseController
     public function markPaymentPaid($paymentId)
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         if (!$this->request->isAJAX()) {
             return $this->respondWithError('Invalid request method', 405);
@@ -443,7 +444,8 @@ class Admin extends BaseController
     public function generateMonthlyPayments()
     {
         $redirect = $this->requireAdmin();
-        if ($redirect) return $redirect;
+        if ($redirect)
+            return $redirect;
 
         if (!$this->request->isAJAX()) {
             return $this->respondWithError('Invalid request method', 405);

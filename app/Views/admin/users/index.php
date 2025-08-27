@@ -29,7 +29,6 @@
                             <option value="">All Roles</option>
                             <option value="admin" <?= $current_role === 'admin' ? 'selected' : '' ?>>Admin</option>
                             <option value="landlord" <?= $current_role === 'landlord' ? 'selected' : '' ?>>Landlord</option>
-                            <option value="tenant" <?= $current_role === 'tenant' ? 'selected' : '' ?>>Tenant</option>
                             <option value="maintenance" <?= $current_role === 'maintenance' ? 'selected' : '' ?>>Maintenance</option>
                         </select>
                     </div>
@@ -82,7 +81,6 @@
                                                 $icons = [
                                                     'admin' => 'fas fa-user-shield text-primary',
                                                     'landlord' => 'fas fa-building text-success',
-                                                    'tenant' => 'fas fa-home text-info',
                                                     'maintenance' => 'fas fa-tools text-warning'
                                                 ];
                                                 ?>
@@ -105,7 +103,7 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-<?= $user['role'] === 'admin' ? 'primary' : ($user['role'] === 'landlord' ? 'success' : ($user['role'] === 'tenant' ? 'info' : 'warning')) ?>">
+                                        <span class="badge badge-<?= $user['role'] === 'admin' ? 'primary' : ($user['role'] === 'landlord') ?>">
                                             <?= ucfirst($user['role']) ?>
                                         </span>
                                     </td>

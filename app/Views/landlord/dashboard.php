@@ -209,15 +209,6 @@
                             </a>
                         </div>
                         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="<?= site_url('landlord/tenants') ?>" class="btn btn-success quick-action-btn w-100">
-                                <div class="quick-action-content">
-                                    <i class="fas fa-users fa-2x mb-3"></i>
-                                    <h6 class="font-weight-bold mb-2">Manage Tenants</h6>
-                                    <p class="small mb-0">Tenant information</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                             <a href="<?= site_url('landlord/maintenance') ?>" class="btn btn-warning quick-action-btn w-100">
                                 <div class="quick-action-content">
                                     <i class="fas fa-tools fa-2x mb-3"></i>

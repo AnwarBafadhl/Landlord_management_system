@@ -37,7 +37,6 @@
                             <select class="form-select" id="subject" name="subject" required>
                                 <option value="">Select a topic...</option>
                                 <option value="Property Management">Property Management</option>
-                                <option value="Tenant Issues">Tenant Issues</option>
                                 <option value="Payment Problems">Payment Problems</option>
                                 <option value="Technical Support">Technical Support</option>
                                 <option value="Account Issues">Account Issues</option>
@@ -112,24 +111,6 @@
                             </div>
                         </div>
 
-                        <!-- FAQ Item 2 -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="faq2">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
-                                    <i class="fas fa-users me-2 text-success"></i>
-                                    How do I manage tenant information?
-                                </button>
-                            </h2>
-                            <div id="collapse2" class="accordion-collapse collapse" aria-labelledby="faq2"
-                                data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Visit the <strong>Tenants</strong> section to view all your tenants. You can see
-                                    lease details, payment history, and contact information.
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- FAQ Item 3 -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="faq3">
@@ -162,7 +143,7 @@
                             <div id="collapse4" class="accordion-collapse collapse" aria-labelledby="faq4"
                                 data-bs-parent="#faqAccordion">
                                 <div class="accordion-body">
-                                    All maintenance requests from tenants appear in your <strong>Maintenance</strong>
+                                    All maintenance requests from landlords appear in your <strong>Maintenance</strong>
                                     dashboard. You can review requests, assign priorities, and track progress through
                                     the platform.
                                 </div>

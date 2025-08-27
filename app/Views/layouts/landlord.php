@@ -240,15 +240,6 @@
                     </a>
                 </li>
 
-                <!-- Tenants -->
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'landlord/tenants') === 0 ? 'active' : '' ?>"
-                        href="<?= site_url('landlord/tenants') ?>">
-                        <i class="fas fa-fw fa-users"></i>
-                        <span>My Tenants</span>
-                    </a>
-                </li>
-
                 <!-- Payments -->
                 <li class="nav-item">
                     <a class="nav-link <?= strpos(uri_string(), 'landlord/payments') === 0 ? 'active' : '' ?>"

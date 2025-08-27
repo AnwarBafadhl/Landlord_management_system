@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\PropertyModel;
-use App\Models\LeaseModel;
 use App\Models\PaymentModel;
 use App\Models\MaintenanceRequestModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -19,15 +18,13 @@ class Landlord extends BaseController
 {
     protected $userModel;
     protected $propertyModel;
-    protected $leaseModel;
     protected $paymentModel;
     protected $maintenanceModel;
-    
+
     public function __construct()
     {
         $this->userModel = new UserModel();
         $this->propertyModel = new PropertyModel();
-        $this->leaseModel = new LeaseModel();
         $this->paymentModel = new PaymentModel();
         $this->maintenanceModel = new MaintenanceRequestModel();
     }
@@ -1008,19 +1005,6 @@ class Landlord extends BaseController
 
             if (!$unit) {
                 throw new \Exception("Unit not found (ID: {$unitId} for Property: {$propertyId})");
-            }
-
-            // Check if unit has active leases or tenants
-            if ($db->tableExists('leases')) {
-                $activeLease = $db->table('leases')
-                    ->where(['id' => $unitId, 'property_id' => $propertyId])
-                    ->get()
-                    ->getRowArray();
-
-                if ($activeLease) {
-                    $this->setError('Cannot remove unit with active lease. Please terminate the lease first.');
-                    return redirect()->back();
-                }
             }
 
             // Optional: Check if unit is occupied (based on unit status)
@@ -3120,65 +3104,10 @@ class Landlord extends BaseController
             log_message('error', 'Error creating reports_log table: ' . $e->getMessage());
         }
     }
+    //Maintenance page
 
-    // ===============================
-    // EXISTING METHODS (Enhanced)
-    // ===============================
-
-    /**
-     * View Tenants - Enhanced method
-     */
-    public function tenants()
-    {
-        $redirect = $this->requireLandlord();
-        if ($redirect) {
-            return $redirect;
-        }
-
-        $landlordId = $this->getCurrentUserId();
-
-        try {
-            $db = \Config\Database::connect();
-
-            // Get tenants from property units and leases
-            $tenants = $db->table('property_units pu')
-                ->select('pu.*, p.property_name, p.address as property_address, ps.ownership_percentage,
-                         u.first_name, u.last_name, u.email, u.phone')
-                ->join('properties p', 'p.id = pu.property_id')
-                ->join('property_shareholders ps', 'ps.property_id = p.id')
-                ->join('users u', 'u.id = pu.tenant_id', 'left')
-                ->where('ps.user_id', $landlordId)
-                ->where('pu.status', 'occupied')
-                ->orderBy('p.property_name', 'ASC')
-                ->get()
-                ->getResultArray();
-
-            // Get properties for dropdown
-            $properties = $db->table('properties p')
-                ->select('p.id, p.property_name')
-                ->join('property_shareholders ps', 'ps.property_id = p.id')
-                ->where('ps.user_id', $landlordId)
-                ->orderBy('p.property_name', 'ASC')
-                ->get()
-                ->getResultArray();
-
-        } catch (\Exception $e) {
-            log_message('error', 'Tenants page error: ' . $e->getMessage());
-            $tenants = [];
-            $properties = [];
-        }
-
-        $data = [
-            'title' => 'My Tenants',
-            'tenants' => $tenants,
-            'properties' => $properties
-        ];
-
-        return view('landlord/tenants', $data);
-    }
-
-    /**
-     * View Maintenance Requests - Enhanced method
+     /**
+     * View Maintenance Requests - FIXED VERSION
      */
     public function maintenance()
     {
@@ -3192,44 +3121,778 @@ class Landlord extends BaseController
         try {
             $db = \Config\Database::connect();
 
-            // Get maintenance requests for landlord's properties
-            $maintenance_requests = $db->table('maintenance_requests mr')
+            // Get filters from request
+            $status = $this->request->getGet('status');
+            $priority = $this->request->getGet('priority');
+            $propertyId = $this->request->getGet('property');
+
+            // FIXED: Get maintenance requests for landlord's properties using property_shareholders
+            $builder = $db->table('maintenance_requests mr')
                 ->select('mr.*, p.property_name, pu.unit_name,
-                         u.first_name, u.last_name, u.email as tenant_email')
-                ->join('property_units pu', 'pu.id = mr.unit_id')
-                ->join('properties p', 'p.id = pu.property_id')
-                ->join('property_shareholders ps', 'ps.property_id = p.id')
+                         u.first_name, u.last_name, u.email as tenant_email,
+                         staff.first_name as staff_first_name, staff.last_name as staff_last_name')
+                ->join('properties p', 'p.id = mr.property_id')
+                ->join('property_shareholders ps', 'ps.property_id = p.id AND ps.user_id = ' . $landlordId . ' AND ps.status = "active"')
+                ->join('property_units pu', 'pu.id = mr.unit_id', 'left')
                 ->join('users u', 'u.id = mr.tenant_id', 'left')
-                ->where('ps.user_id', $landlordId)
-                ->orderBy('mr.created_at', 'DESC')
+                ->join('users staff', 'staff.id = mr.assigned_staff_id', 'left');
+
+            // Apply filters
+            if ($status) {
+                $builder->where('mr.status', $status);
+            }
+            if ($priority) {
+                $builder->where('mr.priority', $priority);
+            }
+            if ($propertyId) {
+                $builder->where('p.id', $propertyId);
+            }
+
+            $maintenance_requests = $builder->orderBy('mr.created_at', 'DESC')
                 ->get()
                 ->getResultArray();
 
-            // Get properties for filtering
+            // FIXED: Get landlord's properties using property_shareholders table
             $properties = $db->table('properties p')
                 ->select('p.id, p.property_name')
                 ->join('property_shareholders ps', 'ps.property_id = p.id')
                 ->where('ps.user_id', $landlordId)
+                ->where('ps.status', 'active')
                 ->orderBy('p.property_name', 'ASC')
                 ->get()
                 ->getResultArray();
+
+            // Calculate statistics
+            $stats = [
+                'pending_count' => 0,
+                'approved_count' => 0,
+                'in_progress_count' => 0,
+                'completed_count' => 0,
+                'total_count' => count($maintenance_requests)
+            ];
+
+            foreach ($maintenance_requests as $request) {
+                switch ($request['status']) {
+                    case 'pending':
+                        $stats['pending_count']++;
+                        break;
+                    case 'approved':
+                        $stats['approved_count']++;
+                        break;
+                    case 'in_progress':
+                        $stats['in_progress_count']++;
+                        break;
+                    case 'completed':
+                        $stats['completed_count']++;
+                        break;
+                }
+            }
 
         } catch (\Exception $e) {
             log_message('error', 'Maintenance page error: ' . $e->getMessage());
             $maintenance_requests = [];
             $properties = [];
+            $stats = [
+                'pending_count' => 0,
+                'approved_count' => 0,
+                'in_progress_count' => 0,
+                'completed_count' => 0,
+                'total_count' => 0
+            ];
         }
 
         $data = [
-            'title' => 'Maintenance Requests',
+            'title' => 'Maintenance Management',
             'maintenance_requests' => $maintenance_requests,
-            'properties' => $properties
+            'properties' => $properties,
+            'stats' => $stats,
+            'current_status' => $status,
+            'current_priority' => $priority,
+            'current_property' => $propertyId
         ];
 
         return view('landlord/maintenance', $data);
     }
 
-   public function payments()
+    /**
+     * Add new maintenance request - FIXED VERSION
+     */
+    public function addMaintenanceRequest()
+    {
+        $redirect = $this->requireLandlord();
+        if ($redirect) {
+            return $redirect;
+        }
+
+        if ($this->request->getMethod() !== 'POST') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method'
+            ]);
+        }
+
+        $landlordId = $this->getCurrentUserId();
+
+        // Validation rules
+        $rules = [
+            'property_id' => 'required|integer',
+            'unit_id' => 'required|integer', // FIXED: Make unit_id required
+            'title' => 'required|min_length[5]|max_length[200]',
+            'description' => 'required|min_length[10]',
+            'priority' => 'required|in_list[low,normal,high,urgent]',
+            'estimated_cost' => 'permit_empty|decimal|greater_than_equal_to[0]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        try {
+            $db = \Config\Database::connect();
+
+            // FIXED: Verify landlord owns this property using property_shareholders
+            $propertyCheck = $db->table('property_shareholders ps')
+                ->join('properties p', 'p.id = ps.property_id')
+                ->where('ps.user_id', $landlordId)
+                ->where('ps.status', 'active')
+                ->where('p.id', $this->request->getPost('property_id'))
+                ->get()
+                ->getRowArray();
+
+            if (!$propertyCheck) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'You do not have permission to create requests for this property'
+                ]);
+            }
+
+            // Get current timestamp
+            $currentTime = date('Y-m-d H:i:s');
+
+            // Prepare data for insertion
+            $data = [
+                'property_id' => $this->request->getPost('property_id'),
+                'unit_id' => $this->request->getPost('unit_id'), // FIXED: Remove ?: null since unit is now required
+                'tenant_id' => null, // Landlord created request
+                'title' => $this->request->getPost('title'),
+                'description' => $this->request->getPost('description'),
+                'priority' => $this->request->getPost('priority'),
+                'status' => 'pending',
+                'estimated_cost' => $this->request->getPost('estimated_cost') ?: null,
+                'requested_date' => $currentTime,
+                'created_by_landlord' => 1,
+                'created_at' => $currentTime,
+                'updated_at' => $currentTime
+            ];
+
+            // Insert maintenance request directly using query builder
+            $result = $db->table('maintenance_requests')->insert($data);
+
+            if ($result) {
+                // Get the inserted ID
+                $requestId = $db->insertID();
+                
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Maintenance request created successfully',
+                    'request_id' => $requestId
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to create maintenance request'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Add maintenance request error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An error occurred while creating the request: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update maintenance request status - FIXED VERSION
+     */
+    public function updateMaintenanceStatus($requestId)
+    {
+        $redirect = $this->requireLandlord();
+        if ($redirect) {
+            return $redirect;
+        }
+
+        if ($this->request->getMethod() !== 'POST') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method'
+            ]);
+        }
+
+        $landlordId = $this->getCurrentUserId();
+        $input = $this->request->getJSON(true);
+
+        // Validation
+        $allowedStatuses = ['pending', 'approved', 'rejected', 'in_progress', 'completed'];
+        if (!isset($input['status']) || !in_array($input['status'], $allowedStatuses)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid status'
+            ]);
+        }
+
+        try {
+            $db = \Config\Database::connect();
+
+            // FIXED: Verify landlord owns this request's property
+            $requestCheck = $db->table('maintenance_requests mr')
+                ->join('properties p', 'p.id = mr.property_id')
+                ->join('property_shareholders ps', 'ps.property_id = p.id')
+                ->where('mr.id', $requestId)
+                ->where('ps.user_id', $landlordId)
+                ->where('ps.status', 'active')
+                ->get()
+                ->getRowArray();
+
+            if (!$requestCheck) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Request not found or access denied'
+                ]);
+            }
+
+            // Get current timestamp
+            $currentTime = date('Y-m-d H:i:s');
+
+            // Prepare update data
+            $updateData = [
+                'status' => $input['status'],
+                'updated_at' => $currentTime
+            ];
+
+            // Add status-specific data
+            switch ($input['status']) {
+                case 'approved':
+                    $updateData['approved_date'] = $currentTime;
+                    if (isset($input['estimated_cost']) && $input['estimated_cost']) {
+                        $updateData['estimated_cost'] = $input['estimated_cost'];
+                    }
+                    break;
+                case 'completed':
+                    $updateData['completed_date'] = $currentTime;
+                    if (isset($input['actual_cost']) && $input['actual_cost']) {
+                        $updateData['actual_cost'] = $input['actual_cost'];
+                    }
+                    break;
+                case 'rejected':
+                    $updateData['rejected_date'] = $currentTime;
+                    if (isset($input['rejection_reason']) && $input['rejection_reason']) {
+                        $updateData['rejection_reason'] = $input['rejection_reason'];
+                    }
+                    break;
+            }
+
+            if (isset($input['notes']) && $input['notes']) {
+                $updateData['work_notes'] = $input['notes'];
+            }
+
+            // Update the request
+            $result = $db->table('maintenance_requests')
+                ->where('id', $requestId)
+                ->update($updateData);
+
+            if ($result) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Status updated successfully'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to update status'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Update maintenance status error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An error occurred while updating status'
+            ]);
+        }
+    }
+
+    /**
+     * Export maintenance report as PDF only - FIXED VERSION
+     */
+    public function exportMaintenanceReport()
+    {
+        $redirect = $this->requireLandlord();
+        if ($redirect) {
+            return $redirect;
+        }
+
+        $landlordId = $this->getCurrentUserId();
+
+        try {
+            $db = \Config\Database::connect();
+
+            // Get filters from request
+            $status = $this->request->getGet('status');
+            $priority = $this->request->getGet('priority');
+            $propertyId = $this->request->getGet('property');
+            $dateFrom = $this->request->getGet('date_from');
+            $dateTo = $this->request->getGet('date_to');
+
+            // FIXED: Build query with proper property ownership check
+            $builder = $db->table('maintenance_requests mr')
+                ->select('mr.*, p.property_name, pu.unit_name,
+                         u.first_name as tenant_first_name, u.last_name as tenant_last_name, u.email as tenant_email,
+                         staff.first_name as staff_first_name, staff.last_name as staff_last_name')
+                ->join('properties p', 'p.id = mr.property_id')
+                ->join('property_shareholders ps', 'ps.property_id = p.id')
+                ->join('property_units pu', 'pu.id = mr.unit_id', 'left')
+                ->join('users u', 'u.id = mr.tenant_id', 'left')
+                ->join('users staff', 'staff.id = mr.assigned_staff_id', 'left')
+                ->where('ps.user_id', $landlordId)
+                ->where('ps.status', 'active');
+
+            // Apply filters
+            if ($status) {
+                $builder->where('mr.status', $status);
+            }
+            if ($priority) {
+                $builder->where('mr.priority', $priority);
+            }
+            if ($propertyId) {
+                $builder->where('p.id', $propertyId);
+            }
+            if ($dateFrom) {
+                $builder->where('mr.created_at >=', $dateFrom);
+            }
+            if ($dateTo) {
+                $builder->where('mr.created_at <=', $dateTo);
+            }
+
+            $requests = $builder->orderBy('mr.created_at', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            // Generate PDF report
+            return $this->generateMaintenancePDF($requests);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Export maintenance report error: ' . $e->getMessage());
+            return redirect()->to('/landlord/maintenance')->with('error', 'Failed to export report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate maintenance report as PDF - ENHANCED VERSION
+     */
+    private function generateMaintenancePDF($requests)
+    {
+        // Get landlord info for header
+        $landlordId = $this->getCurrentUserId();
+        $db = \Config\Database::connect();
+        
+        $landlordInfo = $db->table('users')
+            ->where('id', $landlordId)
+            ->get()
+            ->getRowArray();
+        
+        $landlordName = 'Unknown Landlord';
+        if ($landlordInfo) {
+            $landlordName = trim(($landlordInfo['first_name'] ?? '') . ' ' . ($landlordInfo['last_name'] ?? ''));
+            if (!$landlordName) {
+                $landlordName = $landlordInfo['username'] ?? 'Landlord';
+            }
+        }
+
+        $html = $this->generateMaintenanceReportHTML($requests, $landlordName);
+        
+        $filename = 'maintenance_report_' . date('Y-m-d_H-i-s') . '.html';
+        
+        // Set headers for PDF-like HTML download
+        $this->response->setHeader('Content-Type', 'text/html; charset=UTF-8');
+        $this->response->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        
+        return $this->response->setBody($html);
+    }
+
+    /**
+     * Generate HTML for maintenance report - ENHANCED VERSION
+     */
+    private function generateMaintenanceReportHTML($requests, $landlordName)
+    {
+        $totalEstimated = 0;
+        $totalActual = 0;
+        
+        foreach ($requests as $request) {
+            if (!empty($request['estimated_cost'])) {
+                $totalEstimated += floatval($request['estimated_cost']);
+            }
+            if (!empty($request['actual_cost'])) {
+                $totalActual += floatval($request['actual_cost']);
+            }
+        }
+        
+        // Calculate statistics
+        $pendingCount = 0;
+        $approvedCount = 0;
+        $inProgressCount = 0;
+        $completedCount = 0;
+        
+        foreach ($requests as $request) {
+            switch ($request['status']) {
+                case 'pending':
+                    $pendingCount++;
+                    break;
+                case 'approved':
+                    $approvedCount++;
+                    break;
+                case 'in_progress':
+                    $inProgressCount++;
+                    break;
+                case 'completed':
+                    $completedCount++;
+                    break;
+            }
+        }
+        
+        $html = '<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Maintenance Report</title>
+            <style>
+                @page { margin: 20mm; }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 0; 
+                    padding: 0;
+                    color: #333;
+                    line-height: 1.4;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px; 
+                    border-bottom: 2px solid #007bff;
+                    padding-bottom: 20px;
+                }
+                .header h1 { 
+                    color: #007bff; 
+                    margin: 0;
+                    font-size: 24px;
+                }
+                .header p { 
+                    margin: 5px 0; 
+                    color: #666;
+                }
+                .stats { 
+                    display: grid; 
+                    grid-template-columns: repeat(4, 1fr); 
+                    gap: 15px; 
+                    margin: 20px 0; 
+                }
+                .stat-box { 
+                    text-align: center; 
+                    padding: 15px; 
+                    border: 1px solid #ddd; 
+                    border-radius: 5px;
+                    background: #f8f9fa;
+                }
+                .stat-box h3 { 
+                    margin: 0 0 5px 0; 
+                    font-size: 24px; 
+                    color: #007bff;
+                }
+                .stat-box p { 
+                    margin: 0; 
+                    font-size: 12px;
+                    color: #666;
+                }
+                .summary-stats {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 15px;
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #e9ecef;
+                    border-radius: 5px;
+                }
+                .summary-stats div {
+                    text-align: center;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-top: 20px; 
+                    font-size: 11px;
+                }
+                th, td { 
+                    padding: 8px 6px; 
+                    border: 1px solid #ddd; 
+                    text-align: left; 
+                    vertical-align: top;
+                }
+                th { 
+                    background-color: #007bff; 
+                    color: white;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) { 
+                    background-color: #f8f9fa; 
+                }
+                .status-pending { color: #ffc107; font-weight: bold; }
+                .status-approved { color: #28a745; font-weight: bold; }
+                .status-in-progress { color: #17a2b8; font-weight: bold; }
+                .status-completed { color: #6c757d; font-weight: bold; }
+                .status-rejected { color: #dc3545; font-weight: bold; }
+                .priority-urgent { color: #dc3545; font-weight: bold; }
+                .priority-high { color: #fd7e14; font-weight: bold; }
+                .priority-normal { color: #007bff; }
+                .priority-low { color: #6c757d; }
+                .footer {
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    text-align: center;
+                    color: #666;
+                    font-size: 10px;
+                }
+                .no-data {
+                    text-align: center;
+                    padding: 40px;
+                    color: #666;
+                }
+                @media print {
+                    body { margin: 0; }
+                    .header { page-break-after: avoid; }
+                    table { page-break-inside: avoid; }
+                    tr { page-break-inside: avoid; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Maintenance Report</h1>
+                <p><strong>Landlord:</strong> ' . htmlspecialchars($landlordName) . '</p>
+                <p><strong>Generated:</strong> ' . date('F d, Y \a\t g:i A') . '</p>
+                <p><strong>Total Requests:</strong> ' . count($requests) . '</p>
+            </div>';
+        
+        if (!empty($requests)) {
+            $html .= '<div class="stats">
+                <div class="stat-box">
+                    <h3>' . $pendingCount . '</h3>
+                    <p>Pending</p>
+                </div>
+                <div class="stat-box">
+                    <h3>' . $approvedCount . '</h3>
+                    <p>Approved</p>
+                </div>
+                <div class="stat-box">
+                    <h3>' . $inProgressCount . '</h3>
+                    <p>In Progress</p>
+                </div>
+                <div class="stat-box">
+                    <h3>' . $completedCount . '</h3>
+                    <p>Completed</p>
+                </div>
+            </div>
+            
+            <div class="summary-stats">
+                <div>
+                    <strong>Total Estimated Cost:</strong><br>
+                     . number_format($totalEstimated, 2) . 
+                </div>
+                <div>
+                    <strong>Total Actual Cost:</strong><br>'
+                     . number_format($totalActual, 2) . '
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th width="5%">ID</th>
+                        <th width="12%">Property</th>
+                        <th width="8%">Unit</th>
+                        <th width="20%">Title</th>
+                        <th width="8%">Priority</th>
+                        <th width="10%">Status</th>
+                        <th width="8%">Est. Cost</th>
+                        <th width="8%">Actual Cost</th>
+                        <th width="9%">Requested</th>
+                    </tr>
+                </thead>
+                <tbody>';
+        
+            foreach ($requests as $request) {
+                $statusClass = 'status-' . str_replace('_', '-', $request['status']);
+                $priorityClass = 'priority-' . $request['priority'];
+                
+                $html .= '<tr>
+                    <td><strong>#' . $request['id'] . '</strong></td>
+                    <td>' . htmlspecialchars($request['property_name']) . '</td>
+                    <td>' . htmlspecialchars($request['unit_name'] ?? 'N/A') . '</td>
+                    <td>
+                        <strong>' . htmlspecialchars($request['title']) . '</strong><br>
+                        <small>' . htmlspecialchars(substr($request['description'], 0, 80)) . '...</small>
+                    </td>
+                    <td class="' . $priorityClass . '">' . ucfirst($request['priority']) . '</td>
+                    <td class="' . $statusClass . '">' . ucfirst(str_replace('_', ' ', $request['status'])) . '</td>
+                    <td>' . (!empty($request['estimated_cost']) ? number_format($request['estimated_cost'], 2) : 'N/A') . '</td>
+                    <td>' . (!empty($request['actual_cost']) ? number_format($request['actual_cost'], 2) : 'N/A') . '</td>
+                    <td>' . date('M d, Y', strtotime($request['created_at'])) . '</td>
+                </tr>';
+            }
+            
+            $html .= '</tbody></table>';
+            
+        } else {
+            $html .= '<div class="no-data">
+                <h3>No Maintenance Requests Found</h3>
+                <p>No maintenance requests match the current filters.</p>
+            </div>';
+        }
+        
+        $html .= '<div class="footer">
+                <p>This report was generated automatically from the Property Management System.</p>
+                <p>For questions or concerns, please contact your system administrator.</p>
+            </div>
+        </body>
+        </html>';
+        
+        return $html;
+    }
+
+    /**
+     * Get units by property - DEBUG VERSION
+     */
+    public function getUnitsByProperty($propertyId)
+    {
+        $redirect = $this->requireLandlord();
+        if ($redirect) {
+            return $redirect;
+        }
+
+        $landlordId = $this->getCurrentUserId();
+
+        try {
+            $db = \Config\Database::connect();
+
+            // Debug: Log the request
+            log_message('debug', "Getting units for property $propertyId, landlord $landlordId");
+
+            // First, check if property_units table exists
+            if (!$db->tableExists('property_units')) {
+                log_message('error', 'property_units table does not exist');
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Property units table not found. Please run database migrations.',
+                    'units' => []
+                ]);
+            }
+
+            // Check if property_shareholders table exists
+            if (!$db->tableExists('property_shareholders')) {
+                log_message('error', 'property_shareholders table does not exist');
+                // Try to get units without ownership check
+                $units = $db->table('property_units')
+                    ->select('id, unit_name')
+                    ->where('property_id', $propertyId)
+                    ->orderBy('unit_name', 'ASC')
+                    ->get()
+                    ->getResultArray();
+
+                log_message('debug', 'Found ' . count($units) . ' units without ownership check');
+
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Units loaded (no ownership verification - missing property_shareholders table)',
+                    'units' => $units
+                ]);
+            }
+
+            // Verify landlord owns this property first
+            $ownershipCheck = $db->table('property_shareholders ps')
+                ->select('ps.property_id, ps.user_id, ps.status, p.property_name')
+                ->join('properties p', 'p.id = ps.property_id')
+                ->where('ps.user_id', $landlordId)
+                ->where('ps.property_id', $propertyId)
+                ->get()
+                ->getRowArray();
+
+            log_message('debug', 'Ownership check result: ' . json_encode($ownershipCheck));
+
+            if (!$ownershipCheck) {
+                log_message('warning', "Landlord $landlordId does not own property $propertyId");
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'You do not have access to this property',
+                    'units' => []
+                ]);
+            }
+
+            if ($ownershipCheck['status'] !== 'active') {
+                log_message('warning', "Landlord $landlordId has inactive status for property $propertyId");
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Your access to this property is not active',
+                    'units' => []
+                ]);
+            }
+
+            // Get units for the property
+            $units = $db->table('property_units pu')
+                ->select('pu.id, pu.unit_name, pu.status as unit_status')
+                ->where('pu.property_id', $propertyId)
+                ->orderBy('pu.unit_name', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            log_message('debug', 'Found ' . count($units) . ' units for property ' . $propertyId);
+            log_message('debug', 'Units: ' . json_encode($units));
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Units loaded successfully',
+                'units' => $units,
+                'debug' => [
+                    'property_id' => $propertyId,
+                    'landlord_id' => $landlordId,
+                    'ownership_status' => $ownershipCheck['status']
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Get units error: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to load units: ' . $e->getMessage(),
+                'units' => [],
+                'error_details' => [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'message' => $e->getMessage()
+                ]
+            ]);
+        }
+    }
+
+    //payments page
+    public function payments()
     {
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
             return redirect()->to('/login');
@@ -3264,7 +3927,7 @@ class Landlord extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Payment page error: ' . $e->getMessage());
             session()->setFlashdata('error', 'Error loading payments: ' . $e->getMessage());
-            
+
             return view('landlord/payments', [
                 'title' => 'Payment Management',
                 'payments' => [],
@@ -3301,7 +3964,7 @@ class Landlord extends BaseController
         try {
             $db = \Config\Database::connect();
             $unit = $this->verifyUnitOwnership($this->request->getPost('unit_id'), $landlordId);
-            
+
             if (!$unit) {
                 session()->setFlashdata('error', 'Unit not found or access denied.');
                 return redirect()->back()->withInput();
@@ -3315,7 +3978,7 @@ class Landlord extends BaseController
                     session()->setFlashdata('error', 'Only PDF files are allowed for receipts.');
                     return redirect()->back()->withInput();
                 }
-                
+
                 $uploadPath = WRITEPATH . 'uploads/receipts/';
                 if (!is_dir($uploadPath)) {
                     mkdir($uploadPath, 0755, true);
@@ -3382,7 +4045,7 @@ class Landlord extends BaseController
         try {
             $db = \Config\Database::connect();
             $unit = $this->verifyUnitOwnership($this->request->getPost('unit_id'), $landlordId);
-            
+
             if (!$unit) {
                 session()->setFlashdata('error', 'Unit not found or access denied.');
                 return redirect()->back()->withInput();
@@ -3396,7 +4059,7 @@ class Landlord extends BaseController
                     session()->setFlashdata('error', 'Only PDF files are allowed for receipts.');
                     return redirect()->back()->withInput();
                 }
-                
+
                 $uploadPath = WRITEPATH . 'uploads/receipts/';
                 if (!is_dir($uploadPath)) {
                     mkdir($uploadPath, 0755, true);
@@ -3437,6 +4100,7 @@ class Landlord extends BaseController
         return redirect()->to('landlord/payments');
     }
 
+    // FIX 1: Corrected CSV Export (with proper DateTime namespace)
     public function exportPaymentsExcel()
     {
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
@@ -3444,7 +4108,7 @@ class Landlord extends BaseController
         }
 
         $landlordId = session()->get('user_id');
-        
+
         $filters = [
             'payment_type' => $this->request->getGet('payment_type') ?? 'all',
             'property_id' => $this->request->getGet('property_id') ?? '',
@@ -3454,66 +4118,83 @@ class Landlord extends BaseController
 
         try {
             $payments = $this->getIncomeExpensePayments($landlordId, $filters);
-            $filename = 'income_expense_payments_' . date('Y-m-d_H-i-s') . '.csv';
 
-            // Clear output buffer
+            if (empty($payments)) {
+                session()->setFlashdata('error', 'No payments found for export.');
+                return redirect()->back();
+            }
+
+            $filename = 'payments_' . date('Y-m-d_H-i-s') . '.csv';
+
+            // CRITICAL: Clear all output buffers to prevent HTML in CSV
             while (ob_get_level()) {
                 ob_end_clean();
             }
 
-            // Set proper CSV headers with UTF-8 encoding
+            // Disable error display for this request
+            ini_set('display_errors', 0);
+
+            // Set proper headers
             header('Content-Type: text/csv; charset=UTF-8');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Cache-Control: no-cache, must-revalidate');
-            header('Pragma: public');
+            header('Pragma: no-cache');
             header('Expires: 0');
 
             // Open output stream
             $output = fopen('php://output', 'w');
-            
-            // Add UTF-8 BOM to fix Arabic character display
+
+            // UTF-8 BOM for Excel
             fprintf($output, "\xEF\xBB\xBF");
-            
+
             // Headers
             fputcsv($output, [
                 'Date',
-                'Type', 
+                'Type',
                 'Property',
                 'Unit',
                 'Amount (SAR)',
-                'Source/Category',
+                'Source',
                 'Description',
-                'Payment Method',
-                'Period'
+                'Payment Method'
             ]);
 
-            // Data rows with proper UTF-8 encoding
+            // FIXED: Data rows with proper DateTime usage
             foreach ($payments as $payment) {
-                $type = ucfirst($payment['type']);
-                
+                // FIXED: Use full namespace for DateTime
+                $formattedDate = '';
+                if (!empty($payment['date'])) {
+                    try {
+                        $dateTime = new \DateTime($payment['date']); // FIXED: Added backslash
+                        $formattedDate = $dateTime->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $formattedDate = $payment['date'];
+                    }
+                }
+
                 fputcsv($output, [
-                    date('n/j/Y', strtotime($payment['date'])),
-                    $type,
-                    mb_convert_encoding($payment['property_name'] ?? 'N/A', 'UTF-8'),
-                    mb_convert_encoding($payment['unit_name'] ?? 'N/A', 'UTF-8'),
-                    number_format($payment['amount'], 2),
-                    mb_convert_encoding($payment['source'] ?? '', 'UTF-8'),
-                    mb_convert_encoding($payment['description'] ?? '', 'UTF-8'),
-                    ucfirst(str_replace('_', ' ', $payment['method'] ?? 'N/A')),
-                    $payment['period'] ?? 'N/A'
+                    $formattedDate,
+                    ucfirst($payment['type'] ?? ''),
+                    $payment['property_name'] ?? 'N/A',
+                    $payment['unit_name'] ?? 'N/A',
+                    number_format($payment['amount'] ?? 0, 2),
+                    $payment['source'] ?? '',
+                    $payment['description'] ?? '',
+                    ucfirst(str_replace('_', ' ', $payment['method'] ?? 'N/A'))
                 ]);
             }
 
             fclose($output);
-            exit();
+            exit(); // Important: exit after sending file
 
         } catch (\Exception $e) {
-            log_message('error', 'Export Excel error: ' . $e->getMessage());
-            session()->setFlashdata('error', 'Failed to export data. Please try again.');
+            log_message('error', 'CSV Export error: ' . $e->getMessage());
+            session()->setFlashdata('error', 'Export failed: ' . $e->getMessage());
             return redirect()->back();
         }
     }
 
+    // FIX 2: Corrected PDF Export with proper totals calculation
     public function exportPaymentsPDF()
     {
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
@@ -3521,7 +4202,7 @@ class Landlord extends BaseController
         }
 
         $landlordId = session()->get('user_id');
-        
+
         $filters = [
             'payment_type' => $this->request->getGet('payment_type') ?? 'all',
             'property_id' => $this->request->getGet('property_id') ?? '',
@@ -3533,78 +4214,786 @@ class Landlord extends BaseController
             $userModel = model('UserModel');
             $payments = $this->getIncomeExpensePayments($landlordId, $filters);
             $user = $userModel->find($landlordId);
-            $totals = $this->calculateIncomeExpenseTotalsOptimized($landlordId);
 
-            // Generate HTML content for PDF
-            $html = $this->generateReportHTML($payments, $user, $filters, $totals);
-            
-            // Clear output buffer
-            while (ob_get_level()) {
-                ob_end_clean();
+            // FIXED: Calculate totals from the payments array directly
+            $totals = $this->calculateTotalsFromPayments($payments);
+
+            if (class_exists('Dompdf\Dompdf')) {
+                $html = $this->generateEnglishPDFWithArabicContent($payments, $user, $filters, $totals);
+
+                // Configure DomPDF
+                $options = new \Dompdf\Options();
+                $options->set('defaultFont', 'Arial'); // Use Arial instead of DejaVu Sans
+                $options->set('isRemoteEnabled', true);
+                $options->set('isHtml5ParserEnabled', true);
+                $options->set('isPhpEnabled', false);
+                $options->set('defaultPaperSize', 'A4');
+
+                $dompdf = new \Dompdf\Dompdf($options);
+                $dompdf->loadHtml($html);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+
+                // Clear output buffer
+                while (ob_get_level()) {
+                    ob_end_clean();
+                }
+
+                $filename = 'income_expense_report_' . date('Y-m-d_H-i-s') . '.pdf';
+
+                $this->response->setContentType('application/pdf');
+                $this->response->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+                return $this->response->setBody($dompdf->output());
+
+            } else {
+                session()->setFlashdata('error', 'PDF generation requires DomPDF library.');
+                return redirect()->back();
             }
 
-            // Set PDF headers
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="income_expense_report_' . date('Y-m-d_H-i-s') . '.pdf"');
-            header('Cache-Control: no-cache, must-revalidate');
-            header('Pragma: public');
-            header('Expires: 0');
-
-            // For now, output HTML that can be saved as PDF by browser
-            // In production, you'd use a PDF library like TCPDF or DOMPDF
-            echo $html;
-            exit();
-
         } catch (\Exception $e) {
-            log_message('error', 'Export PDF error: ' . $e->getMessage());
-            session()->setFlashdata('error', 'Failed to export PDF.');
+            log_message('error', 'PDF Export error: ' . $e->getMessage());
+            session()->setFlashdata('error', 'Failed to export PDF: ' . $e->getMessage());
             return redirect()->back();
         }
     }
 
-    public function getUnitsByProperty($propertyId)
+    // FIX 3: Super Simple CSV Export (backup method)
+    public function exportPaymentsSimpleCSV()
     {
         if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
-            return $this->response->setJSON(['error' => 'Unauthorized']);
+            return redirect()->to('/login');
+        }
+
+        try {
+            $landlordId = session()->get('user_id');
+
+            // Get data directly from database to avoid any method issues
+            $db = \Config\Database::connect();
+            $builder = $db->table('income_expense_payments iep');
+            $builder->select('iep.date, iep.type, iep.amount, iep.description, iep.method, p.property_name, pu.unit_name');
+            $builder->join('properties p', 'p.id = iep.property_id', 'left');
+            $builder->join('property_units pu', 'pu.id = iep.unit_id', 'left');
+            $builder->where('iep.landlord_id', $landlordId);
+            $builder->orderBy('iep.date', 'DESC');
+
+            $payments = $builder->get()->getResultArray();
+
+            // Critical: Stop all output and clear buffers
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Disable error reporting for this export
+            error_reporting(0);
+
+            $filename = 'payments_simple_' . date('Y-m-d_H-i-s') . '.csv';
+
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+
+            echo "Date,Type,Property,Unit,Amount,Description,Method\n";
+
+            foreach ($payments as $payment) {
+                $row = [
+                    $payment['date'] ?? '',
+                    $payment['type'] ?? '',
+                    '"' . str_replace('"', '""', $payment['property_name'] ?? '') . '"',
+                    '"' . str_replace('"', '""', $payment['unit_name'] ?? '') . '"',
+                    $payment['amount'] ?? '0',
+                    '"' . str_replace('"', '""', $payment['description'] ?? '') . '"',
+                    $payment['method'] ?? ''
+                ];
+                echo implode(',', $row) . "\n";
+            }
+
+            exit();
+
+        } catch (\Exception $e) {
+            log_message('error', 'Simple CSV error: ' . $e->getMessage());
+            echo "Error: " . $e->getMessage();
+            exit();
+        }
+    }
+
+    // FIXED: Helper method to calculate totals from payments array
+    private function calculateTotalsFromPayments($payments)
+    {
+        $totalIncome = 0;
+        $totalExpense = 0;
+
+        foreach ($payments as $payment) {
+            $amount = floatval($payment['amount'] ?? 0);
+            if ($payment['type'] === 'income') {
+                $totalIncome += $amount;
+            } else if ($payment['type'] === 'expense') {
+                $totalExpense += $amount;
+            }
+        }
+
+        return [
+            'total_income' => $totalIncome,
+            'total_expense' => $totalExpense,
+            'net_amount' => $totalIncome - $totalExpense
+        ];
+    }
+
+    // FIXED: Simplified PDF generation with better Arabic support
+    private function generateEnglishPDFWithArabicContent($payments, $user, $filters, $totals)
+    {
+        $html = '<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Income & Expense Report</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                line-height: 1.4;
+                font-size: 12px;
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 30px; 
+                border-bottom: 2px solid #333; 
+                padding-bottom: 20px; 
+            }
+            .title { 
+                font-size: 24px; 
+                font-weight: bold; 
+                margin-bottom: 10px; 
+            }
+            .subtitle { 
+                font-size: 14px; 
+                color: #666; 
+                margin: 5px 0;
+            }
+            .summary-box {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+            }
+            .summary-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 15px;
+                color: #495057;
+            }
+            .summary-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+            .summary-label {
+                font-weight: bold;
+            }
+            .summary-value {
+                text-align: right;
+            }
+            .net-positive {
+                color: #28a745;
+                font-weight: bold;
+            }
+            .net-negative {
+                color: #dc3545;
+                font-weight: bold;
+            }
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 20px 0;
+                font-size: 11px;
+            }
+            th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left;
+                vertical-align: top;
+            }
+            th { 
+                background-color: #f5f5f5; 
+                font-weight: bold; 
+                font-size: 10px;
+                text-transform: uppercase;
+            }
+            .income-row {
+                background-color: #f8fff8;
+            }
+            .expense-row {
+                background-color: #fff8f8;
+            }
+            .amount {
+                text-align: right;
+                font-weight: bold;
+            }
+            .income-amount {
+                color: #28a745;
+            }
+            .expense-amount {
+                color: #dc3545;
+            }
+            .arabic-text {
+                direction: rtl;
+                text-align: right;
+                unicode-bidi: embed;
+            }
+            .footer {
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #ccc;
+                font-size: 10px;
+                color: #666;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>';
+
+        // Header
+        $html .= '<div class="header">';
+        $html .= '<div class="title">Income & Expense Report</div>';
+        $html .= '<div class="subtitle">Generated on: ' . date('F j, Y, g:i A') . '</div>';
+        if ($user) {
+            $html .= '<div class="subtitle">Generated by: ' . htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) . '</div>';
+        }
+        $html .= '</div>';
+
+        // Summary Box with correct totals
+        $html .= '<div class="summary-box">';
+        $html .= '<div class="summary-title">Financial Summary</div>';
+        $html .= '<div class="summary-row">';
+        $html .= '<span class="summary-label">Total Income:</span>';
+        $html .= '<span class="summary-value income-amount">' . number_format($totals['total_income'], 2) . ' SAR</span>';
+        $html .= '</div>';
+        $html .= '<div class="summary-row">';
+        $html .= '<span class="summary-label">Total Expenses:</span>';
+        $html .= '<span class="summary-value expense-amount">' . number_format($totals['total_expense'], 2) . ' SAR</span>';
+        $html .= '</div>';
+        $html .= '<hr style="margin: 10px 0;">';
+        $html .= '<div class="summary-row">';
+        $html .= '<span class="summary-label">Net Amount:</span>';
+        $netClass = $totals['net_amount'] >= 0 ? 'net-positive' : 'net-negative';
+        $html .= '<span class="summary-value ' . $netClass . '">' . number_format($totals['net_amount'], 2) . ' SAR</span>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        // Payments table
+        if (!empty($payments)) {
+            $html .= '<table>';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th style="width: 12%;">Date</th>';
+            $html .= '<th style="width: 10%;">Type</th>';
+            $html .= '<th style="width: 20%;">Property</th>';
+            $html .= '<th style="width: 15%;">Unit</th>';
+            $html .= '<th style="width: 12%;">Amount (SAR)</th>';
+            $html .= '<th style="width: 31%;">Description</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+            $html .= '<tbody>';
+
+            foreach ($payments as $payment) {
+                $isIncome = ($payment['type'] === 'income');
+                $rowClass = $isIncome ? 'income-row' : 'expense-row';
+                $amountClass = 'amount ' . ($isIncome ? 'income-amount' : 'expense-amount');
+
+                $html .= '<tr class="' . $rowClass . '">';
+
+                // Date
+                $date = '';
+                if (!empty($payment['date'])) {
+                    try {
+                        $dateTime = new \DateTime($payment['date']);
+                        $date = $dateTime->format('M j, Y');
+                    } catch (\Exception $e) {
+                        $date = $payment['date'];
+                    }
+                }
+                $html .= '<td>' . $date . '</td>';
+
+                // Type
+                $html .= '<td>' . ucfirst($payment['type'] ?? '') . '</td>';
+
+                // Property (preserve Arabic)
+                $propertyName = htmlspecialchars($payment['property_name'] ?? 'N/A');
+                $html .= '<td>' . $propertyName . '</td>';
+
+                // Unit (preserve Arabic)
+                $unitName = htmlspecialchars($payment['unit_name'] ?? 'N/A');
+                $html .= '<td>' . $unitName . '</td>';
+
+                // Amount
+                $html .= '<td class="' . $amountClass . '">' . number_format($payment['amount'] ?? 0, 2) . '</td>';
+
+                // Description (preserve Arabic)
+                $description = htmlspecialchars($payment['description'] ?? '');
+                $html .= '<td>' . $description . '</td>';
+
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+        } else {
+            $html .= '<div style="text-align: center; padding: 50px; color: #666;">';
+            $html .= '<h3>No Records Found</h3>';
+            $html .= '<p>No payment records match the selected criteria.</p>';
+            $html .= '</div>';
+        }
+
+        // Footer
+        $html .= '<div class="footer">';
+        $html .= '<p>Property Management System - Financial Report</p>';
+        $html .= '<p>Report ID: RPT-' . date('YmdHis') . ' | Generated: ' . date('Y-m-d H:i:s') . '</p>';
+        $html .= '</div>';
+
+        $html .= '</body></html>';
+
+        return $html;
+    }
+
+    // FIXED: New method for mixed language PDF (English labels + Arabic user content)
+    private function generateMixedLanguagePDFReport($payments, $user, $filters, $totals)
+    {
+        $html = '<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Income & Expense Report</title>
+        <style>
+            body { 
+                font-family: "DejaVu Sans", Arial, sans-serif; 
+                margin: 20px; 
+                line-height: 1.6;
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 30px; 
+                border-bottom: 2px solid #333; 
+                padding-bottom: 20px; 
+            }
+            .title { 
+                font-size: 24px; 
+                font-weight: bold; 
+                margin-bottom: 10px; 
+                color: #333;
+            }
+            .subtitle { 
+                font-size: 12px; 
+                color: #666; 
+                margin-bottom: 5px;
+            }
+            .summary-section {
+                background-color: #f8f9fa;
+                padding: 15px;
+                margin-bottom: 20px;
+                border-radius: 5px;
+            }
+            .summary-title {
+                font-size: 16px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                color: #495057;
+            }
+            .summary-item {
+                margin-bottom: 5px;
+            }
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-bottom: 20px;
+                font-size: 11px;
+            }
+            th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left;
+                vertical-align: top;
+            }
+            th { 
+                background-color: #f5f5f5; 
+                font-weight: bold; 
+                font-size: 10px;
+                text-transform: uppercase;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .arabic-text {
+                direction: rtl;
+                text-align: right;
+                font-size: 12px;
+            }
+            .amount {
+                text-align: right;
+                font-weight: bold;
+                color: #28a745;
+            }
+            .expense-amount {
+                color: #dc3545;
+            }
+            .income-row {
+                background-color: #f8fff8;
+            }
+            .expense-row {
+                background-color: #fff8f8;
+            }
+        </style>
+    </head>
+    <body>';
+
+        // Header section
+        $html .= '<div class="header">';
+        $html .= '<div class="title">Income & Expense Report</div>';
+        $html .= '<div class="subtitle">Generated on: ' . date('F j, Y, g:i A') . '</div>';
+        if ($user) {
+            $html .= '<div class="subtitle">Generated by: ' . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . '</div>';
+        }
+        $html .= '</div>';
+
+        // Summary section
+        if (!empty($totals)) {
+            $html .= '<div class="summary-section">';
+            $html .= '<div class="summary-title">Summary</div>';
+            $html .= '<div class="summary-item"><strong>Total Income:</strong> ' . number_format($totals['total_income'] ?? 0, 2) . ' SAR</div>';
+            $html .= '<div class="summary-item"><strong>Total Expenses:</strong> ' . number_format($totals['total_expense'] ?? 0, 2) . ' SAR</div>';
+            $html .= '<div class="summary-item"><strong>Net Amount:</strong> ' . number_format(($totals['total_income'] ?? 0) - ($totals['total_expense'] ?? 0), 2) . ' SAR</div>';
+            $html .= '</div>';
+        }
+
+        // Payments table
+        if (!empty($payments)) {
+            $html .= '<table>';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th style="width: 12%;">Date</th>';
+            $html .= '<th style="width: 10%;">Type</th>';
+            $html .= '<th style="width: 18%;">Property</th>';
+            $html .= '<th style="width: 12%;">Unit</th>';
+            $html .= '<th style="width: 12%;">Amount (SAR)</th>';
+            $html .= '<th style="width: 15%;">Source/Category</th>';
+            $html .= '<th style="width: 21%;">Description</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+            $html .= '<tbody>';
+
+            foreach ($payments as $payment) {
+                $isIncome = $payment['type'] === 'income';
+                $rowClass = $isIncome ? 'income-row' : 'expense-row';
+                $amountClass = $isIncome ? 'amount' : 'amount expense-amount';
+
+                $html .= '<tr class="' . $rowClass . '">';
+
+                // Date
+                $html .= '<td>' . date('M j, Y', strtotime($payment['date'])) . '</td>';
+
+                // Type
+                $html .= '<td>' . ucfirst($payment['type']) . '</td>';
+
+                // Property (preserve Arabic if exists)
+                $propertyName = htmlspecialchars($payment['property_name'] ?? 'N/A');
+                if ($this->containsArabic($propertyName)) {
+                    $html .= '<td><span class="arabic-text">' . $propertyName . '</span></td>';
+                } else {
+                    $html .= '<td>' . $propertyName . '</td>';
+                }
+
+                // Unit (preserve Arabic if exists)
+                $unitName = htmlspecialchars($payment['unit_name'] ?? 'N/A');
+                if ($this->containsArabic($unitName)) {
+                    $html .= '<td><span class="arabic-text">' . $unitName . '</span></td>';
+                } else {
+                    $html .= '<td>' . $unitName . '</td>';
+                }
+
+                // Amount
+                $html .= '<td class="' . $amountClass . '">' . number_format($payment['amount'], 2) . '</td>';
+
+                // Source
+                $source = htmlspecialchars($payment['source'] ?? '');
+                if ($this->containsArabic($source)) {
+                    $html .= '<td><span class="arabic-text">' . $source . '</span></td>';
+                } else {
+                    $html .= '<td>' . $source . '</td>';
+                }
+
+                // Description (preserve Arabic if exists)
+                $description = htmlspecialchars($payment['description'] ?? '');
+                if ($this->containsArabic($description)) {
+                    $html .= '<td><span class="arabic-text">' . $description . '</span></td>';
+                } else {
+                    $html .= '<td>' . $description . '</td>';
+                }
+
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+        } else {
+            $html .= '<div style="text-align: center; padding: 50px; color: #666;">';
+            $html .= '<h3>No Records Found</h3>';
+            $html .= '<p>No payment records match the selected criteria.</p>';
+            $html .= '</div>';
+        }
+
+        // Footer
+        $html .= '<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 10px; color: #666;">';
+        $html .= '<p>This report was generated automatically by the Property Management System.</p>';
+        $html .= '<p>Report ID: RPT-' . date('YmdHis') . ' | Generated: ' . date('Y-m-d H:i:s') . '</p>';
+        $html .= '</div>';
+
+        $html .= '</body></html>';
+
+        return $html;
+    }
+
+    public function exportPaymentsExcelAlternative()
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/login');
+        }
+
+        $landlordId = session()->get('user_id');
+
+        $filters = [
+            'payment_type' => $this->request->getGet('payment_type') ?? 'all',
+            'property_id' => $this->request->getGet('property_id') ?? '',
+            'date_from' => $this->request->getGet('date_from') ?? '',
+            'date_to' => $this->request->getGet('date_to') ?? ''
+        ];
+
+        try {
+            $payments = $this->getIncomeExpensePayments($landlordId, $filters);
+            $filename = 'payments_' . date('Y-m-d_H-i-s') . '.csv';
+
+            // Clear all output buffers
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            // Set headers - force download
+            header('Content-Type: application/force-download');
+            header('Content-Type: application/octet-stream');
+            header('Content-Type: application/download');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Transfer-Encoding: binary');
+            header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+            header('Expires: 0');
+
+            // Open output
+            $output = fopen('php://output', 'w');
+
+            // BOM for UTF-8
+            fwrite($output, "\xEF\xBB\xBF");
+
+            // Headers
+            fputcsv($output, [
+                'Date',
+                'Type',
+                'Property',
+                'Unit',
+                'Amount (SAR)',
+                'Source',
+                'Description',
+                'Payment Method'
+            ], ',', '"');
+
+            // Process each payment
+            foreach ($payments as $payment) {
+                // FORCE TEXT FORMAT for dates by adding tab character
+                $dateText = '';
+                if (!empty($payment['date'])) {
+                    try {
+                        $dateObj = new DateTime($payment['date']);
+                        $dateText = $dateObj->format('Y-m-d'); // Use YYYY-MM-DD format
+                    } catch (\Exception $e) {
+                        $dateText = (string) $payment['date'];
+                    }
+                }
+
+                // Write row with explicit text formatting
+                fputcsv($output, [
+                    $dateText,  // Date as text
+                    ucfirst((string) $payment['type']),
+                    (string) ($payment['property_name'] ?? 'N/A'),
+                    (string) ($payment['unit_name'] ?? 'N/A'),
+                    (string) number_format((float) $payment['amount'], 2),
+                    (string) ($payment['source'] ?? ''),
+                    (string) ($payment['description'] ?? ''),
+                    (string) ucfirst(str_replace('_', ' ', $payment['method'] ?? 'N/A'))
+                ], ',', '"');
+            }
+
+            fclose($output);
+            exit();
+
+        } catch (\Exception $e) {
+            log_message('error', 'Alternative Excel export error: ' . $e->getMessage());
+            session()->setFlashdata('error', 'Export failed: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    // SUPER SIMPLE CSV FIX - If above still doesn't work
+// This creates a tab-separated file that Excel handles better
+
+    public function exportPaymentsTSV()
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/login');
         }
 
         $landlordId = session()->get('user_id');
 
         try {
-            $db = \Config\Database::connect();
+            $payments = $this->getIncomeExpensePayments($landlordId, []);
 
-            $propertyBuilder = $db->table('property_shareholders ps');
-            $propertyBuilder->select('ps.property_id');
-            $propertyBuilder->where('ps.property_id', $propertyId);
-            $propertyBuilder->where('ps.user_id', $landlordId);
-            $propertyBuilder->where('ps.status', 'active');
-            
-            $hasAccess = $propertyBuilder->get()->getRowArray();
-            
-            if (!$hasAccess) {
-                return $this->response->setJSON(['error' => 'Property not found or access denied']);
+            // Clear output
+            while (ob_get_level()) {
+                ob_end_clean();
             }
 
-            $builder = $db->table('property_units pu');
-            $builder->select('pu.id, pu.unit_name, pu.status');
-            $builder->where('pu.property_id', $propertyId);
-            $builder->orderBy('pu.unit_name', 'ASC');
+            // Set headers for tab-separated values
+            $filename = 'payments_' . date('Y-m-d_H-i-s') . '.txt';
+            header('Content-Type: text/plain; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
 
-            $units = $builder->get()->getResultArray();
+            // UTF-8 BOM
+            echo "\xEF\xBB\xBF";
 
-            foreach ($units as &$unit) {
-                if (empty($unit['unit_name'])) {
-                    $unit['unit_name'] = 'Unit ' . $unit['id'];
+            // Headers with tabs
+            echo "Date\tType\tProperty\tUnit\tAmount\tSource\tDescription\tMethod\n";
+
+            // Data rows
+            foreach ($payments as $payment) {
+                $date = '';
+                if (!empty($payment['date'])) {
+                    try {
+                        $dateObj = new DateTime($payment['date']);
+                        $date = $dateObj->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $date = $payment['date'];
+                    }
+                }
+
+                echo implode("\t", [
+                    $date,
+                    ucfirst($payment['type'] ?? ''),
+                    $payment['property_name'] ?? 'N/A',
+                    $payment['unit_name'] ?? 'N/A',
+                    number_format($payment['amount'] ?? 0, 2),
+                    $payment['source'] ?? '',
+                    $payment['description'] ?? '',
+                    $payment['method'] ?? 'N/A'
+                ]) . "\n";
+            }
+
+            exit();
+
+        } catch (\Exception $e) {
+            log_message('error', 'TSV export error: ' . $e->getMessage());
+            session()->setFlashdata('error', 'Export failed');
+            return redirect()->back();
+        }
+    }
+
+    private function handleReceiptUpload($receipt)
+    {
+        if ($receipt && $receipt->isValid() && !$receipt->hasMoved()) {
+            // FIXED: Enhanced validation for PDF files
+            $mimeType = $receipt->getMimeType();
+            $allowedMimes = ['application/pdf'];
+
+            if (!in_array($mimeType, $allowedMimes)) {
+                throw new \Exception('Only PDF files are allowed for receipts. Uploaded file type: ' . $mimeType);
+            }
+
+            // FIXED: Validate file size (max 10MB)
+            if ($receipt->getSize() > 10485760) { // 10MB in bytes
+                throw new \Exception('Receipt file size must not exceed 10MB.');
+            }
+
+            // FIXED: Create upload directory with proper permissions
+            $uploadPath = WRITEPATH . 'uploads/receipts/';
+            if (!is_dir($uploadPath)) {
+                if (!mkdir($uploadPath, 0755, true)) {
+                    throw new \Exception('Failed to create upload directory.');
                 }
             }
 
-            return $this->response->setJSON($units);
+            // FIXED: Generate secure filename
+            $extension = $receipt->getClientExtension();
+            $newName = 'receipt_' . date('Y-m-d_H-i-s') . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
 
-        } catch (\Exception $e) {
-            log_message('error', 'Get units by property error: ' . $e->getMessage());
-            return $this->response->setJSON(['error' => 'Failed to load units']);
+            // FIXED: Move file with error handling
+            if (!$receipt->move($uploadPath, $newName)) {
+                throw new \Exception('Failed to upload receipt file.');
+            }
+
+            return $newName;
         }
+
+        return null;
     }
+
+    // FIXED: Add Download Receipt Method with proper CodeIgniter 4 syntax
+    public function downloadReceipt($filename)
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/login');
+        }
+
+        // FIXED: Secure file download with validation
+        $filePath = WRITEPATH . 'uploads/receipts/' . $filename;
+
+        // Validate filename (prevent directory traversal)
+        if (strpos($filename, '..') !== false || strpos($filename, '/') !== false) {
+            // FIXED: Use proper CodeIgniter 4 404 function
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Receipt file not found');
+        }
+
+        if (!file_exists($filePath)) {
+            session()->setFlashdata('error', 'Receipt file not found.');
+            return redirect()->back();
+        }
+
+        // FIXED: Force download with proper CodeIgniter 4 response
+        return $this->response->download($filePath, null)->setFileName($filename);
+    }
+
+    // FIXED: Add method to serve receipt files for viewing
+    public function viewReceiptFile($filename)
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/login');
+        }
+
+        // Validate filename (prevent directory traversal)
+        if (strpos($filename, '..') !== false || strpos($filename, '/') !== false) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Receipt file not found');
+        }
+
+        $filePath = WRITEPATH . 'uploads/receipts/' . $filename;
+
+        if (!file_exists($filePath)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Receipt file not found');
+        }
+
+        // Set proper headers for PDF viewing
+        $this->response->setContentType('application/pdf');
+        $this->response->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
+        $this->response->setHeader('Cache-Control', 'public, max-age=3600');
+
+        // Output file content
+        return $this->response->setBody(file_get_contents($filePath));
+    }
+
 
     // Helper Methods
 
@@ -3616,16 +5005,16 @@ class Landlord extends BaseController
             $builder = $db->table('property_units pu');
             $builder->select('pu.*, p.property_name, p.management_percentage');
             $builder->join('properties p', 'p.id = pu.property_id');
-            
+
             if ($db->tableExists('property_shareholders')) {
                 $builder->join('property_shareholders ps', 'ps.property_id = p.id');
                 $builder->where('ps.user_id', $landlordId);
                 $builder->where('ps.status', 'active');
             }
-            
+
             $builder->where('pu.id', $unitId);
             return $builder->get()->getRowArray();
-            
+
         } catch (\Exception $e) {
             log_message('error', 'Error verifying unit ownership: ' . $e->getMessage());
             return null;
@@ -3639,16 +5028,16 @@ class Landlord extends BaseController
         try {
             $builder = $db->table('properties p');
             $builder->select('p.id, p.property_name, p.address');
-            
+
             if ($db->tableExists('property_shareholders')) {
                 $builder->join('property_shareholders ps', 'ps.property_id = p.id');
                 $builder->where('ps.user_id', $landlordId);
                 $builder->where('ps.status', 'active');
             }
-            
+
             $builder->orderBy('p.property_name', 'ASC');
             return $builder->get()->getResultArray();
-            
+
         } catch (\Exception $e) {
             log_message('error', 'Error fetching properties: ' . $e->getMessage());
             return [];
@@ -3700,25 +5089,25 @@ class Landlord extends BaseController
     private function calculateIncomeExpenseTotalsOptimized($landlordId)
     {
         $db = \Config\Database::connect();
-        
+
         try {
             $propertiesBuilder = $db->table('property_shareholders ps');
             $propertiesBuilder->select('ps.property_id, ps.ownership_percentage, p.management_percentage');
             $propertiesBuilder->join('properties p', 'p.id = ps.property_id');
             $propertiesBuilder->where('ps.user_id', $landlordId);
             $propertiesBuilder->where('ps.status', 'active');
-            
+
             $properties = $propertiesBuilder->get()->getResultArray();
-            
+
             $totalNetIncome = 0;
             $totalExpenses = 0;
             $monthlyNetIncome = 0;
-            
+
             foreach ($properties as $property) {
                 $propertyId = $property['property_id'];
                 $ownershipShare = $property['ownership_percentage'] / 100;
                 $managementFeeRate = $property['management_percentage'] / 100;
-                
+
                 // All-time income and expenses
                 $allTimeData = $db->query("
                     SELECT 
@@ -3727,7 +5116,7 @@ class Landlord extends BaseController
                     FROM income_expense_payments 
                     WHERE landlord_id = ? AND property_id = ?
                 ", [$landlordId, $propertyId])->getRowArray();
-                
+
                 // Monthly income and expenses  
                 $monthlyData = $db->query("
                     SELECT 
@@ -3737,34 +5126,34 @@ class Landlord extends BaseController
                     WHERE landlord_id = ? AND property_id = ? 
                       AND YEAR(date) = ? AND MONTH(date) = ?
                 ", [$landlordId, $propertyId, date('Y'), date('n')])->getRowArray();
-                
+
                 $allTimeIncome = $allTimeData['total_income'] ?? 0;
                 $allTimeExpensesAmount = $allTimeData['total_expenses'] ?? 0;
                 $monthlyIncome = $monthlyData['monthly_income'] ?? 0;
                 $monthlyExpensesAmount = $monthlyData['monthly_expenses'] ?? 0;
-                
+
                 // Calculate with ownership shares
                 $grossIncome = $allTimeIncome * $ownershipShare;
                 $managementFees = $grossIncome * $managementFeeRate;
                 $netIncomeFromProperty = $grossIncome - $managementFees;
                 $expensesFromProperty = $allTimeExpensesAmount * $ownershipShare;
                 $totalNetIncome += ($netIncomeFromProperty - $expensesFromProperty);
-                
+
                 $totalExpenses += $allTimeExpensesAmount;
-                
+
                 $monthlyGrossIncome = $monthlyIncome * $ownershipShare;
                 $monthlyManagementFees = $monthlyGrossIncome * $managementFeeRate;
                 $monthlyNetIncomeFromProperty = $monthlyGrossIncome - $monthlyManagementFees;
                 $monthlyExpensesFromProperty = $monthlyExpensesAmount * $ownershipShare;
                 $monthlyNetIncome += ($monthlyNetIncomeFromProperty - $monthlyExpensesFromProperty);
             }
-            
+
             return [
                 'net_income' => $totalNetIncome,
                 'total_expenses' => $totalExpenses,
                 'monthly_net' => $monthlyNetIncome
             ];
-            
+
         } catch (\Exception $e) {
             log_message('error', 'Error calculating totals: ' . $e->getMessage());
             return ['net_income' => 0, 'total_expenses' => 0, 'monthly_net' => 0];
@@ -3775,7 +5164,7 @@ class Landlord extends BaseController
     {
         if (!$db->tableExists('income_expense_payments')) {
             $forge = \Config\Database::forge();
-            
+
             $fields = [
                 'id' => ['type' => 'INT', 'constraint' => 11, 'unsigned' => true, 'auto_increment' => true],
                 'landlord_id' => ['type' => 'INT', 'constraint' => 11, 'unsigned' => true],
@@ -3795,7 +5184,7 @@ class Landlord extends BaseController
             $forge->addField($fields);
             $forge->addKey('id', true);
             $forge->addKey(['landlord_id', 'property_id', 'date']);
-            
+
             try {
                 $forge->createTable('income_expense_payments');
             } catch (\Exception $e) {
@@ -3815,7 +5204,7 @@ class Landlord extends BaseController
         echo '<p>Monthly Net Income: SAR ' . number_format($totals['monthly_net'], 2) . '</p>';
         echo '<table border="1" style="width:100%; border-collapse:collapse;">';
         echo '<tr><th>Date</th><th>Type</th><th>Property</th><th>Unit</th><th>Amount</th><th>Source</th></tr>';
-        
+
         foreach ($payments as $payment) {
             echo '<tr>';
             echo '<td>' . date('Y-m-d', strtotime($payment['date'])) . '</td>';
@@ -3826,12 +5215,12 @@ class Landlord extends BaseController
             echo '<td>' . htmlspecialchars($payment['source'] ?? '') . '</td>';
             echo '</tr>';
         }
-        
+
         echo '</table></body></html>';
         return ob_get_clean();
     }
 
-    
+
 
     /**
      * Check if user is landlord and get user ID - FIXED
@@ -3850,7 +5239,7 @@ class Landlord extends BaseController
         return null; // No redirect needed
     }
 
-    
+
     /**
      * Get current user ID from session - FIXED
      */
@@ -3886,55 +5275,118 @@ class Landlord extends BaseController
         }
     }
 
-    /**
-     * Database debug helper - shows table structure
-     *//*
-    public function debugDatabase()
+    // HELPER METHOD: Check if text contains Arabic characters
+    private function containsArabic($text)
     {
-        // Only allow in development
-        if (ENVIRONMENT !== 'development') {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException();
+        // Check if text contains Arabic Unicode characters
+        return preg_match('/[\x{0600}-\x{06FF}]/u', $text);
+    }
+
+    // Method to debug what data is being returned
+    public function debugPayments()
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/login');
         }
 
-        $db = \Config\Database::connect();
+        $landlordId = session()->get('user_id');
 
-        echo "<h2>Database Debug Information</h2>";
-        echo "<style>body{font-family:monospace;} table{border-collapse:collapse;width:100%;margin:20px 0;} th,td{border:1px solid #ddd;padding:8px;} th{background:#f2f2f2;}</style>";
+        try {
+            // Test the main method
+            $payments = $this->getIncomeExpensePayments($landlordId, []);
 
-        $tables = ['properties', 'property_units', 'property_shareholders', 'income_expense_payments'];
+            echo "<h2>Debug: Payments Data</h2>";
+            echo "<p>Total payments found: " . count($payments) . "</p>";
 
-        foreach ($tables as $table) {
-            echo "<h3>Table: {$table}</h3>";
-            if ($db->tableExists($table)) {
-                echo "<p style='color:green'>✅ Table exists</p>";
+            if (!empty($payments)) {
+                echo "<h3>First Payment Structure:</h3>";
+                echo "<pre>";
+                print_r($payments[0]);
+                echo "</pre>";
 
-                $fields = $db->getFieldNames($table);
-                echo "<p><strong>Fields:</strong> " . implode(', ', $fields) . "</p>";
+                echo "<h3>All Payments:</h3>";
+                echo "<table border='1' style='border-collapse: collapse; width: 100%;'>";
+                echo "<tr><th>Date</th><th>Type</th><th>Amount</th><th>Property</th><th>Unit</th><th>Description</th></tr>";
 
-                $count = $db->table($table)->countAllResults();
-                echo "<p><strong>Record count:</strong> {$count}</p>";
-
-                if ($count > 0 && $count <= 5) {
-                    echo "<table>";
+                foreach ($payments as $payment) {
                     echo "<tr>";
-                    foreach ($fields as $field) {
-                        echo "<th>{$field}</th>";
-                    }
+                    echo "<td>" . ($payment['date'] ?? 'NULL') . "</td>";
+                    echo "<td>" . ($payment['type'] ?? 'NULL') . "</td>";
+                    echo "<td>" . ($payment['amount'] ?? 'NULL') . "</td>";
+                    echo "<td>" . ($payment['property_name'] ?? 'NULL') . "</td>";
+                    echo "<td>" . ($payment['unit_name'] ?? 'NULL') . "</td>";
+                    echo "<td>" . ($payment['description'] ?? 'NULL') . "</td>";
                     echo "</tr>";
-
-                    $records = $db->table($table)->limit(5)->get()->getResultArray();
-                    foreach ($records as $record) {
-                        echo "<tr>";
-                        foreach ($fields as $field) {
-                            echo "<td>" . htmlspecialchars($record[$field] ?? 'NULL') . "</td>";
-                        }
-                        echo "</tr>";
-                    }
-                    echo "</table>";
                 }
-            } else {
-                echo "<p style='color:red'>❌ Table does not exist</p>";
+                echo "</table>";
+
+                // Calculate totals for debugging
+                $totalIncome = 0;
+                $totalExpense = 0;
+
+                foreach ($payments as $payment) {
+                    $amount = floatval($payment['amount'] ?? 0);
+                    if ($payment['type'] === 'income') {
+                        $totalIncome += $amount;
+                    } else if ($payment['type'] === 'expense') {
+                        $totalExpense += $amount;
+                    }
+                }
+
+                echo "<h3>Calculated Totals:</h3>";
+                echo "<p>Total Income: " . number_format($totalIncome, 2) . " SAR</p>";
+                echo "<p>Total Expense: " . number_format($totalExpense, 2) . " SAR</p>";
+                echo "<p>Net Amount: " . number_format($totalIncome - $totalExpense, 2) . " SAR</p>";
             }
+
+        } catch (\Exception $e) {
+            echo "<h2>Error:</h2>";
+            echo "<p>" . $e->getMessage() . "</p>";
         }
-    } */
+
+        // Also test direct database query
+        echo "<hr><h2>Direct Database Query:</h2>";
+        try {
+            $db = \Config\Database::connect();
+            $builder = $db->table('income_expense_payments');
+            $builder->where('landlord_id', $landlordId);
+            $directPayments = $builder->get()->getResultArray();
+
+            echo "<p>Direct query found: " . count($directPayments) . " records</p>";
+
+            if (!empty($directPayments)) {
+                echo "<pre>";
+                print_r($directPayments[0]);
+                echo "</pre>";
+            }
+
+        } catch (\Exception $e) {
+            echo "<p>Database error: " . $e->getMessage() . "</p>";
+        }
+    }
+
+    // Quick method to test CSV without any processing
+    public function testCSVOutput()
+    {
+        if (!session()->get('isLoggedIn') || session()->get('role') !== 'landlord') {
+            return redirect()->to('/login');
+        }
+
+        // Clear everything
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        error_reporting(0);
+
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="test.csv"');
+
+        echo "Date,Type,Amount,Description\n";
+        echo "2024-01-01,income,1000.00,Test Income\n";
+        echo "2024-01-02,expense,500.00,Test Expense\n";
+
+        exit();
+    }
+
 }

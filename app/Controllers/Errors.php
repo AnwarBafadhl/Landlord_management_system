@@ -16,8 +16,6 @@ class Errors extends BaseController
             return view('admin/errors/404');
         } elseif (session()->get('role') === 'landlord') {
             return view('landlord/errors/404');
-        } elseif (session()->get('role') === 'tenant') {
-            return view('tenant/errors/404');
         } else {
             return view('errors/404');
         }

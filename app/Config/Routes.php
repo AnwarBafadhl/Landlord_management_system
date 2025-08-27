@@ -119,22 +119,6 @@ $routes->group('landlord', ['filter' => 'auth'], function ($routes) {
     $routes->get('request-property', 'Landlord::requestProperty');
     $routes->post('add-property', 'Landlord::addProperty');
 
-    // UPDATED PAYMENT MANAGEMENT - Income/Expense Tracking
-    $routes->get('payments', 'Landlord::payments'); // Main payments page (updated)
-    
-    // Income Payment Routes
-    $routes->post('income-payment/store', 'Landlord::storeIncomePayment'); // Store income payment
-    
-    // Expense Payment Routes  
-    $routes->post('expense-payment/store', 'Landlord::storeExpensePayment'); // Store expense payment
-    
-    // Export Routes (updated for income/expense)
-    $routes->get('payments/export-excel', 'Landlord::exportPaymentsExcel'); // Export income/expense to Excel/CSV
-    $routes->get('payments/export-pdf', 'Landlord::exportPaymentsPDF'); // Export income/expense to PDF
-
-    // AJAX Routes
-    $routes->get('get-units-by-property/(:num)', 'Landlord::getUnitsByProperty/$1'); // Get units by property
-
     // ENHANCED MONTHLY INCOME & EXPENSE TRACKING (Advanced Feature)
     $routes->get('monthly-tracking', 'Landlord::monthlyTracking'); // Advanced monthly tracking page
     $routes->post('monthly-income/store', 'Landlord::storeMonthlyIncome'); // Store/update monthly income
@@ -148,45 +132,39 @@ $routes->group('landlord', ['filter' => 'auth'], function ($routes) {
     // ENHANCED REPORTS & EXPORT ROUTES
     $routes->get('reports', 'Landlord::reports'); // Enhanced reports page
     $routes->post('generate-monthly-report', 'Landlord::generateMonthlyReport'); // Generate comprehensive reports
-    
+
     // Legacy Reports (keep for backward compatibility)
     $routes->post('reports/generate-ownership-pdf', 'Landlord::generateOwnershipPdf');
 
-    // Other existing routes
-    $routes->get('tenants', 'Landlord::tenants');
+    // Maintenance
     $routes->get('maintenance', 'Landlord::maintenance');
+    $routes->post('add-maintenance-request', 'Landlord::addMaintenanceRequest');
+    $routes->post('update-maintenance-status/(:num)', 'Landlord::updateMaintenanceStatus/$1');
+    $routes->get('export-maintenance-report', 'Landlord::exportMaintenanceReport');
+    $routes->get('get-units-by-property/(:num)', 'Landlord::getUnitsByProperty/$1');
 
     // Help & Support
     $routes->get('help', 'Landlord::help');
+
+    // PAYMENT MANAGEMENT
+    $routes->get('payments', 'Landlord::payments');
+    $routes->post('income-payment/store', 'Landlord::storeIncomePayment');
+    $routes->post('expense-payment/store', 'Landlord::storeExpensePayment');
+
+    // EXPORT ROUTES - Multiple options for testing
+    $routes->get('payments/export-excel', 'Landlord::exportPaymentsExcel'); // Main CSV
+    $routes->get('payments/export-pdf', 'Landlord::exportPaymentsPDF'); // PDF
+    $routes->get('payments/export-simple-csv', 'Landlord::exportPaymentsSimpleCSV'); // Backup CSV
+
+    // RECEIPT HANDLING
+    $routes->get('receipt/download/(:segment)', 'Landlord::downloadReceipt/$1');
+    $routes->get('receipt/view/(:segment)', 'Landlord::viewReceiptFile/$1');
+    $routes->get('receipt-file/(:segment)', 'Landlord::serveReceiptFile/$1');
+
+    // AJAX Routes
+    $routes->get('get-units-by-property/(:num)', 'Landlord::getUnitsByProperty/$1');
 });
 
-
-
-// Tenant Routes
-$routes->group('tenant', ['filter' => 'auth'], function ($routes) {
-    // Dashboard
-    $routes->get('dashboard', 'Tenant::dashboard');
-
-    // Lease
-    $routes->get('lease', 'Tenant::lease');
-
-    // Profile routes
-    $routes->get('profile', 'Tenant::profile');
-    $routes->post('profile/update', 'Tenant::updateProfile');
-    $routes->post('profile/change-password', 'Tenant::changePassword');
-
-    // Payments
-    $routes->get('payments', 'Tenant::payments');
-    $routes->get('payments/make', 'Tenant::makePayment');
-    $routes->post('payments/process', 'Tenant::processPayment');
-    $routes->get('payments/receipt/(:num)', 'Tenant::paymentReceipt/$1');
-
-    // Maintenance
-    $routes->get('maintenance', 'Tenant::maintenance');
-    $routes->get('maintenance/create', 'Tenant::createMaintenance');
-    $routes->post('maintenance/store', 'Tenant::storeMaintenance');
-    $routes->get('maintenance/view/(:num)', 'Tenant::viewMaintenance/$1');
-});
 
 // Maintenance Staff Routes
 $routes->group('maintenance', ['filter' => 'auth'], function ($routes) {
@@ -265,18 +243,6 @@ $routes->cli('create-admin', 'Cli\Setup::createAdmin');
 // Redirects for common mistyped URLs
 $routes->addRedirect('admin', 'admin/dashboard');
 $routes->addRedirect('landlord', 'landlord/dashboard');
-$routes->addRedirect('tenant', 'tenant/dashboard');
 $routes->addRedirect('maintenance', 'maintenance/dashboard');
 $routes->addRedirect('login', 'auth/login');
 $routes->addRedirect('logout', 'auth/logout');
-
-$routes->group('tenant', function ($routes) {
-    $routes->get('profile', 'Tenant\Profile::index');
-    $routes->post('profile/update', 'Tenant\Profile::update');
-});
-
-$routes->group('tenant', function ($routes) {
-    $routes->get('profile', 'Tenant\Profile::index');
-    $routes->post('profile/update', 'Tenant\Profile::update');
-    $routes->get('profile/test', 'Tenant\Profile::test');
-});

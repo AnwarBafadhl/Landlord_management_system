@@ -36,11 +36,11 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-success">
-                                <i class="fas fa-home"></i> 
+                                <i class="fas fa-home"></i>
                                 <?= $stats['occupied_properties'] ?? 0 ?> Occupied
                             </small>
                             <small class="text-warning ml-2">
-                                <i class="fas fa-door-open"></i> 
+                                <i class="fas fa-door-open"></i>
                                 <?= $stats['vacant_properties'] ?? 0 ?> Vacant
                             </small>
                         </div>
@@ -69,12 +69,8 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-info">
-                                <i class="fas fa-user-tie"></i> 
+                                <i class="fas fa-user-tie"></i>
                                 <?= $stats['total_landlords'] ?? 0 ?> Landlords
-                            </small>
-                            <small class="text-primary ml-2">
-                                <i class="fas fa-user"></i> 
-                                <?= $stats['total_tenants'] ?? 0 ?> Tenants
                             </small>
                         </div>
                     </div>
@@ -102,7 +98,7 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-success">
-                                <i class="fas fa-check"></i> 
+                                <i class="fas fa-check"></i>
                                 $<?= number_format($stats['collected_rent'] ?? 0, 2) ?> Collected
                             </small>
                         </div>
@@ -131,7 +127,7 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-danger">
-                                <i class="fas fa-exclamation-triangle"></i> 
+                                <i class="fas fa-exclamation-triangle"></i>
                                 <?= $stats['overdue_payments'] ?? 0 ?> Overdue Payments
                             </small>
                         </div>
@@ -158,7 +154,6 @@
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Tenant</th>
                                         <th>Property</th>
                                         <th>Amount</th>
                                         <th>Date</th>
@@ -168,11 +163,6 @@
                                 <tbody>
                                     <?php foreach ($recent_payments as $payment): ?>
                                         <tr>
-                                            <td>
-                                                <div class="small">
-                                                    <?= esc($payment['tenant_first_name'] . ' ' . $payment['tenant_last_name']) ?>
-                                                </div>
-                                            </td>
                                             <td>
                                                 <div class="small text-muted">
                                                     <?= esc($payment['property_name']) ?>
@@ -185,7 +175,8 @@
                                                 <small><?= date('M d, Y', strtotime($payment['payment_date'])) ?></small>
                                             </td>
                                             <td>
-                                                <span class="badge badge-<?= $payment['status'] === 'paid' ? 'success' : ($payment['status'] === 'overdue' ? 'danger' : 'warning') ?>">
+                                                <span
+                                                    class="badge badge-<?= $payment['status'] === 'paid' ? 'success' : ($payment['status'] === 'overdue' ? 'danger' : 'warning') ?>">
                                                     <?= ucfirst($payment['status']) ?>
                                                 </span>
                                             </td>
@@ -216,21 +207,18 @@
                 <div class="card-body">
                     <?php if (!empty($pending_maintenance)): ?>
                         <?php foreach ($pending_maintenance as $request): ?>
-                            <div class="mb-3 p-3 border-left-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?> bg-light">
+                            <div
+                                class="mb-3 p-3 border-left-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?> bg-light">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h6 class="mb-1"><?= esc($request['title']) ?></h6>
                                         <small class="text-muted">
                                             <i class="fas fa-building"></i> <?= esc($request['property_name']) ?>
                                         </small>
-                                        <br>
-                                        <small class="text-muted">
-                                            <i class="fas fa-user"></i> 
-                                            <?= esc($request['tenant_first_name'] . ' ' . $request['tenant_last_name']) ?>
-                                        </small>
                                     </div>
                                     <div class="text-right">
-                                        <span class="badge badge-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?>">
+                                        <span
+                                            class="badge badge-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?>">
                                             <?= ucfirst($request['priority']) ?>
                                         </span>
                                         <br>
@@ -267,7 +255,6 @@
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Tenant</th>
                                         <th>Property</th>
                                         <th>Amount Due</th>
                                         <th>Due Date</th>
@@ -280,21 +267,19 @@
                                     <?php foreach ($overdue_payments as $payment): ?>
                                         <tr>
                                             <td>
-                                                <strong><?= esc($payment['tenant_first_name'] . ' ' . $payment['tenant_last_name']) ?></strong>
-                                            </td>
-                                            <td>
                                                 <?= esc($payment['property_name']) ?>
                                                 <br>
                                                 <small class="text-muted"><?= esc($payment['property_address']) ?></small>
                                             </td>
                                             <td>
-                                                <strong class="text-danger">$<?= number_format($payment['amount'], 2) ?></strong>
+                                                <strong
+                                                    class="text-danger">$<?= number_format($payment['amount'], 2) ?></strong>
                                             </td>
                                             <td>
                                                 <?= date('M d, Y', strtotime($payment['due_date'])) ?>
                                             </td>
                                             <td>
-                                                <?php 
+                                                <?php
                                                 $days_overdue = (strtotime('now') - strtotime($payment['due_date'])) / (60 * 60 * 24);
                                                 ?>
                                                 <span class="badge badge-danger">
@@ -302,17 +287,13 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <small>
-                                                    <i class="fas fa-envelope"></i> <?= esc($payment['tenant_email']) ?><br>
-                                                    <i class="fas fa-phone"></i> <?= esc($payment['tenant_phone'] ?? 'N/A') ?>
-                                                </small>
-                                            </td>
-                                            <td>
                                                 <div class="btn-group-vertical btn-group-sm">
-                                                    <button class="btn btn-outline-primary" onclick="sendReminder(<?= $payment['id'] ?>)">
+                                                    <button class="btn btn-outline-primary"
+                                                        onclick="sendReminder(<?= $payment['id'] ?>)">
                                                         <i class="fas fa-envelope"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-success" onclick="markAsPaid(<?= $payment['id'] ?>)">
+                                                    <button class="btn btn-outline-success"
+                                                        onclick="markAsPaid(<?= $payment['id'] ?>)">
                                                         <i class="fas fa-check"></i>
                                                     </button>
                                                 </div>
@@ -372,77 +353,41 @@
 
 <!-- JavaScript for Quick Actions -->
 <script>
-function sendReminder(paymentId) {
-    if (confirm('Send payment reminder to tenant?')) {
-        // Show loading state
-        const button = event.target.closest('button');
-        const originalHtml = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        button.disabled = true;
+    function markAsPaid(paymentId) {
+        if (confirm('Mark this payment as paid?')) {
+            // Show loading state
+            const button = event.target.closest('button');
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
 
-        // AJAX call to send reminder
-        fetch('<?= site_url('admin/send-payment-reminder') ?>/' + paymentId, {
-            method: 'POST',
-            body: JSON.stringify({}),
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Reminder sent successfully!');
-            } else {
-                alert('Failed to send reminder: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Error: ' + error.message);
-        })
-        .finally(() => {
-            // Restore button
-            button.innerHTML = originalHtml;
-            button.disabled = false;
-        });
+            // AJAX call to mark as paid
+            fetch('<?= site_url('admin/mark-payment-paid') ?>/' + paymentId, {
+                method: 'POST',
+                body: JSON.stringify({}),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Failed to update payment: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                })
+                .finally(() => {
+                    // Restore button if not reloading
+                    button.innerHTML = originalHtml;
+                    button.disabled = false;
+                });
+        }
     }
-}
-
-function markAsPaid(paymentId) {
-    if (confirm('Mark this payment as paid?')) {
-        // Show loading state
-        const button = event.target.closest('button');
-        const originalHtml = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        button.disabled = true;
-
-        // AJAX call to mark as paid
-        fetch('<?= site_url('admin/mark-payment-paid') ?>/' + paymentId, {
-            method: 'POST',
-            body: JSON.stringify({}),
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Failed to update payment: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Error: ' + error.message);
-        })
-        .finally(() => {
-            // Restore button if not reloading
-            button.innerHTML = originalHtml;
-            button.disabled = false;
-        });
-    }
-}
 </script>
 
 <?= $this->endSection() ?>

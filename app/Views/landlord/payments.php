@@ -4,30 +4,55 @@
 <div class="container-fluid">
 
     <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-dollar-sign"></i> Payment Management
-        </h1>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
-                <i class="fas fa-plus"></i> Add Income Payment
-            </button>
-            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                <i class="fas fa-minus"></i> Add Expense Payment
-            </button>
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="fas fa-download"></i> Export
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-money-bill-wave"></i> Income & Expense Tracking
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <!-- Export Dropdown -->
+            <div class="dropdown d-inline-block me-2">
+                <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown"
+                    data-bs-toggle="dropdown">
+                    <i class="fas fa-download"></i> Export Data
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="exportPayments('excel')">
-                            <i class="fas fa-file-excel"></i> Export to Excel
-                        </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="exportPayments('pdf')">
-                            <i class="fas fa-file-pdf"></i> Export to PDF
-                        </a></li>
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="exportPayments('pdf')">
+                            <i class="fas fa-file-pdf text-danger"></i> Export as PDF
+                        </a>
+                    </li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="exportPayments('excel')">
+                            <i class="fas fa-file-excel text-success"></i> Export as CSV (Standard)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="exportPayments('excel-alt')">
+                            <i class="fas fa-file-csv text-info"></i> Export as CSV (Alternative)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="exportPayments('tsv')">
+                            <i class="fas fa-file-alt text-warning"></i> Export as Text File
+                        </a>
+                    </li>
                 </ul>
             </div>
+
+            <!-- Add Income Button -->
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                <i class="fas fa-plus"></i> Add Income
+            </button>
+
+            <!-- Add Expense Button -->
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                <i class="fas fa-plus"></i> Add Expense
+            </button>
         </div>
     </div>
 
@@ -125,7 +150,8 @@
                         <div class="form-group">
                             <label for="payment_type">Payment Type</label>
                             <select name="payment_type" id="payment_type" class="form-control">
-                                <option value="all" <?= ($filters['payment_type'] ?? 'all') === 'all' ? 'selected' : '' ?>>All Payments</option>
+                                <option value="all" <?= ($filters['payment_type'] ?? 'all') === 'all' ? 'selected' : '' ?>>
+                                    All Payments</option>
                                 <option value="income" <?= ($filters['payment_type'] ?? '') === 'income' ? 'selected' : '' ?>>Income</option>
                                 <option value="expense" <?= ($filters['payment_type'] ?? '') === 'expense' ? 'selected' : '' ?>>Expense</option>
                             </select>
@@ -190,7 +216,8 @@
                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">No payments found</h5>
                     <p class="text-muted">Start recording your income and expense payments.</p>
-                    <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                    <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                        data-bs-target="#addIncomeModal">
                         <i class="fas fa-plus"></i> Add Income
                     </button>
                     <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
@@ -290,8 +317,8 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= site_url('landlord/income-payment/store') ?>" method="post"
-                enctype="multipart/form-data" id="incomeForm">
+            <form action="<?= site_url('landlord/income-payment/store') ?>" method="post" enctype="multipart/form-data"
+                id="incomeForm">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="alert alert-info">
@@ -314,7 +341,8 @@
                                     onchange="loadIncomeUnits()">
                                     <option value="">Select Property</option>
                                     <?php foreach ($properties as $property): ?>
-                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?></option>
+                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -335,8 +363,8 @@
                                 <label for="income_amount" class="form-label">Income Amount *</label>
                                 <div class="input-group">
                                     <span class="input-group-text">SAR</span>
-                                    <input type="number" name="amount" id="income_amount" class="form-control" step="0.01"
-                                        min="0" required placeholder="0.00">
+                                    <input type="number" name="amount" id="income_amount" class="form-control"
+                                        step="0.01" min="0" required placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -347,7 +375,8 @@
                         <input type="text" name="source" id="income_source" class="form-control" required
                             placeholder="Enter income source (e.g., Rent Payment, Security Deposit, Late Fees, etc.)">
                         <small class="form-text text-muted">
-                            Common sources: Rent Payment, Security Deposit, Late Fees, Parking Fees, Utility Reimbursement, Other Income
+                            Common sources: Rent Payment, Security Deposit, Late Fees, Parking Fees, Utility
+                            Reimbursement, Other Income
                         </small>
                     </div>
 
@@ -371,8 +400,7 @@
 
                     <div class="form-group mb-3">
                         <label for="income_receipt" class="form-label">Receipt/Invoice (Optional)</label>
-                        <input type="file" name="receipt_file" id="income_receipt" class="form-control"
-                            accept=".pdf">
+                        <input type="file" name="receipt_file" id="income_receipt" class="form-control" accept=".pdf">
                         <small class="form-text text-muted">
                             Only PDF files are accepted (Max 5MB)
                         </small>
@@ -399,8 +427,8 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= site_url('landlord/expense-payment/store') ?>" method="post"
-                enctype="multipart/form-data" id="expenseForm">
+            <form action="<?= site_url('landlord/expense-payment/store') ?>" method="post" enctype="multipart/form-data"
+                id="expenseForm">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="alert alert-warning">
@@ -423,7 +451,8 @@
                                     onchange="loadExpenseUnits()">
                                     <option value="">Select Property</option>
                                     <?php foreach ($properties as $property): ?>
-                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?></option>
+                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -444,8 +473,8 @@
                                 <label for="expense_amount" class="form-label">Expense Amount *</label>
                                 <div class="input-group">
                                     <span class="input-group-text">SAR</span>
-                                    <input type="number" name="amount" id="expense_amount" class="form-control" step="0.01"
-                                        min="0" required placeholder="0.00">
+                                    <input type="number" name="amount" id="expense_amount" class="form-control"
+                                        step="0.01" min="0" required placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -487,8 +516,7 @@
 
                     <div class="form-group mb-3">
                         <label for="expense_receipt" class="form-label">Receipt/Invoice (Optional)</label>
-                        <input type="file" name="receipt_file" id="expense_receipt" class="form-control"
-                            accept=".pdf">
+                        <input type="file" name="receipt_file" id="expense_receipt" class="form-control" accept=".pdf">
                         <small class="form-text text-muted">
                             Only PDF files are accepted (Max 5MB)
                         </small>
@@ -525,16 +553,16 @@
 </div>
 
 <script>
-// Load units for income form
+    // Load units for income form
     function loadIncomeUnits() {
         const propertyId = document.getElementById('income_property').value;
         const unitSelect = document.getElementById('income_unit');
-        
+
         if (propertyId) {
             // Show loading state
             unitSelect.innerHTML = '<option value="">Loading units...</option>';
             unitSelect.disabled = true;
-            
+
             fetch(`<?= site_url('landlord/get-units-by-property') ?>/${propertyId}`)
                 .then(response => {
                     if (!response.ok) {
@@ -544,13 +572,13 @@
                 })
                 .then(data => {
                     unitSelect.disabled = false;
-                    
+
                     if (data.error) {
                         unitSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
                         console.error('Server error:', data.error);
                         return;
                     }
-                    
+
                     unitSelect.innerHTML = '<option value="">Select Unit</option>';
                     if (Array.isArray(data) && data.length > 0) {
                         data.forEach(unit => {
@@ -577,12 +605,12 @@
     function loadExpenseUnits() {
         const propertyId = document.getElementById('expense_property').value;
         const unitSelect = document.getElementById('expense_unit');
-        
+
         if (propertyId) {
             // Show loading state
             unitSelect.innerHTML = '<option value="">Loading units...</option>';
             unitSelect.disabled = true;
-            
+
             fetch(`<?= site_url('landlord/get-units-by-property') ?>/${propertyId}`)
                 .then(response => {
                     if (!response.ok) {
@@ -592,13 +620,13 @@
                 })
                 .then(data => {
                     unitSelect.disabled = false;
-                    
+
                     if (data.error) {
                         unitSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
                         console.error('Server error:', data.error);
                         return;
                     }
-                    
+
                     unitSelect.innerHTML = '<option value="">Select Unit</option>';
                     if (Array.isArray(data) && data.length > 0) {
                         data.forEach(unit => {
@@ -622,7 +650,7 @@
     }
 
     // Form validation
-    document.getElementById('incomeForm').addEventListener('submit', function(e) {
+    document.getElementById('incomeForm').addEventListener('submit', function (e) {
         const propertyId = document.getElementById('income_property').value;
         const unitId = document.getElementById('income_unit').value;
         const amount = document.getElementById('income_amount').value;
@@ -639,7 +667,7 @@
         submitBtn.disabled = true;
     });
 
-    document.getElementById('expenseForm').addEventListener('submit', function(e) {
+    document.getElementById('expenseForm').addEventListener('submit', function (e) {
         const propertyId = document.getElementById('expense_property').value;
         const unitId = document.getElementById('expense_unit').value;
         const amount = document.getElementById('expense_amount').value;
@@ -656,63 +684,140 @@
         submitBtn.disabled = true;
     });
 
-    // Export payments function - FINAL VERSION
+    // FIXED: Receipt viewing function with proper error handling
+    function viewReceipt(filename) {
+        const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        const content = document.getElementById('receiptContent');
+
+        // FIXED: Enhanced receipt viewer with proper error handling
+        if (!filename) {
+            content.innerHTML = `
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h5>لا يوجد إيصال متاح</h5>
+                <p>لم يتم رفع ملف إيصال لهذه المعاملة.</p>
+            </div>
+        `;
+            modal.show();
+            return;
+        }
+
+        // FIXED: Use the new view route for proper file serving
+        const receiptViewUrl = `<?= site_url('landlord/receipt/view/') ?>${filename}`;
+        const receiptDownloadUrl = `<?= site_url('landlord/receipt/download/') ?>${filename}`;
+
+        content.innerHTML = `
+        <div class="text-center">
+            <div class="mb-3">
+                <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                <h5>إيصال: ${filename}</h5>
+            </div>
+            
+            <!-- FIXED: Improved PDF embedding with proper URL -->
+            <div id="pdfContainer" style="position: relative; height: 500px; border: 1px solid #ddd;">
+                <iframe src="${receiptViewUrl}" 
+                        width="100%" 
+                        height="100%"
+                        style="border: none;"
+                        onload="handlePdfLoad()"
+                        onerror="handlePdfError()">
+                </iframe>
+            </div>
+            
+            <div class="mt-3">
+                <a href="${receiptDownloadUrl}" 
+                   class="btn btn-primary me-2" 
+                   download="${filename}">
+                    <i class="fas fa-download"></i> تحميل PDF
+                </a>
+                <a href="${receiptViewUrl}" 
+                   class="btn btn-outline-primary" 
+                   target="_blank">
+                    <i class="fas fa-external-link-alt"></i> فتح في نافذة جديدة
+                </a>
+            </div>
+        </div>
+    `;
+
+        modal.show();
+    }
+
+    // FIXED: Error handling functions
+    function handlePdfLoad() {
+        console.log('PDF loaded successfully');
+        // Hide loading indicator if present
+        const loadingDiv = document.querySelector('.pdf-loading');
+        if (loadingDiv) {
+            loadingDiv.style.display = 'none';
+        }
+    }
+
+    function handlePdfError() {
+        const container = document.getElementById('pdfContainer');
+        if (container) {
+            container.innerHTML = `
+            <div class="alert alert-danger text-center p-4">
+                <i class="fas fa-times-circle fa-3x mb-3"></i>
+                <h5>لا يمكن عرض ملف PDF</h5>
+                <p>تعذر عرض ملف PDF في المتصفح.</p>
+                <p class="mb-0">يرجى استخدام زر التحميل لعرض الملف.</p>
+            </div>
+        `;
+        }
+    }
+
+    // Updated export function with multiple format options
     function exportPayments(format) {
         const form = document.getElementById('filterForm');
         const formData = new FormData(form);
-        const params = new URLSearchParams(formData).toString();
-        
-        // Create a form and submit it to trigger download
+
+        // Show loading
+        const exportBtn = document.getElementById('exportDropdown');
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        exportBtn.disabled = true;
+
+        // Create form for download
         const exportForm = document.createElement('form');
         exportForm.method = 'GET';
         exportForm.style.display = 'none';
-        
-        if (format === 'pdf') {
-            exportForm.action = `<?= site_url('landlord/payments/export-pdf') ?>`;
-        } else {
-            exportForm.action = `<?= site_url('landlord/payments/export-excel') ?>`;
+
+        // Set action based on format
+        switch (format) {
+            case 'pdf':
+                exportForm.action = '<?= site_url('landlord/payments/export-pdf') ?>';
+                break;
+            case 'excel':
+                exportForm.action = '<?= site_url('landlord/payments/export-excel') ?>';
+                break;
+            case 'excel-alt':
+                exportForm.action = '<?= site_url('landlord/payments/export-excel-alt') ?>';
+                break;
+            case 'tsv':
+                exportForm.action = '<?= site_url('landlord/payments/export-tsv') ?>';
+                break;
+            default:
+                exportForm.action = '<?= site_url('landlord/payments/export-excel') ?>';
         }
-        
+
         // Add form parameters
-        const urlParams = new URLSearchParams(params);
-        for (const [key, value] of urlParams) {
+        for (const [key, value] of formData.entries()) {
             const input = document.createElement('input');
             input.type = 'hidden';
             input.name = key;
             input.value = value;
             exportForm.appendChild(input);
         }
-        
+
         document.body.appendChild(exportForm);
         exportForm.submit();
         document.body.removeChild(exportForm);
-    }
 
-    // View receipt function
-    function viewReceipt(filename) {
-        const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
-        const content = document.getElementById('receiptContent');
-
-        // For PDF files, show an embedded viewer
-        content.innerHTML = `
-            <div class="text-center">
-                <embed src="<?= base_url('writable/uploads/receipts/') ?>${filename}" 
-                       type="application/pdf" 
-                       width="100%" 
-                       height="500px"
-                       style="border: 1px solid #ddd;">
-                <div class="mt-3">
-                    <a href="<?= base_url('writable/uploads/receipts/') ?>${filename}" 
-                       class="btn btn-primary" 
-                       download="${filename}"
-                       target="_blank">
-                        <i class="fas fa-download"></i> Download PDF
-                    </a>
-                </div>
-            </div>
-        `;
-
-        modal.show();
+        // Reset button
+        setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+        }, 3000);
     }
 
     // Reset forms when modals are closed

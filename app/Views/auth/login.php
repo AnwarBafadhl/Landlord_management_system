@@ -228,13 +228,12 @@
                             <div class="side-panel">
                                 <h3>Welcome Back!</h3>
                                 <p>
-                                    Manage your properties, tenants, and maintenance requests with our 
+                                    Manage your properties, and maintenance requests with our 
                                     comprehensive landlord management system.
                                 </p>
 
                                 <ul class="feature-list">
                                     <li><i class="fas fa-building"></i> Property Management</li>
-                                    <li><i class="fas fa-users"></i> Tenant Management</li>
                                     <li><i class="fas fa-dollar-sign"></i> Payment Tracking</li>
                                     <li><i class="fas fa-tools"></i> Maintenance Requests</li>
                                     <li><i class="fas fa-chart-bar"></i> Financial Reports</li>
@@ -251,21 +250,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Demo Credentials Notice -->
-    <div class="position-fixed bottom-0 start-0 p-3">
-        <div class="card bg-dark text-white" style="max-width: 300px;">
-            <div class="card-body">
-                <h6 class="card-title">Demo Credentials</h6>
-                <small>
-                    <strong>Admin:</strong> admin / admin123<br>
-                    <strong>Landlord:</strong> landlord / password<br>
-                    <strong>Tenant:</strong> tenant / password<br>
-                    <strong>Maintenance:</strong> maintenance / password
-                </small>
             </div>
         </div>
     </div>

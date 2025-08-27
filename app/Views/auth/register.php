@@ -128,7 +128,6 @@
         }
 
         .role-icon.landlord { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .role-icon.tenant { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
         .role-icon.maintenance { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
 
         .terms-section {
@@ -208,19 +207,7 @@
                                     <div>
                                         <strong>Landlord</strong>
                                         <br>
-                                        <small class="text-muted">Manage properties and tenants</small>
-                                    </div>
-                                </div>
-
-                                <div class="role-option" onclick="selectRole('tenant')">
-                                    <input type="radio" name="role" value="tenant" id="role_tenant" required>
-                                    <div class="role-icon tenant">
-                                        <i class="fas fa-home"></i>
-                                    </div>
-                                    <div>
-                                        <strong>Tenant</strong>
-                                        <br>
-                                        <small class="text-muted">Access your rental information</small>
+                                        <small class="text-muted">Manage properties</small>
                                     </div>
                                 </div>
 

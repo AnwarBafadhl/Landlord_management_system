@@ -80,7 +80,6 @@ class Filters extends BaseConfig
             'before' => [
                 'admin/*',
                 'landlord/*',
-                'tenant/*',
                 'maintenance/*',
                 'uploads/*',
             ]

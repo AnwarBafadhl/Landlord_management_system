@@ -39,7 +39,7 @@ class PublicAuth extends BaseController
             'email' => 'required|valid_email|is_unique[users.email]',
             'password' => 'required|min_length[6]',
             'confirm_password' => 'required|matches[password]',
-            'role' => 'required|in_list[landlord,tenant,maintenance]',
+            'role' => 'required|in_list[landlord,maintenance]',
             'first_name' => 'required|min_length[2]|max_length[50]',
             'last_name' => 'required|min_length[2]|max_length[50]',
             'terms' => 'required'
@@ -144,8 +144,6 @@ class PublicAuth extends BaseController
                 return '/admin/dashboard';
             case 'landlord':
                 return '/landlord/dashboard';
-            case 'tenant':
-                return '/tenant/dashboard';
             case 'maintenance':
                 return '/maintenance/dashboard';
             default:

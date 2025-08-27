@@ -31,7 +31,6 @@
                                 <th>Type</th>
                                 <th>Rent</th>
                                 <th>Landlord</th>
-                                <th>Tenant</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -70,17 +69,6 @@
                                             <small class="text-muted"><?= $property['ownership_percentage'] ?>% ownership</small>
                                         <?php else: ?>
                                             <span class="text-muted">No landlord assigned</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($property['tenant_first_name']): ?>
-                                            <?= esc($property['tenant_first_name'] . ' ' . $property['tenant_last_name']) ?>
-                                            <br>
-                                            <small class="text-muted">
-                                                Until <?= date('M Y', strtotime($property['lease_end'])) ?>
-                                            </small>
-                                        <?php else: ?>
-                                            <span class="text-muted">Vacant</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>

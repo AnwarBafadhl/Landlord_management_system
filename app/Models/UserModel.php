@@ -40,7 +40,7 @@ class UserModel extends Model
         'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username,id,{id}]',
         'email' => 'required|valid_email|is_unique[users.email,id,{id}]',
         'password' => 'required|min_length[6]',
-        'role' => 'required|in_list[admin,landlord,tenant,maintenance]',
+        'role' => 'required|in_list[admin,landlord,maintenance]',
         'first_name' => 'required|min_length[2]|max_length[50]',
         'last_name' => 'required|min_length[2]|max_length[50]'
     ];
@@ -116,14 +116,6 @@ class UserModel extends Model
     }
 
     /**
-     * Get tenants
-     */
-    public function getTenants()
-    {
-        return $this->getUsersByRole('tenant');
-    }
-
-    /**
      * Get maintenance staff
      */
     public function getMaintenanceStaff()
@@ -164,23 +156,6 @@ class UserModel extends Model
         $builder->where('u.role', 'landlord');
 
         return $builder->get()->getResultArray();
-    }
-
-    /**
-     * Get tenant with lease info
-     */
-    public function getTenantWithLease($tenantId)
-    {
-        $db = \Config\Database::connect();
-        $builder = $db->table('users u');
-        $builder->select('u.*, l.*, p.property_name, p.address as property_address');
-        $builder->join('leases l', 'l.tenant_id = u.id', 'left');
-        $builder->join('properties p', 'p.id = l.property_id', 'left');
-        $builder->where('u.id', $tenantId);
-        $builder->where('u.role', 'tenant');
-        $builder->where('l.status', 'active');
-
-        return $builder->get()->getRowArray();
     }
 
     /**

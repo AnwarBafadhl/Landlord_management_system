@@ -36,7 +36,7 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-success">
-                                <i class="fas fa-check"></i> 
+                                <i class="fas fa-check"></i>
                                 <?= $stats['completed'] ?? 0 ?> Completed
                             </small>
                         </div>
@@ -65,7 +65,7 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-info">
-                                <i class="fas fa-play"></i> 
+                                <i class="fas fa-play"></i>
                                 <?= $stats['in_progress'] ?? 0 ?> In Progress
                             </small>
                         </div>
@@ -94,7 +94,7 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-warning">
-                                <i class="fas fa-clock"></i> 
+                                <i class="fas fa-clock"></i>
                                 Immediate Attention
                             </small>
                         </div>
@@ -123,7 +123,7 @@
                     <div class="row no-gutters align-items-center mt-2">
                         <div class="col">
                             <small class="text-success">
-                                <i class="fas fa-chart-line"></i> 
+                                <i class="fas fa-chart-line"></i>
                                 Performance Metric
                             </small>
                         </div>
@@ -161,7 +161,8 @@
                                     <?php foreach ($today_requests as $request): ?>
                                         <tr>
                                             <td>
-                                                <span class="badge badge-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?>">
+                                                <span
+                                                    class="badge badge-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?>">
                                                     <?= ucfirst($request['priority']) ?>
                                                 </span>
                                             </td>
@@ -178,23 +179,24 @@
                                                 <small class="text-muted"><?= esc($request['property_address']) ?></small>
                                             </td>
                                             <td>
-                                                <span class="badge badge-<?= $request['status'] === 'completed' ? 'success' : ($request['status'] === 'in_progress' ? 'warning' : 'secondary') ?>">
+                                                <span
+                                                    class="badge badge-<?= $request['status'] === 'completed' ? 'success' : ($request['status'] === 'in_progress' ? 'warning' : 'secondary') ?>">
                                                     <?= ucfirst(str_replace('_', ' ', $request['status'])) ?>
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="<?= site_url('maintenance/requests/view/' . $request['id']) ?>" 
-                                                       class="btn btn-outline-primary">
+                                                    <a href="<?= site_url('maintenance/requests/view/' . $request['id']) ?>"
+                                                        class="btn btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     <?php if ($request['status'] !== 'completed'): ?>
-                                                        <button class="btn btn-outline-success" 
-                                                                onclick="updateStatus(<?= $request['id'] ?>, 'in_progress')">
+                                                        <button class="btn btn-outline-success"
+                                                            onclick="updateStatus(<?= $request['id'] ?>, 'in_progress')">
                                                             <i class="fas fa-play"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-warning" 
-                                                                onclick="completeRequest(<?= $request['id'] ?>)">
+                                                        <button class="btn btn-outline-warning"
+                                                            onclick="completeRequest(<?= $request['id'] ?>)">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -233,14 +235,10 @@
                                         <small class="text-muted">
                                             <i class="fas fa-building"></i> <?= esc($request['property_name']) ?>
                                         </small>
-                                        <br>
-                                        <small class="text-muted">
-                                            <i class="fas fa-user"></i> 
-                                            <?= esc($request['tenant_first_name'] . ' ' . $request['tenant_last_name']) ?>
-                                        </small>
                                     </div>
                                     <div class="text-right">
-                                        <span class="badge badge-<?= $request['status'] === 'completed' ? 'success' : 'danger' ?>">
+                                        <span
+                                            class="badge badge-<?= $request['status'] === 'completed' ? 'success' : 'danger' ?>">
                                             <?= ucfirst(str_replace('_', ' ', $request['status'])) ?>
                                         </span>
                                         <br>
@@ -250,8 +248,8 @@
                                     </div>
                                 </div>
                                 <div class="mt-2">
-                                    <a href="<?= site_url('maintenance/requests/view/' . $request['id']) ?>" 
-                                       class="btn btn-sm btn-danger">
+                                    <a href="<?= site_url('maintenance/requests/view/' . $request['id']) ?>"
+                                        class="btn btn-sm btn-danger">
                                         <i class="fas fa-eye"></i> View Details
                                     </a>
                                 </div>
@@ -276,7 +274,8 @@
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-history"></i> Recent Activity
                     </h6>
-                    <a href="<?= site_url('maintenance/requests') ?>" class="btn btn-sm btn-primary">View All Requests</a>
+                    <a href="<?= site_url('maintenance/requests') ?>" class="btn btn-sm btn-primary">View All
+                        Requests</a>
                 </div>
                 <div class="card-body">
                     <?php if (!empty($assigned_requests)): ?>
@@ -286,7 +285,6 @@
                                     <tr>
                                         <th>Request</th>
                                         <th>Property</th>
-                                        <th>Tenant</th>
                                         <th>Priority</th>
                                         <th>Assigned</th>
                                         <th>Status</th>
@@ -294,10 +292,10 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php 
+                                    <?php
                                     $recentRequests = array_slice($assigned_requests, 0, 10); // Show last 10
-                                    foreach ($recentRequests as $request): 
-                                    ?>
+                                    foreach ($recentRequests as $request):
+                                        ?>
                                         <tr>
                                             <td>
                                                 <strong><?= esc($request['title']) ?></strong>
@@ -309,15 +307,12 @@
                                             <td>
                                                 <?= esc($request['property_name']) ?>
                                                 <br>
-                                                <small class="text-muted"><?= character_limiter(esc($request['property_address']), 30) ?></small>
+                                                <small
+                                                    class="text-muted"><?= character_limiter(esc($request['property_address']), 30) ?></small>
                                             </td>
                                             <td>
-                                                <?= esc($request['tenant_first_name'] . ' ' . $request['tenant_last_name']) ?>
-                                                <br>
-                                                <small class="text-muted"><?= esc($request['tenant_phone']) ?></small>
-                                            </td>
-                                            <td>
-                                                <span class="badge badge-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?>">
+                                                <span
+                                                    class="badge badge-<?= $request['priority'] === 'urgent' ? 'danger' : ($request['priority'] === 'high' ? 'warning' : 'info') ?>">
                                                     <?= ucfirst($request['priority']) ?>
                                                 </span>
                                             </td>
@@ -325,26 +320,26 @@
                                                 <?= $request['assigned_date'] ? date('M d, Y', strtotime($request['assigned_date'])) : 'Not assigned' ?>
                                             </td>
                                             <td>
-                                                <span class="badge badge-<?= $request['status'] === 'completed' ? 'success' : ($request['status'] === 'in_progress' ? 'warning' : 'secondary') ?>">
+                                                <span
+                                                    class="badge badge-<?= $request['status'] === 'completed' ? 'success' : ($request['status'] === 'in_progress' ? 'warning' : 'secondary') ?>">
                                                     <?= ucfirst(str_replace('_', ' ', $request['status'])) ?>
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="<?= site_url('maintenance/requests/view/' . $request['id']) ?>" 
-                                                       class="btn btn-outline-primary" title="View Details">
+                                                    <a href="<?= site_url('maintenance/requests/view/' . $request['id']) ?>"
+                                                        class="btn btn-outline-primary" title="View Details">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     <?php if ($request['status'] === 'assigned'): ?>
-                                                        <button class="btn btn-outline-success" 
-                                                                onclick="updateStatus(<?= $request['id'] ?>, 'in_progress')"
-                                                                title="Start Work">
+                                                        <button class="btn btn-outline-success"
+                                                            onclick="updateStatus(<?= $request['id'] ?>, 'in_progress')"
+                                                            title="Start Work">
                                                             <i class="fas fa-play"></i>
                                                         </button>
                                                     <?php elseif ($request['status'] === 'in_progress'): ?>
-                                                        <button class="btn btn-outline-warning" 
-                                                                onclick="completeRequest(<?= $request['id'] ?>)"
-                                                                title="Mark Complete">
+                                                        <button class="btn btn-outline-warning"
+                                                            onclick="completeRequest(<?= $request['id'] ?>)" title="Mark Complete">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     <?php endif; ?>
@@ -384,7 +379,8 @@
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="<?= site_url('maintenance/requests?status=in_progress') ?>" class="btn btn-warning btn-block">
+                            <a href="<?= site_url('maintenance/requests?status=in_progress') ?>"
+                                class="btn btn-warning btn-block">
                                 <i class="fas fa-play"></i><br>
                                 In Progress
                             </a>
@@ -420,11 +416,11 @@
                 <form id="statusForm">
                     <input type="hidden" id="requestId" name="request_id">
                     <input type="hidden" id="newStatus" name="status">
-                    
+
                     <div class="mb-3">
                         <label for="work_notes" class="form-label">Work Notes</label>
-                        <textarea class="form-control" id="work_notes" name="work_notes" rows="3" 
-                                  placeholder="Add notes about the work performed..."></textarea>
+                        <textarea class="form-control" id="work_notes" name="work_notes" rows="3"
+                            placeholder="Add notes about the work performed..."></textarea>
                     </div>
                 </form>
             </div>
@@ -447,23 +443,23 @@
             <div class="modal-body">
                 <form id="completeForm">
                     <input type="hidden" id="completeRequestId" name="request_id">
-                    
+
                     <div class="mb-3">
                         <label for="actual_cost" class="form-label">Actual Cost</label>
-                        <input type="number" class="form-control" id="actual_cost" name="actual_cost" 
-                               step="0.01" min="0" placeholder="0.00">
+                        <input type="number" class="form-control" id="actual_cost" name="actual_cost" step="0.01"
+                            min="0" placeholder="0.00">
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="materials_used" class="form-label">Materials Used</label>
-                        <textarea class="form-control" id="materials_used" name="materials_used" rows="2" 
-                                  placeholder="List materials and parts used..."></textarea>
+                        <textarea class="form-control" id="materials_used" name="materials_used" rows="2"
+                            placeholder="List materials and parts used..."></textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="completion_notes" class="form-label">Completion Notes *</label>
-                        <textarea class="form-control" id="completion_notes" name="completion_notes" rows="3" 
-                                  placeholder="Describe the work completed..." required></textarea>
+                        <textarea class="form-control" id="completion_notes" name="completion_notes" rows="3"
+                            placeholder="Describe the work completed..." required></textarea>
                     </div>
                 </form>
             </div>
@@ -476,80 +472,80 @@
 </div>
 
 <script>
-function updateStatus(requestId, status) {
-    document.getElementById('requestId').value = requestId;
-    document.getElementById('newStatus').value = status;
-    
-    new bootstrap.Modal(document.getElementById('statusModal')).show();
-}
+    function updateStatus(requestId, status) {
+        document.getElementById('requestId').value = requestId;
+        document.getElementById('newStatus').value = status;
 
-function completeRequest(requestId) {
-    document.getElementById('completeRequestId').value = requestId;
-    
-    new bootstrap.Modal(document.getElementById('completeModal')).show();
-}
-
-document.getElementById('confirmStatusUpdate').addEventListener('click', function() {
-    const formData = new FormData(document.getElementById('statusForm'));
-    const requestId = document.getElementById('requestId').value;
-    
-    fetch('<?= site_url('maintenance/requests/update-status') ?>/' + requestId, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
-    });
-});
-
-document.getElementById('confirmComplete').addEventListener('click', function() {
-    const formData = new FormData(document.getElementById('completeForm'));
-    const requestId = document.getElementById('completeRequestId').value;
-    
-    // Validate required fields
-    const completionNotes = document.getElementById('completion_notes').value;
-    if (!completionNotes.trim()) {
-        alert('Completion notes are required');
-        return;
+        new bootstrap.Modal(document.getElementById('statusModal')).show();
     }
-    
-    fetch('<?= site_url('maintenance/requests/complete') ?>/' + requestId, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
-    });
-});
 
-// Auto-refresh dashboard every 2 minutes for real-time updates
-setInterval(function() {
-    if (document.hasFocus()) {
-        location.reload();
+    function completeRequest(requestId) {
+        document.getElementById('completeRequestId').value = requestId;
+
+        new bootstrap.Modal(document.getElementById('completeModal')).show();
     }
-}, 120000); // 2 minutes
+
+    document.getElementById('confirmStatusUpdate').addEventListener('click', function () {
+        const formData = new FormData(document.getElementById('statusForm'));
+        const requestId = document.getElementById('requestId').value;
+
+        fetch('<?= site_url('maintenance/requests/update-status') ?>/' + requestId, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+    });
+
+    document.getElementById('confirmComplete').addEventListener('click', function () {
+        const formData = new FormData(document.getElementById('completeForm'));
+        const requestId = document.getElementById('completeRequestId').value;
+
+        // Validate required fields
+        const completionNotes = document.getElementById('completion_notes').value;
+        if (!completionNotes.trim()) {
+            alert('Completion notes are required');
+            return;
+        }
+
+        fetch('<?= site_url('maintenance/requests/complete') ?>/' + requestId, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+    });
+
+    // Auto-refresh dashboard every 2 minutes for real-time updates
+    setInterval(function () {
+        if (document.hasFocus()) {
+            location.reload();
+        }
+    }, 120000); // 2 minutes
 </script>
 
 <?= $this->endSection() ?>

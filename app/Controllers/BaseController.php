@@ -89,14 +89,6 @@ abstract class BaseController extends Controller
     }
 
     /**
-     * Check if user is tenant
-     */
-    protected function isTenant()
-    {
-        return $this->hasRole('tenant');
-    }
-
-    /**
      * Check if user is maintenance staff
      */
     protected function isMaintenance()
@@ -145,14 +137,6 @@ abstract class BaseController extends Controller
     protected function requireLandlord()
     {
         return $this->requireRole('landlord');
-    }
-
-    /**
-     * Require tenant role
-     */
-    protected function requireTenant()
-    {
-        return $this->requireRole('tenant');
     }
 
     /**
@@ -207,8 +191,6 @@ abstract class BaseController extends Controller
                 return '/admin/dashboard';
             case 'landlord':
                 return '/landlord/dashboard';
-            case 'tenant':
-                return '/tenant/dashboard';
             case 'maintenance':
                 return '/maintenance/dashboard';
             default:

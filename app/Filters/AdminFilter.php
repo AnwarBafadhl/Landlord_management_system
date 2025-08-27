@@ -60,8 +60,6 @@ class AdminFilter implements FilterInterface
                 return '/admin/dashboard';
             case 'landlord':
                 return '/landlord/dashboard';
-            case 'tenant':
-                return '/tenant/dashboard';
             case 'maintenance':
                 return '/maintenance/dashboard';
             default:
