@@ -9,7 +9,7 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-building"></i> My Properties
         </h1>
-        <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-success">
+        <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-success shadow">
             <i class="fas fa-plus"></i> Add New Property
         </a>
     </div>
@@ -33,372 +33,205 @@
         </div>
     <?php endif; ?>
 
-    <!-- Properties Summary Cards -->
+    <!-- FIXED: Properties Summary Cards with correct colors matching dashboard -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Properties
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?= count($properties ?? []) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-building fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
+        <!-- Total Properties Card - FIXED: Use info color like dashboard -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2 hover-shadow">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Value
+                                Total Properties
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                SAR <?php
-                                $totalValue = 0;
-                                if (!empty($properties)) {
-                                    foreach ($properties as $property) {
-                                        $value = ($property['property_value'] ?? 0);
-                                        $ownership = ($property['ownership_percentage'] ?? 100) / 100;
-                                        $totalValue += $value * $ownership;
-                                    }
-                                }
-                                echo number_format($totalValue, 0);
-                                ?>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">
+                                <?= number_format($summary['total_properties'] ?? 0) ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                            <i class="fas fa-building fa-2x text-info"></i>
                         </div>
                     </div>
+                    <small class="text-muted">Properties in your portfolio</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
+        <!-- Total Remaining Balance Card - FIXED: Use warning color like dashboard -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2 hover-shadow">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                My Shares
+                                Total Remaining Balance
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                <?php
-                                $totalShares = 0;
-                                if (!empty($properties)) {
-                                    foreach ($properties as $property) {
-                                        $totalShares += ($property['my_shares'] ?? 0);
-                                    }
-                                }
-                                echo number_format($totalShares);
-                                ?>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">
+                                SAR <?= number_format((float) ($summary['total_remaining_balance'] ?? 0), 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                            <i class="fas fa-wallet fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">Undistributed profits across all properties ready for transfer</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Units Card - FIXED: Use primary color like dashboard -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 hover-shadow">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-normal text-uppercase mb-1">
+                                Total Units
+                            </div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800">
+                                <?= number_format($summary['total_units'] ?? 0) ?>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-door-open fa-2x text-normal"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">Units across all properties</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Properties List -->
+    <?php if (!empty($properties)): ?>
+        <div class="row">
+            <?php foreach ($properties as $property): ?>
+                <div class="col-xl-6 col-lg-12 mb-4">
+                    <div class="card shadow h-100">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-home"></i> <?= esc($property['property_name']) ?>
+                            </h6>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- Property Info -->
+                            <div class="col-12">
+                                <p class="text-sm text-gray-600 mb-2">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <?= esc($property['address'] ?? 'Address not specified') ?>
+                                </p>
+                                
+                                <div class="row text-center mb-3">
+                                    <div class="col-3">
+                                        <div class="text-xs text-gray-500">My Shares</div>
+                                        <div class="font-weight-bold text-primary">
+                                            <?= number_format($property['my_shares'] ?? $property['shares'] ?? 0) ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-xs text-gray-500">Ownership</div>
+                                        <div class="font-weight-bold text-success">
+                                            <?= number_format($property['ownership_percentage'] ?? 0, 1) ?>%
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-xs text-gray-500">Units</div>
+                                        <div class="font-weight-bold text-normal">
+                                            <?= number_format($property['total_units'] ?? 0) ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="text-xs text-gray-500">Available Balance</div>
+                                        <div class="font-weight-bold text-warning">
+                                            SAR <?= number_format($property['remaining_balance'] ?? 0, 2) ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer bg-gray-50">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>" 
+                                       class="btn btn-primary btn-sm btn-block">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="<?= site_url('landlord/properties/edit/' . $property['id']) ?>" 
+                                       class="btn btn-outline-secondary btn-sm btn-block">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-users"></i> <?= $property['total_owners'] ?? 1 ?> owner(s) •
+                                    <i class="fas fa-calendar"></i> Added <?= date('M Y', strtotime($property['created_at'] ?? 'now')) ?>
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
+            <?php endforeach; ?>
+        </div>
+
+    <?php else: ?>
+        <!-- No Properties State -->
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-building fa-5x text-gray-300"></i>
             </div>
+            <h4 class="text-gray-500 mb-3">No Properties Yet</h4>
+            <p class="text-gray-400 mb-4">
+                Start building your real estate portfolio by adding your first property.
+            </p>
+            <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-success btn-lg">
+                <i class="fas fa-plus"></i> Add Your First Property
+            </a>
         </div>
-    </div>
-
-    <!-- Properties Table -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-list"></i> Properties List
-            </h6>
-            <div class="dropdown no-arrow">
-                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown">
-                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                </a>
-                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
-                    <div class="dropdown-header">Filter Options:</div>
-                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'all')">Show All</a>
-                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'vacant')">Vacant</a>
-                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'occupied')">Occupied</a>
-                    <a class="dropdown-item" href="#" onclick="filterProperties(this, 'maintenance')">Maintenance</a>
-                </div>
-            </div>
-        </div>
-        <div class="card-body">
-            <?php if (!empty($properties) && is_array($properties)): ?>
-                <div class="table-responsive">
-                    <table class="table table-bordered" id="propertiesTable" width="100%" cellspacing="0">
-                        <thead>
-                            <tr>
-                                <th>Property Details</th>
-                                <th>Value & Shares</th>
-                                <th>My Ownership</th>
-                                <th>Management</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($properties as $property): ?>
-                                <tr class="property-row" data-status="<?= esc($property['status'] ?? 'pending') ?>">
-                                    <td>
-                                        <div class="property-info">
-                                            <h6 class="mb-1 font-weight-bold">
-                                                <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>"
-                                                    class="text-primary text-decoration-none">
-                                                    <?= esc($property['property_name']) ?>
-                                                </a>
-                                            </h6>
-                                            <p class="text-muted small mb-1">
-                                                <i class="fas fa-map-marker-alt"></i>
-                                                <?= esc(substr($property['address'] ?? '', 0, 50)) ?>
-                                                <?= strlen($property['address'] ?? '') > 50 ? '...' : '' ?>
-                                            </p>
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar"></i>
-                                                Added <?= date('M d, Y', strtotime($property['created_at'] ?? 'now')) ?>
-                                            </small>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <div class="value-info">
-                                            <div class="mb-1">
-                                                <strong class="text-success">SAR
-                                                    <?= number_format($property['property_value'] ?? 0, 0) ?></strong>
-                                            </div>
-                                            <div class="small text-muted">
-                                                <i class="fas fa-chart-pie"></i>
-                                                <?= number_format($property['total_shares'] ?? 0) ?> total shares
-                                            </div>
-                                            <div class="small text-muted">
-                                                <i class="fas fa-coins"></i>
-                                                SAR <?= number_format($property['share_value'] ?? 0, 2) ?> per share
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <div class="ownership-info">
-                                            <div class="mb-1">
-                                                <span class="badge badge-pill badge-primary">
-                                                    <?= number_format($property['my_shares'] ?? 0) ?> shares
-                                                </span>
-                                            </div>
-                                            <div class="mb-1">
-                                                <span class="badge badge-pill badge-success">
-                                                    <?= number_format($property['ownership_percentage'] ?? 0, 2) ?>%
-                                                </span>
-                                            </div>
-                                            <div class="small text-muted">
-                                                Value: SAR
-                                                <?= number_format(($property['property_value'] ?? 0) * (($property['ownership_percentage'] ?? 0) / 100), 0) ?>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <div class="management-info">
-                                            <div class="small mb-1">
-                                                <strong><?= esc($property['management_company'] ?? 'Self-Management') ?></strong>
-                                            </div>
-                                            <div class="small text-muted">
-                                                <i class="fas fa-percentage"></i>
-                                                <?= $property['management_percentage'] ?? 0 ?>% fee
-                                            </div>
-                                            <div class="small text-muted">
-                                                <i class="fas fa-clock"></i>
-                                                <?= $property['contribution_duration'] ?? 0 ?> months
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <div class="btn-group-vertical btn-group-sm" role="group">
-                                            <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>"
-                                                class="btn btn-primary btn-sm" title="View Details">
-                                                <i class="fas fa-eye"></i> View
-                                            </a>
-                                            <a href="<?= site_url('landlord/properties/edit/' . $property['id']) ?>"
-                                                class="btn btn-outline-primary btn-sm" title="Edit Property">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                    <style>
-                        /* Always show badge colors clearly */
-                        .badge-info {
-                            background-color: #4e73df !important;
-                            color: #fff !important;
-                        }
-
-                        .badge-success {
-                            background-color: #1cc88a !important;
-                            color: #fff !important;
-                        }
-
-                        .badge-primary {
-                            background-color: #36b9cc !important;
-                            color: #fff !important;
-                        }
-
-                        .badge-warning {
-                            background-color: #f6c23e !important;
-                            color: #212529 !important;
-                        }
-
-                        .badge-secondary {
-                            background-color: #858796 !important;
-                            color: #fff !important;
-                        }
-
-                        .badge-light {
-                            background-color: #e9ecef !important;
-                            color: #212529 !important;
-                        }
-                    </style>
-                </div>
-            <?php else: ?>
-                <div class="text-center py-5">
-                    <div class="mb-4">
-                        <i class="fas fa-building fa-5x text-gray-300"></i>
-                    </div>
-                    <h4 class="text-gray-600 mb-3">No Properties Found</h4>
-                    <p class="text-muted mb-4">
-                        You haven't added any properties yet. Start building your portfolio by adding your first property.
-                    </p>
-                    <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-success btn-lg">
-                        <i class="fas fa-plus-circle"></i> Add Your First Property
-                    </a>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
+    <?php endif; ?>
 </div>
 
-
-
 <style>
-    .property-info h6 {
-        line-height: 1.2;
-    }
+.hover-shadow:hover {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
 
-    .property-info p {
-        line-height: 1.3;
-    }
+.card-header .dropdown-toggle::after {
+    display: none;
+}
 
-    .value-info,
-    .ownership-info,
-    .management-info {
-        min-height: 60px;
-    }
+.bg-gray-50 {
+    background-color: #f8f9fc !important;
+}
 
-    .badge {
-        font-size: 0.75em;
-    }
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
 
-    .btn-group-vertical .btn {
-        margin-bottom: 2px;
-    }
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
 
-    .btn-group-vertical .btn:last-child {
-        margin-bottom: 0;
-    }
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
 
-    .table td {
-        vertical-align: middle;
-        padding: 1rem 0.75rem;
-    }
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
 
-    .table th {
-        border-top: none;
-        font-weight: 600;
-        color: #5a5c69;
-        background-color: #f8f9fc;
-    }
+.text-gray-500 {
+    color: #6c757d !important;
+}
 
-    .text-decoration-none:hover {
-        text-decoration: underline !important;
-    }
-
-    .card {
-        border: none;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-    }
-
-    .border-left-primary {
-        border-left: 0.25rem solid #4e73df !important;
-    }
-
-    .border-left-success {
-        border-left: 0.25rem solid #1cc88a !important;
-    }
-
-    .border-left-info {
-        border-left: 0.25rem solid #36b9cc !important;
-    }
-
-    .border-left-warning {
-        border-left: 0.25rem solid #f6c23e !important;
-    }
-
-    .text-xs {
-        font-size: 0.7rem;
-    }
-
-    .fa-2x {
-        font-size: 2em;
-    }
-
-    .fa-5x {
-        font-size: 5em;
-    }
-
-    /* DataTables custom styling */
-    .dataTables_wrapper .dataTables_filter {
-        float: right;
-        text-align: right;
-        margin-bottom: 1rem;
-    }
-
-    .dataTables_wrapper .dataTables_length {
-        float: left;
-        margin-bottom: 1rem;
-    }
-
-    .dataTables_wrapper .dataTables_info {
-        clear: both;
-        float: left;
-        padding-top: 0.755em;
-    }
-
-    .dataTables_wrapper .dataTables_paginate {
-        float: right;
-        text-align: right;
-        padding-top: 0.25em;
-    }
-
-    .page-link {
-        color: #4e73df;
-        border-color: #4e73df;
-    }
-
-    .page-item.active .page-link {
-        background-color: #4e73df;
-        border-color: #4e73df;
-    }
+.text-gray-600 {
+    color: #6c757d !important;
+}
 </style>
-
 <?= $this->endSection() ?>

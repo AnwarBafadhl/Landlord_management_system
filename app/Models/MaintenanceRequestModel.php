@@ -12,25 +12,32 @@ class MaintenanceRequestModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    
+
+    // Reflect the new DB columns
     protected $allowedFields = [
-        'tenant_id',
         'property_id',
+        'unit_id',
         'assigned_staff_id',
         'title',
         'description',
-        'priority',
-        'status',
+        'priority',            // enum('low','normal','high','urgent')
+        'status',              // enum('pending','approved','rejected','assigned','in_progress','completed','cancelled')
         'estimated_cost',
         'actual_cost',
         'materials_used',
         'work_notes',
-        'requested_date',
-        'assigned_date',
-        'completed_date'
+        'rejection_reason',
+        'requested_date',      // timestamp
+        'approved_date',       // datetime
+        'assigned_date',       // timestamp
+        'completed_date',      // timestamp
+        'rejected_date',       // datetime
+        'created_by_landlord', // tinyint(1)
+        'created_at',
+        'updated_at',
     ];
 
-    // Dates
+    // Timestamps
     protected $useTimestamps = true;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
@@ -38,14 +45,16 @@ class MaintenanceRequestModel extends Model
 
     // Validation
     protected $validationRules = [
-        'tenant_id' => 'required|integer',
         'property_id' => 'required|integer',
+        'unit_id' => 'permit_empty|integer',
         'title' => 'required|min_length[5]|max_length[200]',
         'description' => 'required|min_length[10]',
         'priority' => 'in_list[low,normal,high,urgent]',
-        'status' => 'in_list[pending,assigned,in_progress,completed,cancelled]',
-        'estimated_cost' => 'decimal|greater_than_equal_to[0]',
-        'actual_cost' => 'decimal|greater_than_equal_to[0]'
+        'status' => 'in_list[pending,approved,rejected,assigned,in_progress,completed,cancelled]',
+        'estimated_cost' => 'permit_empty|decimal|greater_than_equal_to[0]',
+        'actual_cost' => 'permit_empty|decimal|greater_than_equal_to[0]',
+        'assigned_staff_id' => 'permit_empty|integer',
+        'created_by_landlord' => 'permit_empty|in_list[0,1]',
     ];
 
     protected $validationMessages = [];
@@ -54,423 +63,476 @@ class MaintenanceRequestModel extends Model
 
     // Callbacks
     protected $allowCallbacks = true;
-    protected $beforeInsert = ['setRequestedDate'];
-    protected $beforeUpdate = ['updateStatusDates'];
+    protected $beforeInsert = ['ensureRequestedDate'];
+    protected $beforeUpdate = ['autoStampStatusDates'];
 
     /**
-     * Set requested date on insert
+     * Ensure requested_date is set on insert
      */
-    protected function setRequestedDate(array $data)
+    protected function ensureRequestedDate(array $data)
     {
         if (!isset($data['data']['requested_date'])) {
+            // Use DB server time format
             $data['data']['requested_date'] = date('Y-m-d H:i:s');
         }
         return $data;
     }
 
     /**
-     * Update status-related dates
+     * Automatically set date fields when status changes
      */
-    protected function updateStatusDates(array $data)
+    protected function autoStampStatusDates(array $data)
     {
-        if (isset($data['data']['status'])) {
-            switch ($data['data']['status']) {
-                case 'assigned':
-                    if (!isset($data['data']['assigned_date'])) {
-                        $data['data']['assigned_date'] = date('Y-m-d H:i:s');
-                    }
-                    break;
-                case 'completed':
-                    if (!isset($data['data']['completed_date'])) {
-                        $data['data']['completed_date'] = date('Y-m-d H:i:s');
-                    }
-                    break;
-            }
+        if (!isset($data['data']['status'])) {
+            return $data;
         }
+
+        $status = $data['data']['status'];
+        $now = date('Y-m-d H:i:s');
+
+        switch ($status) {
+            case 'approved':
+                if (!isset($data['data']['approved_date'])) {
+                    $data['data']['approved_date'] = $now;
+                }
+                break;
+
+            case 'rejected':
+                if (!isset($data['data']['rejected_date'])) {
+                    $data['data']['rejected_date'] = $now;
+                }
+                // keep rejection_reason if passed by controller
+                break;
+
+            case 'assigned':
+                if (!isset($data['data']['assigned_date'])) {
+                    $data['data']['assigned_date'] = $now;
+                }
+                break;
+
+            case 'completed':
+                if (!isset($data['data']['completed_date'])) {
+                    $data['data']['completed_date'] = $now;
+                }
+                break;
+
+            default:
+                // no-op for other states
+                break;
+        }
+
         return $data;
     }
 
     /**
-     * Get all maintenance requests with related data
+     * Base query with common joins
      */
-    public function getAllRequests($status = null, $priority = null, $limit = null)
+    protected function baseBuilder()
     {
         $db = \Config\Database::connect();
         $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         t.first_name as tenant_first_name, t.last_name as tenant_last_name, 
-                         t.email as tenant_email, t.phone as tenant_phone,
-                         p.property_name, p.address as property_address,
-                         s.first_name as staff_first_name, s.last_name as staff_last_name,
-                         s.email as staff_email, s.phone as staff_phone');
-        $builder->join('users t', 't.id = mr.tenant_id');
-        $builder->join('properties p', 'p.id = mr.property_id');
+
+        // Join properties and optional unit, and maintenance staff (users.role='maintenance')
+        $builder->select("
+            mr.*,
+            p.property_name,
+            p.address AS property_address,
+            pu.unit_name,
+            s.first_name AS staff_first_name,
+            s.last_name  AS staff_last_name,
+            s.email      AS staff_email,
+            s.phone      AS staff_phone
+        ");
+        $builder->join('properties p', 'p.id = mr.property_id', 'inner');
+        $builder->join('property_units pu', 'pu.id = mr.unit_id', 'left');
         $builder->join('users s', 's.id = mr.assigned_staff_id AND s.role = "maintenance"', 'left');
-        
-        if ($status) {
-            $builder->where('mr.status', $status);
-        }
-        
-        if ($priority) {
-            $builder->where('mr.priority', $priority);
-        }
-        
-        $builder->orderBy('mr.priority', 'DESC');
-        $builder->orderBy('mr.requested_date', 'DESC');
-        
-        if ($limit) {
-            $builder->limit($limit);
-        }
-        
-        return $builder->get()->getResultArray();
+
+        return $builder;
     }
 
     /**
-     * Get pending requests
+     * Get all maintenance requests with filters
      */
-    public function getPendingRequests($limit = null)
+    public function getAllRequests(?string $status = null, ?string $priority = null, ?int $limit = null)
+    {
+        $builder = $this->baseBuilder();
+
+        if (!empty($status)) {
+            $builder->where('mr.status', $status);
+        }
+        if (!empty($priority)) {
+            $builder->where('mr.priority', $priority);
+        }
+
+        $builder->orderBy('FIELD(mr.priority, "urgent","high","normal","low")', '', false);
+        $builder->orderBy('mr.requested_date', 'DESC');
+
+        if (!empty($limit)) {
+            $builder->limit($limit);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    public function getPendingRequests(?int $limit = null)
     {
         return $this->getAllRequests('pending', null, $limit);
     }
 
     /**
-     * Get requests by tenant
+     * Requests by landlord (via property_shareholders.user_id)
      */
-    public function getRequestsByTenant($tenantId, $limit = null)
+    public function getRequestsByLandlord(int $landlordId, ?int $limit = null)
     {
         $db = \Config\Database::connect();
         $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         p.property_name, p.address as property_address,
-                         s.first_name as staff_first_name, s.last_name as staff_last_name');
-        $builder->join('properties p', 'p.id = mr.property_id');
+
+        $builder->select("
+            mr.*,
+            p.property_name,
+            p.address AS property_address,
+            pu.unit_name,
+            s.first_name AS staff_first_name,
+            s.last_name  AS staff_last_name,
+            ps.ownership_percentage
+        ");
+        $builder->join('properties p', 'p.id = mr.property_id', 'inner');
+        $builder->join('property_units pu', 'pu.id = mr.unit_id', 'left');
+        $builder->join('property_shareholders ps', 'ps.property_id = mr.property_id', 'inner');
         $builder->join('users s', 's.id = mr.assigned_staff_id AND s.role = "maintenance"', 'left');
-        $builder->where('mr.tenant_id', $tenantId);
+
+        $builder->where('ps.user_id', $landlordId);
+        $builder->whereIn('ps.status', ['active', 'pending']); // adjust if you only want active
+
+        $builder->orderBy('FIELD(mr.priority, "urgent","high","normal","low")', '', false);
         $builder->orderBy('mr.requested_date', 'DESC');
-        
-        if ($limit) {
+
+        if (!empty($limit)) {
             $builder->limit($limit);
         }
-        
+
         return $builder->get()->getResultArray();
     }
 
-    /**
-     * Get requests by landlord properties
-     */
-    public function getRequestsByLandlord($landlordId, $limit = null)
+    // NEW: Unassigned pending queue, newest first
+    public function getPendingQueue($limit = null)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         t.first_name as tenant_first_name, t.last_name as tenant_last_name,
-                         p.property_name, p.address as property_address,
-                         s.first_name as staff_first_name, s.last_name as staff_last_name,
-                         po.ownership_percentage');
-        $builder->join('users t', 't.id = mr.tenant_id');
-        $builder->join('properties p', 'p.id = mr.property_id');
-        $builder->join('property_ownership po', 'po.property_id = mr.property_id');
-        $builder->join('users s', 's.id = mr.assigned_staff_id AND s.role = "maintenance"', 'left');
-        $builder->where('po.landlord_id', $landlordId);
-        $builder->orderBy('mr.priority', 'DESC');
-        $builder->orderBy('mr.requested_date', 'DESC');
-        
-        if ($limit) {
-            $builder->limit($limit);
-        }
-        
-        return $builder->get()->getResultArray();
+        $b = $db->table('maintenance_requests mr');
+        $b->select('mr.*,
+                p.property_name, p.address as property_address,
+                u.unit_name');
+        $b->join('properties p', 'p.id = mr.property_id');
+        $b->join('property_units u', 'u.id = mr.unit_id', 'left');
+        $b->where('mr.status', 'pending');
+        $b->groupStart()->where('mr.assigned_staff_id', null)->orWhere('mr.assigned_staff_id', 0)->groupEnd();
+        // newest first
+        $b->orderBy('mr.requested_date', 'DESC');
+        if ($limit)
+            $b->limit($limit);
+        return $b->get()->getResultArray();
     }
 
-    /**
-     * Get requests assigned to maintenance staff
-     */
     public function getRequestsByStaff($staffId, $status = null, $limit = null)
     {
         $db = \Config\Database::connect();
-        $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         t.first_name as tenant_first_name, t.last_name as tenant_last_name,
-                         t.email as tenant_email, t.phone as tenant_phone,
-                         p.property_name, p.address as property_address');
-        $builder->join('users t', 't.id = mr.tenant_id');
-        $builder->join('properties p', 'p.id = mr.property_id');
-        $builder->where('mr.assigned_staff_id', $staffId);
-        
+        $b = $db->table('maintenance_requests mr');
+        $b->select('mr.*,
+                p.property_name, p.address as property_address,
+                u.unit_name');
+        $b->join('properties p', 'p.id = mr.property_id');
+        $b->join('property_units u', 'u.id = mr.unit_id', 'left');
+        $b->where('mr.assigned_staff_id', $staffId);
         if ($status) {
-            $builder->where('mr.status', $status);
+            $b->where('mr.status', $status);
         }
-        
-        $builder->orderBy('mr.priority', 'DESC');
-        $builder->orderBy('mr.requested_date', 'DESC');
-        
+
+        // Newest first: fall back through these timestamps
+        $b->orderBy('mr.updated_at', 'DESC');
+        $b->orderBy('mr.completed_date', 'DESC');
+        $b->orderBy('mr.approved_date', 'DESC');
+        $b->orderBy('mr.assigned_date', 'DESC');
+        $b->orderBy('mr.requested_date', 'DESC');
+
         if ($limit) {
-            $builder->limit($limit);
+            $b->limit($limit);
         }
-        
-        return $builder->get()->getResultArray();
+        return $b->get()->getResultArray();
     }
 
     /**
-     * Assign staff to request
+     * Assign staff (moves status to 'assigned')
      */
-    public function assignStaff($requestId, $staffId)
+    public function assignStaff(int $requestId, int $staffId)
     {
         $data = [
             'assigned_staff_id' => $staffId,
             'status' => 'assigned',
-            'assigned_date' => date('Y-m-d H:i:s')
+            'assigned_date' => date('Y-m-d H:i:s'),
         ];
-        
         return $this->update($requestId, $data);
     }
 
     /**
-     * Update request status
+     * Update status with optional notes/reason
      */
-    public function updateStatus($requestId, $status, $notes = null)
+    public function updateStatus(int $requestId, string $status, ?string $notes = null, ?string $rejectionReason = null)
     {
         $data = ['status' => $status];
-        
-        if ($notes) {
+
+        if (!empty($notes)) {
             $data['work_notes'] = $notes;
         }
-        
         if ($status === 'completed') {
             $data['completed_date'] = date('Y-m-d H:i:s');
         }
-        
+        if ($status === 'approved' && empty($data['approved_date'])) {
+            $data['approved_date'] = date('Y-m-d H:i:s');
+        }
+        if ($status === 'rejected') {
+            $data['rejected_date'] = date('Y-m-d H:i:s');
+            $data['rejection_reason'] = $rejectionReason ?? ($notes ?? null);
+        }
+
         return $this->update($requestId, $data);
     }
 
     /**
-     * Complete maintenance request
+     * Complete request with optional costs/materials/notes
      */
-    public function completeRequest($requestId, $actualCost = null, $materialsUsed = null, $notes = null)
+    public function completeRequest(int $requestId, ?float $actualCost = null, ?string $materialsUsed = null, ?string $notes = null)
     {
         $data = [
             'status' => 'completed',
-            'completed_date' => date('Y-m-d H:i:s')
+            'completed_date' => date('Y-m-d H:i:s'),
         ];
-        
+
         if ($actualCost !== null) {
             $data['actual_cost'] = $actualCost;
         }
-        
-        if ($materialsUsed) {
+        if (!empty($materialsUsed)) {
             $data['materials_used'] = $materialsUsed;
         }
-        
-        if ($notes) {
+        if (!empty($notes)) {
             $data['work_notes'] = $notes;
         }
-        
+
         return $this->update($requestId, $data);
     }
 
-    /**
-     * Get urgent requests
-     */
-    public function getUrgentRequests($limit = null)
+    public function getUrgentRequests(?int $limit = null)
     {
         return $this->getAllRequests(null, 'urgent', $limit);
     }
 
     /**
-     * Get high priority requests
+     * High priority & not finished
      */
-    public function getHighPriorityRequests($limit = null)
+    public function getHighPriorityRequests(?int $limit = null)
     {
-        $db = \Config\Database::connect();
-        $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         t.first_name as tenant_first_name, t.last_name as tenant_last_name,
-                         p.property_name, p.address as property_address');
-        $builder->join('users t', 't.id = mr.tenant_id');
-        $builder->join('properties p', 'p.id = mr.property_id');
+        $builder = $this->baseBuilder();
         $builder->whereIn('mr.priority', ['high', 'urgent']);
-        $builder->whereIn('mr.status', ['pending', 'assigned', 'in_progress']);
-        $builder->orderBy('mr.priority', 'DESC');
+        $builder->whereIn('mr.status', ['pending', 'approved', 'assigned', 'in_progress']);
+        $builder->orderBy('FIELD(mr.priority, "urgent","high")', '', false);
         $builder->orderBy('mr.requested_date', 'ASC');
-        
-        if ($limit) {
+
+        if (!empty($limit)) {
             $builder->limit($limit);
         }
-        
+
         return $builder->get()->getResultArray();
     }
 
     /**
-     * Get maintenance statistics
+     * Dashboard statistics
      */
-    public function getMaintenanceStatistics()
+    public function getMaintenanceStatistics(): array
     {
         $db = \Config\Database::connect();
-        
         $stats = [];
-        
-        // Total requests
-        $stats['total'] = $this->countAllResults();
-        
-        // Requests by status
-        $statusQuery = $db->query("
-            SELECT status, COUNT(*) as count 
-            FROM maintenance_requests 
+
+        // Total
+        $stats['total'] = (int) $db->table('maintenance_requests')->countAllResults();
+
+        // By status
+        $statusRows = $db->query("
+            SELECT status, COUNT(*) AS cnt
+            FROM maintenance_requests
             GROUP BY status
-        ");
-        $statusResults = $statusQuery->getResultArray();
-        
-        foreach ($statusResults as $row) {
-            $stats['by_status'][$row['status']] = $row['count'];
+        ")->getResultArray();
+        $stats['by_status'] = [];
+        foreach ($statusRows as $r) {
+            $stats['by_status'][$r['status']] = (int) $r['cnt'];
         }
-        
-        // Requests by priority
-        $priorityQuery = $db->query("
-            SELECT priority, COUNT(*) as count 
-            FROM maintenance_requests 
+
+        // By priority
+        $prioRows = $db->query("
+            SELECT priority, COUNT(*) AS cnt
+            FROM maintenance_requests
             GROUP BY priority
-        ");
-        $priorityResults = $priorityQuery->getResultArray();
-        
-        foreach ($priorityResults as $row) {
-            $stats['by_priority'][$row['priority']] = $row['count'];
+        ")->getResultArray();
+        $stats['by_priority'] = [];
+        foreach ($prioRows as $r) {
+            $stats['by_priority'][$r['priority']] = (int) $r['cnt'];
         }
-        
-        // Average completion time (in days)
-        $avgTimeQuery = $db->query("
-            SELECT AVG(DATEDIFF(completed_date, requested_date)) as avg_completion_days
-            FROM maintenance_requests 
-            WHERE status = 'completed' 
-            AND completed_date IS NOT NULL
-        ");
-        $avgTimeResult = $avgTimeQuery->getRowArray();
-        $stats['avg_completion_days'] = round($avgTimeResult['avg_completion_days'] ?? 0, 1);
-        
-        // Total maintenance costs this month
-        $costQuery = $db->query("
-            SELECT SUM(actual_cost) as total_cost
-            FROM maintenance_requests 
-            WHERE status = 'completed' 
-            AND MONTH(completed_date) = MONTH(CURDATE())
-            AND YEAR(completed_date) = YEAR(CURDATE())
-        ");
-        $costResult = $costQuery->getRowArray();
-        $stats['monthly_cost'] = $costResult['total_cost'] ?? 0;
-        
+
+        // Avg completion days
+        $avg = $db->query("
+            SELECT AVG(DATEDIFF(completed_date, requested_date)) AS avg_days
+            FROM maintenance_requests
+            WHERE status = 'completed' AND completed_date IS NOT NULL
+        ")->getRowArray();
+        $stats['avg_completion_days'] = round((float) ($avg['avg_days'] ?? 0), 1);
+
+        // Total completed costs this month
+        $cost = $db->query("
+            SELECT SUM(actual_cost) AS total_cost
+            FROM maintenance_requests
+            WHERE status = 'completed'
+              AND YEAR(completed_date) = YEAR(CURDATE())
+              AND MONTH(completed_date) = MONTH(CURDATE())
+        ")->getRowArray();
+        $stats['monthly_cost'] = (float) ($cost['total_cost'] ?? 0);
+
         return $stats;
     }
 
     /**
-     * Get overdue requests (pending for more than specified days)
+     * Overdue = pending/assigned/approved older than X days
      */
-    public function getOverdueRequests($days = 7)
+    public function getOverdueRequests(int $days = 7): array
     {
-        $overdueDate = date('Y-m-d H:i:s', strtotime("-{$days} days"));
-        
-        $db = \Config\Database::connect();
-        $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         t.first_name as tenant_first_name, t.last_name as tenant_last_name,
-                         p.property_name, p.address as property_address');
-        $builder->join('users t', 't.id = mr.tenant_id');
-        $builder->join('properties p', 'p.id = mr.property_id');
-        $builder->whereIn('mr.status', ['pending', 'assigned']);
-        $builder->where('mr.requested_date <', $overdueDate);
+        $threshold = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+
+        $builder = $this->baseBuilder();
+        $builder->whereIn('mr.status', ['pending', 'approved', 'assigned']);
+        $builder->where('mr.requested_date <', $threshold);
         $builder->orderBy('mr.requested_date', 'ASC');
-        
+
         return $builder->get()->getResultArray();
     }
 
     /**
-     * Search maintenance requests
+     * Full-textish search across key columns
+     * (Fixed alias bug: use 's.' not 't.')
      */
-    public function searchRequests($searchTerm = '', $status = '', $priority = '', $propertyId = '')
+    public function searchRequests(string $searchTerm = '', string $status = '', string $priority = '', $propertyId = '')
     {
-        $db = \Config\Database::connect();
-        $builder = $db->table('maintenance_requests mr');
-        $builder->select('mr.*, 
-                         t.first_name as tenant_first_name, t.last_name as tenant_last_name,
-                         p.property_name, p.address as property_address,
-                         s.first_name as staff_first_name, s.last_name as staff_last_name');
-        $builder->join('users t', 't.id = mr.tenant_id');
-        $builder->join('properties p', 'p.id = mr.property_id');
-        $builder->join('users s', 's.id = mr.assigned_staff_id AND s.role = "maintenance"', 'left');
-        
-        if (!empty($searchTerm)) {
+        $builder = $this->baseBuilder();
+
+        if ($searchTerm !== '') {
             $builder->groupStart()
-                   ->like('mr.title', $searchTerm)
-                   ->orLike('mr.description', $searchTerm)
-                   ->orLike('t.first_name', $searchTerm)
-                   ->orLike('t.last_name', $searchTerm)
-                   ->orLike('p.property_name', $searchTerm)
-                   ->orLike('p.address', $searchTerm)
-                   ->groupEnd();
+                ->like('mr.title', $searchTerm)
+                ->orLike('mr.description', $searchTerm)
+                ->orLike('s.first_name', $searchTerm)
+                ->orLike('s.last_name', $searchTerm)
+                ->orLike('p.property_name', $searchTerm)
+                ->orLike('p.address', $searchTerm)
+                ->orLike('pu.unit_name', $searchTerm)
+                ->groupEnd();
         }
-        
-        if (!empty($status)) {
+
+        if ($status !== '') {
             $builder->where('mr.status', $status);
         }
-        
-        if (!empty($priority)) {
+        if ($priority !== '') {
             $builder->where('mr.priority', $priority);
         }
-        
-        if (!empty($propertyId)) {
+        if ($propertyId !== '') {
             $builder->where('mr.property_id', $propertyId);
         }
-        
-        $builder->orderBy('mr.priority', 'DESC');
+
+        $builder->orderBy('FIELD(mr.priority, "urgent","high","normal","low")', '', false);
         $builder->orderBy('mr.requested_date', 'DESC');
-        
+
         return $builder->get()->getResultArray();
     }
 
     /**
-     * Get monthly maintenance report
+     * Monthly report (submitted vs completed, totals, avg time)
      */
-    public function getMonthlyReport($year = null, $month = null)
+    public function getMonthlyReport(?int $year = null, ?int $month = null): array
     {
-        $year = $year ?? date('Y');
-        $month = $month ?? date('m');
-        
+        $year = $year ?? (int) date('Y');
+        $month = $month ?? (int) date('m');
+
         $db = \Config\Database::connect();
-        
-        // Requests submitted this month
-        $submittedQuery = $db->query("
-            SELECT COUNT(*) as count, priority
-            FROM maintenance_requests 
-            WHERE YEAR(requested_date) = ? 
-            AND MONTH(requested_date) = ?
+
+        // Submitted by priority in the month (requested_date)
+        $submitted = $db->query("
+            SELECT COUNT(*) AS count, priority
+            FROM maintenance_requests
+            WHERE YEAR(requested_date) = ? AND MONTH(requested_date) = ?
             GROUP BY priority
-        ", [$year, $month]);
-        $submitted = $submittedQuery->getResultArray();
-        
-        // Requests completed this month
-        $completedQuery = $db->query("
-            SELECT COUNT(*) as count, SUM(actual_cost) as total_cost
-            FROM maintenance_requests 
+        ", [$year, $month])->getResultArray();
+
+        // Completed in the month (completed_date)
+        $completed = $db->query("
+            SELECT COUNT(*) AS count, SUM(actual_cost) AS total_cost
+            FROM maintenance_requests
             WHERE status = 'completed'
-            AND YEAR(completed_date) = ? 
-            AND MONTH(completed_date) = ?
-        ", [$year, $month]);
-        $completed = $completedQuery->getRowArray();
-        
-        // Average completion time this month
-        $avgTimeQuery = $db->query("
-            SELECT AVG(DATEDIFF(completed_date, requested_date)) as avg_days
-            FROM maintenance_requests 
+              AND YEAR(completed_date) = ? AND MONTH(completed_date) = ?
+        ", [$year, $month])->getRowArray();
+
+        // Avg completion time in the month
+        $avg = $db->query("
+            SELECT AVG(DATEDIFF(completed_date, requested_date)) AS avg_days
+            FROM maintenance_requests
             WHERE status = 'completed'
-            AND YEAR(completed_date) = ? 
-            AND MONTH(completed_date) = ?
-        ", [$year, $month]);
-        $avgTime = $avgTimeQuery->getRowArray();
-        
+              AND YEAR(completed_date) = ? AND MONTH(completed_date) = ?
+        ", [$year, $month])->getRowArray();
+
         return [
             'submitted_by_priority' => $submitted,
-            'completed_count' => $completed['count'] ?? 0,
-            'total_cost' => $completed['total_cost'] ?? 0,
-            'avg_completion_days' => round($avgTime['avg_days'] ?? 0, 1)
+            'completed_count' => (int) ($completed['count'] ?? 0),
+            'total_cost' => (float) ($completed['total_cost'] ?? 0),
+            'avg_completion_days' => round((float) ($avg['avg_days'] ?? 0), 1),
         ];
     }
+
+    /* -----------------------
+       Helpers for related data
+       ----------------------- */
+
+    // Images for a request
+    public function getImages(int $requestId): array
+    {
+        return \Config\Database::connect()
+            ->table('maintenance_images')
+            ->where('maintenance_request_id', $requestId)
+            ->orderBy('created_at', 'ASC')
+            ->get()->getResultArray();
+    }
+
+    public function addImage(int $requestId, string $path, string $type = 'issue', ?string $desc = null)
+    {
+        return \Config\Database::connect()
+            ->table('maintenance_images')
+            ->insert([
+                'maintenance_request_id' => $requestId,
+                'image_path' => $path,
+                'image_type' => $type, // 'before','after','issue'
+                'description' => $desc,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+    }
+
+    // Payments linked to a request
+    public function getPayments(int $requestId): array
+    {
+        return \Config\Database::connect()
+            ->table('maintenance_payments')
+            ->where('maintenance_request_id', $requestId)
+            ->orderBy('payment_date', 'DESC')
+            ->get()->getResultArray();
+    }
+
+    public function addPayment(array $data)
+    {
+        // Expected keys: maintenance_request_id, unit_id, amount, payment_date, description, payment_method, receipt_file, status, created_by
+        $data['created_at'] = $data['created_at'] ?? date('Y-m-d H:i:s');
+        return \Config\Database::connect()
+            ->table('maintenance_payments')
+            ->insert($data);
+    }
 }
-        

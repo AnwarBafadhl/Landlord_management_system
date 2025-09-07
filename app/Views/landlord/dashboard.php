@@ -1,183 +1,223 @@
 <?= $this->extend('layouts/landlord') ?>
 
-<?= $this->section('title') ?><?= esc($title ?? 'Dashboard') ?><?= $this->endSection() ?>
+<?= $this->section('title') ?>Dashboard<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
 <div class="container-fluid">
-    <!-- Page Header -->
+    <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-tachometer-alt"></i> Dashboard
-        </h1>
-        <div class="d-flex align-items-center">
-            <span class="text-muted me-3">Welcome back, <?= esc(session()->get('full_name') ?? 'User') ?>!</span>
-            <small class="text-muted">
-                <i class="fas fa-clock"></i> Last updated: <?= date('M d, Y H:i') ?>
-            </small>
-        </div>
+        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
     </div>
 
-    <!-- Stats Cards (match controller variables) -->
-    <div class="row">
-        <!-- Total Properties -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2 hover-shadow">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Properties
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                <?= (int)($properties_count ?? 0) ?>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-building fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                    <small class="text-muted">Properties you have shares in</small>
-                </div>
-            </div>
-        </div>
+    <!-- Content Row -->
+    <div class="row justify-content-center">
 
-        <!-- Total Investment -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2 hover-shadow">
+        <!-- Total Properties Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Investment (Your Share)
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format((float)($total_investment ?? 0), 2) ?>
-                            </div>
+                                Total Properties</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($properties_count) ?></div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                            <i class="fas fa-building fa-2x text-info"></i>
                         </div>
                     </div>
-                    <small class="text-muted">Sum of property value × your ownership %</small>
                 </div>
             </div>
         </div>
 
-        <!-- Total Shares -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-secondary shadow h-100 py-2 hover-shadow">
+        <!-- Total Remaining Balance Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2 hover-shadow">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                Total Shares
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Remaining Balance
                             </div>
                             <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                <?= (float)($total_shares ?? 0) ?>
+                                SAR <?= number_format((float) ($total_remaining_balance ?? 0), 2) ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+                            <i class="fas fa-wallet fa-2x text-warning"></i>
                         </div>
                     </div>
-                    <small class="text-muted">Aggregate shares you own</small>
+                    <small class="text-muted">Sum of all properties' remaining balances</small>
                 </div>
             </div>
         </div>
 
-        <!-- Monthly Income (Expected) -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2 hover-shadow">
+        <!-- Completed Maintenance Requests Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Monthly Income (Expected)
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                $<?= number_format((float)($monthly_income ?? 0), 2) ?>
+                                Completed Maintenance</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <?= ($maintenance_stats['completed_count'] ?? 0) ?>
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                            <i class="fas fa-tools fa-2x text-success"></i>
                         </div>
                     </div>
-                    <small class="text-muted">From occupied units × your %</small>
+                    <small class="text-muted">Completed requests</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Properties (uses $recent_properties from controller) -->
+    <!-- Remaining Balance Breakdown -->
+    <?php if (!empty($balance_breakdown) && count($balance_breakdown) > 0 && $total_remaining_balance > 0): ?>
     <div class="row">
-        <div class="col-lg-12 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-building"></i> Recent Properties
-                        <span class="badge bg-primary ms-2"><?= count($recent_properties ?? []) ?></span>
+                        <i class="fas fa-chart-pie"></i> Remaining Balance Breakdown by Property
                     </h6>
-                    <div>
-                        <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-sm btn-success me-1">
-                            <i class="fas fa-plus"></i> Add Property
-                        </a>
-                        <a href="<?= site_url('landlord/properties') ?>" class="btn btn-sm btn-primary">View All</a>
-                    </div>
                 </div>
                 <div class="card-body">
-                    <?php if (!empty($recent_properties)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Property Name</th>
+                                    <th>Your Ownership</th>
+                                    <th>Property Remaining Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($balance_breakdown as $balance): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= esc($balance['property_name']) ?></strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">
+                                            <?= number_format($balance['ownership_percentage'], 2) ?>%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success font-weight-bold">
+                                            SAR <?= number_format($balance['property_remaining_balance'], 2) ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <th colspan="2">Total Remaining Balance</th>
+                                    <th>
+                                        <span class="text-success font-weight-bold">
+                                            SAR <?= number_format($total_remaining_balance, 2) ?>
+                                        </span>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>How Remaining Balance is Calculated:</strong><br>
+                            Net Profit (Income - Management Fees - Expenses) - Total Transfer Amounts = Remaining Balance
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Content Row -->
+    <div class="row">
+
+        <!-- Properties Overview -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Properties Overview</h6>
+                    <a href="<?= site_url('landlord/properties') ?>" class="btn btn-primary btn-sm">
+                        View All Properties
+                    </a>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($properties)): ?>
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead class="table-light">
+                            <table class="table table-borderless">
+                                <thead>
                                     <tr>
-                                        <th>Property</th>
-                                        <th>Your Ownership %</th>
-                                        <th>Your Value Share</th>
+                                        <th>Property Name</th>
+                                        <th>Value</th>
+                                        <th>Your Shares</th>
+                                        <th>Remaining Balance</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($recent_properties as $p): ?>
+                                    <?php foreach (array_slice($properties, 0, 5) as $property): ?>
                                         <tr>
                                             <td>
-                                                <strong><?= esc($p['property_name'] ?? 'N/A') ?></strong><br>
+                                                <div class="font-weight-bold text-primary">
+                                                    <?= esc($property['property_name']) ?>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <?= esc(substr($property['address'] ?? '', 0, 50)) ?>...
+                                                </small>
                                             </td>
                                             <td>
-                                                <span class="badge bg-info text-white">
-                                                    <?= (float)($p['ownership_percentage'] ?? 0) ?>%
+                                                <span class="font-weight-bold">
+                                                    SAR <?= number_format($property['property_value'] ?? 0, 0) ?>
                                                 </span>
                                             </td>
                                             <td>
-                                                <?php 
-                                                    $value = (float)($p['property_value'] ?? 0);
-                                                    $own  = (float)($p['ownership_percentage'] ?? 0);
-                                                    $share = $value * ($own / 100);
-                                                ?>
-                                                $<?= number_format($share, 2) ?>
-                                                <br><small class="text-muted">of $<?= number_format($value, 2) ?></small>
+                                                <span class="badge badge-info">
+                                                    <?= number_format($property['my_shares'] ?? $property['shares'] ?? 0) ?> shares
+                                                </span>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <?= number_format($property['ownership_percentage'] ?? 0, 2) ?>%
+                                                </small>
                                             </td>
                                             <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="<?= site_url('landlord/properties/view/' . (int)($p['id'] ?? 0)) ?>" 
-                                                       class="btn btn-outline-primary" title="View Property">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <a href="<?= site_url('landlord/properties/edit/' . (int)($p['id'] ?? 0)) ?>" 
-                                                       class="btn btn-outline-secondary" title="Edit Property">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                </div>
+                                                <span class="text-success font-weight-bold">
+                                                    SAR <?= number_format($property['remaining_balance'] ?? 0, 2) ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="<?= site_url('landlord/properties/view/' . $property['id']) ?>" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
+
+                        <?php if (count($properties) > 5): ?>
+                            <div class="text-center">
+                                <a href="<?= site_url('landlord/properties') ?>" class="btn btn-link">
+                                    View All <?= count($properties) ?> Properties
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     <?php else: ?>
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-building fa-4x mb-3 text-light"></i>
-                            <h5>No recent properties</h5>
-                            <p>Start by adding your first property</p>
+                        <div class="text-center py-4">
+                            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Properties Yet</h5>
+                            <p class="text-muted">Start by adding your first property to track remaining balances</p>
                             <a href="<?= site_url('landlord/request-property') ?>" class="btn btn-primary">
                                 <i class="fas fa-plus"></i> Add Property
                             </a>
@@ -186,73 +226,107 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Quick Actions (kept, but no $stats badges) -->
-    <div class="row">
-        <div class="col-12">
+        <!-- Quick Actions -->
+        <div class="col-lg-4 mb-4">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-bolt"></i> Quick Actions
-                    </h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row justify-content-center">
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="<?= site_url('landlord/payments') ?>" class="btn btn-primary quick-action-btn w-100">
-                                <div class="quick-action-content">
-                                    <i class="fas fa-credit-card fa-2x mb-3"></i>
-                                    <h6 class="font-weight-bold mb-2">View Payments</h6>
-                                    <p class="small mb-0">Track rent payments</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="<?= site_url('landlord/maintenance') ?>" class="btn btn-warning quick-action-btn w-100">
-                                <div class="quick-action-content">
-                                    <i class="fas fa-tools fa-2x mb-3"></i>
-                                    <h6 class="font-weight-bold mb-2">Maintenance</h6>
-                                    <p class="small mb-0">Handle requests</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <a href="<?= site_url('landlord/reports') ?>" class="btn btn-info quick-action-btn w-100">
-                                <div class="quick-action-content">
-                                    <i class="fas fa-chart-bar fa-2x mb-3"></i>
-                                    <h6 class="font-weight-bold mb-2">View Reports</h6>
-                                    <p class="small mb-0">Financial insights</p>
-                                </div>
-                            </a>
-                        </div>
+                    <div class="list-group list-group-flush"> 
+                        <a href="<?= site_url('landlord/properties') ?>" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-building text-info mr-2"></i>
+                                Properties
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>                     
+                        <a href="<?= site_url('landlord/payments') ?>" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-credit-card text-info mr-2"></i>
+                                Income & Expenses
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        
+                        <a href="<?= site_url('landlord/maintenance') ?>" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-tools text-warning mr-2"></i>
+                                Maintenance
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        
+                        <a href="<?= site_url('landlord/reports') ?>" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-chart-bar text-primary mr-2"></i>
+                                Reports
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
+
+            <!-- Remaining Balance Summary Card - Only show if there's balance -->
+            <?php if (($total_remaining_balance ?? 0) > 0): ?>
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-wallet"></i> Balance Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h3 class="text-success font-weight-bold">
+                            SAR <?= number_format($total_remaining_balance, 2) ?>
+                        </h3>
+                        <small class="text-muted">Available across all properties</small>
+                    </div>
+                    
+                    <div class="text-center">
+                        <a href="<?= site_url('landlord/payments') ?>" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus"></i> Add Transfer Receipt
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
-
 </div>
 
-<!-- Keep your existing styles for quick actions -->
 <style>
-.quick-action-btn {
-    height: 140px; border: none; border-radius: 0.75rem; transition: all 0.3s ease;
-    text-decoration: none; color: white; position: relative; overflow: hidden;
-    box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,.1);
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
 }
-.quick-action-btn::before { content:''; position:absolute; inset:0;
-    background:linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,0) 100%);
-    opacity:0; transition:opacity .3s ease;
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
 }
-.quick-action-btn:hover::before { opacity:1; }
-.quick-action-btn:hover { transform: translateY(-3px); box-shadow:0 .5rem 1rem rgba(0,0,0,.2); color:white; text-decoration:none; }
-.quick-action-content { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:1rem; position:relative; z-index:1; }
-.quick-action-content i { opacity:.9; transition: all .3s ease; }
-.quick-action-btn:hover .quick-action-content i { opacity:1; transform: scale(1.1); }
-.quick-action-content h6 { margin-bottom:.5rem; font-size:1rem; font-weight:600; }
-.quick-action-content p { margin-bottom:0; opacity:.9; font-size:.85rem; }
-@media (max-width: 992px){ .quick-action-btn{ height:120px; } .quick-action-content h6{ font-size:.9rem; } .quick-action-content p{ font-size:.8rem; } }
-@media (max-width: 576px){ .quick-action-btn{ height:100px; margin-bottom:1rem; } .quick-action-content{ padding:.75rem; } .quick-action-content i{ font-size:1.5rem !important; } .quick-action-content h6{ font-size:.85rem; } .quick-action-content p{ font-size:.75rem; } }
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.list-group-item-action:hover {
+    background-color: #f8f9fc;
+}
+
+.hover-shadow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease;
+}
 </style>
+
 <?= $this->endSection() ?>

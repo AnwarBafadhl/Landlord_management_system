@@ -14,6 +14,22 @@
         </div>
     </div>
 
+    <!-- Flash Messages -->
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle"></i>
+            <?= esc(session()->getFlashdata('error')) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle"></i>
+            <?= esc(session()->getFlashdata('success')) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
     <!-- Statistics Cards Row -->
     <div class="row">
         <!-- Total Assigned Card -->
@@ -190,11 +206,13 @@
                                                         class="btn btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <?php if ($request['status'] !== 'completed'): ?>
+                                                    <?php if ($request['status'] === 'approved'): ?>
                                                         <button class="btn btn-outline-success"
                                                             onclick="updateStatus(<?= $request['id'] ?>, 'in_progress')">
                                                             <i class="fas fa-play"></i>
                                                         </button>
+                                                    <?php endif; ?>
+                                                    <?php if ($request['status'] === 'in_progress'): ?>
                                                         <button class="btn btn-outline-warning"
                                                             onclick="completeRequest(<?= $request['id'] ?>)">
                                                             <i class="fas fa-check"></i>
@@ -331,7 +349,7 @@
                                                         class="btn btn-outline-primary" title="View Details">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <?php if ($request['status'] === 'assigned'): ?>
+                                                    <?php if ($request['status'] === 'approved'): ?>
                                                         <button class="btn btn-outline-success"
                                                             onclick="updateStatus(<?= $request['id'] ?>, 'in_progress')"
                                                             title="Start Work">
@@ -414,6 +432,7 @@
             </div>
             <div class="modal-body">
                 <form id="statusForm">
+                    <?= csrf_field() ?>
                     <input type="hidden" id="requestId" name="request_id">
                     <input type="hidden" id="newStatus" name="status">
 
@@ -442,6 +461,7 @@
             </div>
             <div class="modal-body">
                 <form id="completeForm">
+                    <?= csrf_field() ?>
                     <input type="hidden" id="completeRequestId" name="request_id">
 
                     <div class="mb-3">
@@ -472,16 +492,29 @@
 </div>
 
 <script>
+    function toast(msg, type = 'info') {
+        const cls = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : type === 'warning' ? 'alert-warning' : 'alert-info';
+        const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+        const div = document.createElement('div');
+        div.className = `alert ${cls} alert-dismissible fade show notification-alert position-fixed`;
+        div.style.top = '20px'; div.style.right = '20px'; div.style.zIndex = '9999'; div.style.minWidth = '300px';
+        div.innerHTML = `<i class="fas ${icon}"></i> ${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        document.body.appendChild(div); 
+        setTimeout(() => div.remove(), 4000);
+    }
+
     function updateStatus(requestId, status) {
         document.getElementById('requestId').value = requestId;
         document.getElementById('newStatus').value = status;
-
+        document.getElementById('work_notes').value = '';
         new bootstrap.Modal(document.getElementById('statusModal')).show();
     }
 
     function completeRequest(requestId) {
         document.getElementById('completeRequestId').value = requestId;
-
+        document.getElementById('actual_cost').value = '';
+        document.getElementById('materials_used').value = '';
+        document.getElementById('completion_notes').value = '';
         new bootstrap.Modal(document.getElementById('completeModal')).show();
     }
 
@@ -495,30 +528,28 @@
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('Error: ' + error.message);
-            });
+        }).then(response => response.json()).then(data => {
+            bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
+            if (data.success) {
+                toast('Status updated successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                toast('Error: ' + (data.message || 'Failed to update status'), 'error');
+            }
+        }).catch(error => {
+            toast('Error: ' + error.message, 'error');
+        });
     });
 
     document.getElementById('confirmComplete').addEventListener('click', function () {
-        const formData = new FormData(document.getElementById('completeForm'));
-        const requestId = document.getElementById('completeRequestId').value;
-
-        // Validate required fields
         const completionNotes = document.getElementById('completion_notes').value;
         if (!completionNotes.trim()) {
-            alert('Completion notes are required');
+            toast('Completion notes are required', 'error');
             return;
         }
+
+        const formData = new FormData(document.getElementById('completeForm'));
+        const requestId = document.getElementById('completeRequestId').value;
 
         fetch('<?= site_url('maintenance/requests/complete') ?>/' + requestId, {
             method: 'POST',
@@ -526,26 +557,53 @@
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('Error: ' + error.message);
-            });
+        }).then(response => response.json()).then(data => {
+            bootstrap.Modal.getInstance(document.getElementById('completeModal')).hide();
+            if (data.success) {
+                toast('Request completed successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                toast('Error: ' + (data.message || 'Failed to complete request'), 'error');
+            }
+        }).catch(error => {
+            toast('Error: ' + error.message, 'error');
+        });
     });
 
-    // Auto-refresh dashboard every 2 minutes for real-time updates
+    // Auto-refresh dashboard every 5 minutes for real-time updates
     setInterval(function () {
         if (document.hasFocus()) {
             location.reload();
         }
-    }, 120000); // 2 minutes
+    }, 300000); // 5 minutes
 </script>
+
+<style>
+    .notification-alert {
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+        border: none;
+    }
+
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-danger {
+        border-left: 0.25rem solid #e74a3b !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .btn-block {
+        display: block;
+        width: 100%;
+    }
+</style>
 
 <?= $this->endSection() ?>

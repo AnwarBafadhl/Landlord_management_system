@@ -27,22 +27,34 @@ class Admin extends BaseController
      */
     public function dashboard()
     {
-        // Check admin access
         $redirect = $this->requireAdmin();
         if ($redirect)
             return $redirect;
 
-        // Get dashboard statistics
         $data = [
             'title' => 'Admin Dashboard',
             'stats' => $this->getDashboardStats(),
-            'recent_payments' => $this->paymentModel->getRecentPayments(10),
-            'pending_maintenance' => $this->maintenanceModel->getPendingRequests(5),
-            'overdue_payments' => $this->paymentModel->getOverduePayments(5)
+            'recent_entries' => $this->getRecentIncomeExpense(10),
+            'recent_transfers' => $this->getRecentTransfers(5),
+            'pending_maintenance' => $this->getPendingMaintenance(5), // <-- use helper
         ];
 
         return view('admin/dashboard', $data);
     }
+
+    private function getPendingMaintenance(int $limit = 5): array
+    {
+        $db = \Config\Database::connect();
+        return $db->table('maintenance_requests mr')
+            ->select('mr.*, p.property_name')               // <-- bring property_name
+            ->join('properties p', 'p.id = mr.property_id', 'left')
+            ->where('mr.status', 'pending')
+            ->orderBy('mr.requested_date', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+    }
+
 
     /**
      * User Management
@@ -352,120 +364,86 @@ class Admin extends BaseController
             'total_users' => $this->userModel->countAllResults(),
             'total_landlords' => $this->userModel->where('role', 'landlord')->countAllResults(),
             'total_properties' => $this->propertyModel->countAllResults(),
-            'occupied_properties' => $this->propertyModel->where('status', 'occupied')->countAllResults(),
-            'vacant_properties' => $this->propertyModel->where('status', 'vacant')->countAllResults(),
-            'pending_maintenance' => $this->maintenanceModel->where('status', 'pending')->countAllResults(),
-            'overdue_payments' => $this->paymentModel->where('status', 'overdue')->countAllResults()
+            'occupied_properties' => 0,
+            'vacant_properties' => 0,
+            'pending_maintenance' => $db->table('maintenance_requests')->where('status', 'pending')->countAllResults(),
+            // monthly financials
+            'monthly_income' => 0.0,
+            'monthly_expense' => 0.0,
+            'net_monthly' => 0.0,
         ];
 
-        // Calculate total monthly rent
-        $rentQuery = $db->query("
-            SELECT SUM(l.rent_amount) as total_rent
-            FROM leases l 
-            WHERE l.status = 'active'
-        ");
-        $rentResult = $rentQuery->getRowArray();
-        $stats['total_monthly_rent'] = $rentResult['total_rent'] ?? 0;
+        // ----- Occupancy inference (optional; safe if you lack a properties.status) -----
+        $tables = array_map('strtolower', $db->listTables());
+        $hasUnits = in_array('property_units', $tables, true);
+        $hasLeases = in_array('leases', $tables, true);
 
-        // Calculate this month's collected rent
-        $collectedQuery = $db->query("
-            SELECT SUM(p.amount) as collected_rent
-            FROM payments p 
-            WHERE p.status = 'paid' 
-            AND MONTH(p.payment_date) = MONTH(CURDATE())
-            AND YEAR(p.payment_date) = YEAR(CURDATE())
-        ");
-        $collectedResult = $collectedQuery->getRowArray();
-        $stats['collected_rent'] = $collectedResult['collected_rent'] ?? 0;
+        if ($hasUnits && $hasLeases) {
+            $rows = $db->query("
+            SELECT p.id,
+                   COUNT(u.id) AS total_units,
+                   SUM(CASE WHEN l.id IS NULL THEN 0 ELSE 1 END) AS occupied_units
+            FROM properties p
+            LEFT JOIN property_units u ON u.property_id = p.id
+            LEFT JOIN leases l
+              ON l.unit_id = u.id
+             AND (
+                   (l.status = 'active') OR
+                   (l.start_date <= CURDATE() AND (l.end_date IS NULL OR l.end_date >= CURDATE()))
+                 )
+            GROUP BY p.id
+        ")->getResultArray();
+
+            $occ = 0;
+            $vac = 0;
+            foreach ($rows as $r) {
+                if ((int) $r['total_units'] === 0) {
+                    $vac++;
+                } else {
+                    ((int) $r['occupied_units'] > 0) ? $occ++ : $vac++;
+                }
+            }
+            $stats['occupied_properties'] = $occ;
+            $stats['vacant_properties'] = $vac;
+        }
+
+        // ----- Monthly income / expense / net from income_expense_payments -----
+        $ym = date('Y-m');
+        $monthly = $db->query("
+        SELECT
+            SUM(CASE WHEN type='income'  THEN amount ELSE 0 END) AS income_sum,
+            SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) AS expense_sum
+        FROM income_expense_payments
+        WHERE DATE_FORMAT(date, '%Y-%m') = ?
+    ", [$ym])->getRowArray() ?: ['income_sum' => 0, 'expense_sum' => 0];
+
+        $stats['monthly_income'] = (float) $monthly['income_sum'];
+        $stats['monthly_expense'] = (float) $monthly['expense_sum'];
+        $stats['net_monthly'] = $stats['monthly_income'] - $stats['monthly_expense'];
 
         return $stats;
     }
 
-    /**
-     * Send Payment Reminder (AJAX)
-     */
-    public function sendPaymentReminder($paymentId)
+    private function getRecentIncomeExpense(int $limit = 10): array
     {
-        $redirect = $this->requireAdmin();
-        if ($redirect)
-            return $redirect;
-
-        if (!$this->request->isAJAX()) {
-            return $this->respondWithError('Invalid request method', 405);
-        }
-
-        // Get payment details
-        $payment = $this->paymentModel->find($paymentId);
-        if (!$payment) {
-            return $this->respondWithError('Payment not found', 404);
-        }
-
-        // In a real application, you would send an actual email
-        // For now, we'll just simulate the reminder
-        $reminderSent = true; // Simulate email sending
-
-        if ($reminderSent) {
-            return $this->respondWithSuccess([], 'Payment reminder sent successfully');
-        } else {
-            return $this->respondWithError('Failed to send reminder');
-        }
+        $db = \Config\Database::connect();
+        return $db->table('income_expense_payments iep')
+            ->select('iep.*, p.property_name, pu.unit_name')
+            ->join('properties p', 'p.id = iep.property_id', 'left')
+            ->join('property_units pu', 'pu.id = iep.unit_id', 'left')
+            ->orderBy('iep.date', 'DESC')
+            ->limit($limit)
+            ->get()->getResultArray();
     }
 
-    /**
-     * Mark Payment as Paid (AJAX)
-     */
-    public function markPaymentPaid($paymentId)
+    private function getRecentTransfers(int $limit = 5): array
     {
-        $redirect = $this->requireAdmin();
-        if ($redirect)
-            return $redirect;
-
-        if (!$this->request->isAJAX()) {
-            return $this->respondWithError('Invalid request method', 405);
-        }
-
-        $updateData = [
-            'status' => 'paid',
-            'payment_date' => date('Y-m-d'),
-            'payment_method' => 'manual',
-            'transaction_id' => 'ADMIN_' . time()
-        ];
-
-        if ($this->paymentModel->update($paymentId, $updateData)) {
-            return $this->respondWithSuccess([], 'Payment marked as paid successfully');
-        } else {
-            return $this->respondWithError('Failed to update payment status');
-        }
-    }
-
-    /**
-     * Generate Monthly Payments (AJAX)
-     */
-    public function generateMonthlyPayments()
-    {
-        $redirect = $this->requireAdmin();
-        if ($redirect)
-            return $redirect;
-
-        if (!$this->request->isAJAX()) {
-            return $this->respondWithError('Invalid request method', 405);
-        }
-
-        $month = $this->request->getPost('month') ?? date('m');
-        $year = $this->request->getPost('year') ?? date('Y');
-
-        $generatedCount = $this->paymentModel->generateMonthlyRentPayments($month, $year);
-
-        if ($generatedCount > 0) {
-            return $this->respondWithSuccess(
-                ['generated_count' => $generatedCount],
-                "Generated {$generatedCount} payment records successfully"
-            );
-        } else {
-            return $this->respondWithSuccess(
-                ['generated_count' => 0],
-                'No new payments to generate (already exist for this month)'
-            );
-        }
+        $db = \Config\Database::connect();
+        return $db->table('transfer_receipts tr')
+            ->select('tr.*, p.property_name')
+            ->join('properties p', 'p.id = tr.property_id', 'left')
+            ->orderBy('tr.transfer_date', 'DESC')
+            ->limit($limit)
+            ->get()->getResultArray();
     }
 }

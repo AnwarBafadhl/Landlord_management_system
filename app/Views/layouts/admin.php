@@ -1,245 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="Landlord Management System - Admin Panel">
     <meta name="author" content="Landlord Management System">
+    <meta name="csrf-token" content="<?= csrf_hash() ?>">
 
     <title><?= $this->renderSection('title') ?> - Admin Panel</title>
 
     <!-- Custom fonts for this template-->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"
+        type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
 
     <!-- Custom styles for this template-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <style>
         :root {
-            --primary-color: #4e73df;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --secondary-color: #858796;
-            --dark-color: #5a5c69;
-            --light-color: #f8f9fc;
+            --primary: #4e73df;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --muted: #858796;
+            --ink: #5a5c69;
+            --paper: #fff;
+            --canvas: #f8f9fc;
+            --hairline: #e3e6f0;
+            --shadow: 0 0.15rem 1.25rem rgba(58, 59, 69, .15);
+            --sidebar-w: 260px;
+        }
+
+        /* Normalize */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
         }
 
         body {
-            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--light-color);
+            font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--canvas);
+            color: var(--ink);
         }
 
         #wrapper {
-            display: flex;
-            min-height: 100vh;
+            min-height: 100vh
         }
 
-        /* Sidebar */
+        /* === Sidebar (fixed) === */
         .sidebar {
-            width: 250px;
-            background: linear-gradient(180deg, var(--primary-color) 10%, #224abe 100%);
-            min-height: 100vh;
-        }
-
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 1rem;
-            border-radius: 0.35rem;
-            margin: 0.125rem 1rem;
-            transition: all 0.3s;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 1040;
+            width: var(--sidebar-w);
+            background: linear-gradient(180deg, var(--primary) 0%, #224abe 100%);
             color: #fff;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar .nav-link i {
-            width: 20px;
-            margin-right: 0.5rem;
+            overflow-y: auto;
+            box-shadow: inset -1px 0 0 rgba(255, 255, 255, .06);
+            transition: left .25s ease;
         }
 
         .sidebar-brand {
-            height: 4.375rem;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: .6rem;
             color: #fff;
             font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .5px;
             text-decoration: none;
-            font-size: 1rem;
-            padding: 0 1rem;
         }
 
-        .sidebar-brand:hover {
+        .sidebar .navbar-nav {
+            padding: .5rem 0 1rem;
+            margin: 0;
+            list-style: none;
+        }
+
+        .sidebar .sidebar-divider {
+            margin: .25rem 1rem;
+            border-color: rgba(255, 255, 255, .15)
+        }
+
+        .sidebar .nav-item {
+            margin: .15rem .75rem
+        }
+
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            padding: .675rem .875rem;
+            color: rgba(255, 255, 255, .85);
+            border-radius: .5rem;
+            font-weight: 600;
+            transition: background .2s, transform .15s;
+        }
+
+        .sidebar .nav-link i {
+            width: 1.15rem;
+            text-align: center
+        }
+
+        .sidebar .nav-link:hover {
+            background: rgba(255, 255, 255, .12);
             color: #fff;
-            text-decoration: none;
+            transform: translateX(2px)
         }
 
-        /* Main Content */
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, .18);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+        }
+
+        /* === Main content offset (prevents overlap) === */
         .main-content {
-            flex: 1;
+            margin-left: var(--sidebar-w);
+            min-width: 0;
             display: flex;
             flex-direction: column;
         }
 
-        /* Top Navigation */
+        /* Topbar */
         .topbar {
-            background-color: #fff;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            padding: 0.75rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            background: var(--paper);
+            box-shadow: var(--shadow);
+            padding: .75rem 1rem;
         }
 
-        .topbar .navbar-nav .nav-item .nav-link {
-            color: var(--secondary-color);
-            padding: 0.75rem 1rem;
+        .topbar .nav-link {
+            color: var(--muted);
+            font-weight: 600
         }
 
-        .dropdown-user {
-            position: relative;
-        }
-
-        .dropdown-user img {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
+        .topbar .nav-link:hover {
+            color: var(--ink)
         }
 
         /* Cards */
         .card {
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            border: none;
-            border-radius: 0.35rem;
+            border: 0;
+            border-radius: .65rem;
+            background: var(--paper);
+            box-shadow: var(--shadow)
         }
 
         .card-header {
-            background-color: var(--light-color);
-            border-bottom: 1px solid #e3e6f0;
+            background: linear-gradient(180deg, #fff, #fafbff);
+            border-bottom: 1px solid var(--hairline);
+            border-top-left-radius: .65rem;
+            border-top-right-radius: .65rem;
         }
 
-        /* Border left cards */
-        .border-left-primary {
-            border-left: 0.25rem solid var(--primary-color) !important;
-        }
-
-        .border-left-success {
-            border-left: 0.25rem solid var(--success-color) !important;
-        }
-
-        .border-left-info {
-            border-left: 0.25rem solid var(--info-color) !important;
-        }
-
-        .border-left-warning {
-            border-left: 0.25rem solid var(--warning-color) !important;
-        }
-
+        /* Accent stripe */
+        .border-left-primary,
+        .border-left-success,
+        .border-left-info,
+        .border-left-warning,
         .border-left-danger {
-            border-left: 0.25rem solid var(--danger-color) !important;
+            position: relative;
+            overflow: hidden
         }
 
-        /* Text colors */
-        .text-primary { color: var(--primary-color) !important; }
-        .text-success { color: var(--success-color) !important; }
-        .text-info { color: var(--info-color) !important; }
-        .text-warning { color: var(--warning-color) !important; }
-        .text-danger { color: var(--danger-color) !important; }
-        .text-gray-800 { color: #5a5c69 !important; }
-        .text-gray-300 { color: #dddfeb !important; }
-
-        /* Badges */
-        .badge-success { background-color: var(--success-color); }
-        .badge-danger { background-color: var(--danger-color); }
-        .badge-warning { background-color: var(--warning-color); }
-        .badge-info { background-color: var(--info-color); }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: fixed;
-                top: 0;
-                left: -100%;
-                z-index: 1000;
-                transition: all 0.3s;
-            }
-            
-            .sidebar.active {
-                left: 0;
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
+        .border-left-primary::before,
+        .border-left-success::before,
+        .border-left-info::before,
+        .border-left-warning::before,
+        .border-left-danger::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: .35rem;
+            border-radius: .35rem 0 0 .35rem;
         }
 
-        /* Custom scrollbar */
-        .sidebar::-webkit-scrollbar {
-            width: 8px;
+        .border-left-primary::before {
+            background: var(--primary)
         }
 
-        .sidebar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
+        .border-left-success::before {
+            background: var(--success)
         }
 
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
+        .border-left-info::before {
+            background: var(--info)
         }
 
-        /* Alert styling */
-        .alert {
-            border-radius: 0.35rem;
-            border: none;
+        .border-left-warning::before {
+            background: var(--warning)
         }
 
-        /* Button styling */
+        .border-left-danger::before {
+            background: var(--danger)
+        }
+
+        /* Tables */
+        .table {
+            color: var(--ink)
+        }
+
+        .table thead th {
+            border-top: 0;
+            border-bottom: 1px solid var(--hairline);
+            text-transform: uppercase;
+            font-size: .78rem;
+            letter-spacing: .04em;
+            color: var(--muted)
+        }
+
+        .table-hover>tbody>tr:hover {
+            background: #fafbff
+        }
+
+        .table-striped>tbody>tr:nth-of-type(odd) {
+            --bs-table-accent-bg: #fcfdff
+        }
+
+        /* Badges (support bg-* and badge-*) */
+        .badge {
+            border-radius: .5rem;
+            font-weight: 700;
+            letter-spacing: .2px
+        }
+
+        .bg-success,
+        .badge-success {
+            background: var(--success) !important
+        }
+
+        .bg-danger,
+        .badge-danger {
+            background: var(--danger) !important
+        }
+
+        .bg-warning,
+        .badge-warning {
+            background: var(--warning) !important;
+            color: #212529
+        }
+
+        .bg-info,
+        .badge-info {
+            background: var(--info) !important
+        }
+
+        .bg-primary,
+        .badge-primary {
+            background: var(--primary) !important
+        }
+
+        /* Buttons */
         .btn {
-            border-radius: 0.35rem;
-            font-weight: 600;
+            border-radius: .5rem;
+            font-weight: 700
         }
 
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background: var(--primary);
+            border-color: var(--primary)
+        }
+
+        .btn-primary:hover {
+            background: #3f5cc4;
+            border-color: #3f5cc4
         }
 
         .btn-success {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
+            background: var(--success);
+            border-color: var(--success)
         }
 
-        /* Table styling */
-        .table {
-            color: var(--dark-color);
+        /* Alerts & utilities */
+        .alert {
+            border: 0;
+            border-radius: .65rem
         }
 
-        .table th {
-            border-top: none;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            color: var(--secondary-color);
+        .text-gray-800 {
+            color: var(--ink) !important
         }
 
-        /* Loading spinner */
+        .text-gray-300 {
+            color: #cfd4e7 !important
+        }
+
+        /* Spinner (for buttons) */
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255, 255, 255, .35);
             border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: -3px;
+            margin-right: .4rem
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* === Mobile (sidebar becomes off-canvas) === */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                left: calc(-1 * var(--sidebar-w));
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            /* full width content */
+        }
+
+        .card.h-100 {
+            height: auto !important;
+        }
+
+        /* Spacing & sensible minimum for small stat cards */
+        .stats-row .stat-card {
+            min-height: 140px;
+        }
+
+        /* Make the two lower columns (“Recent …” & “Pending …”) equal height */
+        .row-stretch>[class*="col-"] {
+            display: flex;
+        }
+
+        .row-stretch .card {
+            flex: 1 1 auto;
+        }
+
+        /* Ensure card content doesn’t squeeze into a vertical strip */
+        .card,
+        .card-body,
+        .card-header {
+            min-width: 0;
+            /* fix flex overflow quirks */
+            word-break: normal;
+            overflow-wrap: anywhere;
+        }
+
+        /* Tighten default card padding a bit */
+        .card-body {
+            padding: 1rem 1.25rem;
+        }
+
+        /* Optional: nicer gap for all dashboard rows */
+        .container-fluid .row {
+            --bs-gutter-x: 1rem;
+        }
+
+        /* Keep stat cards on a neat responsive grid */
+        @media (min-width: 1200px) {
+            .stats-row>[class*="col-"] {
+                margin-bottom: 0 !important;
+            }
         }
     </style>
 
@@ -260,8 +405,8 @@
             <ul class="navbar-nav">
                 <!-- Dashboard -->
                 <li class="nav-item">
-                    <a class="nav-link <?= uri_string() == 'admin/dashboard' ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/dashboard') ?>">
+                    <a class="nav-link <?= uri_string() == 'admin/dashboard' ? 'active' : '' ?>"
+                        href="<?= site_url('admin/dashboard') ?>">
                         <i class="fas fa-fw fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
@@ -272,8 +417,8 @@
 
                 <!-- User Management -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/users') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/users') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'admin/users') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('admin/users') ?>">
                         <i class="fas fa-fw fa-users"></i>
                         <span>Users</span>
                     </a>
@@ -281,26 +426,17 @@
 
                 <!-- Property Management -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/properties') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/properties') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'admin/properties') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('admin/properties') ?>">
                         <i class="fas fa-fw fa-building"></i>
                         <span>Properties</span>
                     </a>
                 </li>
 
-                <!-- Lease Management -->
-                <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/leases') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/leases') ?>">
-                        <i class="fas fa-fw fa-file-contract"></i>
-                        <span>Leases</span>
-                    </a>
-                </li>
-
                 <!-- Financial Management -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/financials') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/financials') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'admin/financials') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('admin/financials') ?>">
                         <i class="fas fa-fw fa-dollar-sign"></i>
                         <span>Payments</span>
                     </a>
@@ -308,8 +444,8 @@
 
                 <!-- Maintenance -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/maintenance') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/maintenance') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'admin/maintenance') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('admin/maintenance') ?>">
                         <i class="fas fa-fw fa-tools"></i>
                         <span>Maintenance</span>
                     </a>
@@ -317,8 +453,8 @@
 
                 <!-- Reports -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/reports') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/reports') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'admin/reports') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('admin/reports') ?>">
                         <i class="fas fa-fw fa-chart-bar"></i>
                         <span>Reports</span>
                     </a>
@@ -329,8 +465,8 @@
 
                 <!-- System Settings -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'admin/settings') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('admin/settings') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'admin/settings') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('admin/settings') ?>">
                         <i class="fas fa-fw fa-cog"></i>
                         <span>Settings</span>
                     </a>
@@ -357,8 +493,8 @@
                 <ul class="navbar-nav ms-auto">
                     <!-- User Information -->
                     <li class="nav-item dropdown no-arrow">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="me-2 d-none d-lg-inline text-gray-600 small">
                                 <?= session()->get('full_name') ?>
                             </span>
@@ -426,22 +562,26 @@
 
     <!-- Bootstrap core JavaScript-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom scripts -->
     <script>
         // Toggle sidebar on mobile
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebarToggle').addEventListener('click', function () {
             document.getElementById('sidebar').classList.toggle('active');
+            // optional: prevent background scroll when menu is open on mobile
+            if (window.innerWidth < 992) document.body.style.overflow =
+                document.getElementById('sidebar').classList.contains('active') ? 'hidden' : '';
         });
 
+
         // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
+        setTimeout(function () {
             const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
+            alerts.forEach(function (alert) {
                 if (alert) {
                     alert.style.transition = 'opacity 0.5s ease';
                     alert.style.opacity = '0';
-                    setTimeout(function() {
+                    setTimeout(function () {
                         alert.remove();
                     }, 500);
                 }
@@ -449,16 +589,16 @@
         }, 5000);
 
         // Loading states for forms
-        document.querySelectorAll('form').forEach(function(form) {
-            form.addEventListener('submit', function() {
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function () {
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     const originalText = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
                     submitBtn.disabled = true;
-                    
+
                     // Re-enable after 10 seconds in case of error
-                    setTimeout(function() {
+                    setTimeout(function () {
                         submitBtn.innerHTML = originalText;
                         submitBtn.disabled = false;
                     }, 10000);
@@ -467,8 +607,8 @@
         });
 
         // Confirm delete actions
-        document.querySelectorAll('[data-confirm-delete]').forEach(function(element) {
-            element.addEventListener('click', function(e) {
+        document.querySelectorAll('[data-confirm-delete]').forEach(function (element) {
+            element.addEventListener('click', function (e) {
                 if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
                     e.preventDefault();
                 }
@@ -477,7 +617,7 @@
 
         // Auto-refresh for real-time data (every 5 minutes)
         if (window.location.pathname.includes('/dashboard')) {
-            setInterval(function() {
+            setInterval(function () {
                 location.reload();
             }, 300000); // 5 minutes
         }
@@ -485,4 +625,5 @@
 
     <?= $this->renderSection('scripts') ?>
 </body>
+
 </html>

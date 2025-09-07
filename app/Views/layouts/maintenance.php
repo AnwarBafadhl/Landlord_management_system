@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,12 +11,15 @@
     <title><?= $this->renderSection('title') ?> - Maintenance Panel</title>
 
     <!-- Custom fonts for this template-->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"
+        type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
 
     <!-- Custom styles for this template-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <style>
         :root {
             --primary-color: #f6c23e;
@@ -134,19 +138,50 @@
         }
 
         /* Text colors */
-        .text-primary { color: var(--primary-color) !important; }
-        .text-success { color: var(--success-color) !important; }
-        .text-info { color: var(--info-color) !important; }
-        .text-warning { color: var(--warning-color) !important; }
-        .text-danger { color: var(--danger-color) !important; }
-        .text-gray-800 { color: #5a5c69 !important; }
-        .text-gray-300 { color: #dddfeb !important; }
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .text-success {
+            color: var(--success-color) !important;
+        }
+
+        .text-info {
+            color: var(--info-color) !important;
+        }
+
+        .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        .text-danger {
+            color: var(--danger-color) !important;
+        }
+
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
 
         /* Badges */
-        .badge-success { background-color: var(--success-color); }
-        .badge-danger { background-color: var(--danger-color); }
-        .badge-warning { background-color: var(--warning-color); }
-        .badge-info { background-color: var(--info-color); }
+        .badge-success {
+            background-color: var(--success-color);
+        }
+
+        .badge-danger {
+            background-color: var(--danger-color);
+        }
+
+        .badge-warning {
+            background-color: var(--warning-color);
+        }
+
+        .badge-info {
+            background-color: var(--info-color);
+        }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -158,11 +193,11 @@
                 z-index: 1000;
                 transition: all 0.3s;
             }
-            
+
             .sidebar.active {
                 left: 0;
             }
-            
+
             .main-content {
                 margin-left: 0;
             }
@@ -186,8 +221,8 @@
             <ul class="navbar-nav">
                 <!-- Dashboard -->
                 <li class="nav-item">
-                    <a class="nav-link <?= uri_string() == 'maintenance/dashboard' ? 'active' : '' ?>" 
-                       href="<?= site_url('maintenance/dashboard') ?>">
+                    <a class="nav-link <?= uri_string() == 'maintenance/dashboard' ? 'active' : '' ?>"
+                        href="<?= site_url('maintenance/dashboard') ?>">
                         <i class="fas fa-fw fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
@@ -198,8 +233,8 @@
 
                 <!-- Work Orders -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/requests') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('maintenance/requests') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/requests') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('maintenance/requests') ?>">
                         <i class="fas fa-fw fa-clipboard-list"></i>
                         <span>Work Orders</span>
                     </a>
@@ -207,8 +242,8 @@
 
                 <!-- Schedule -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/schedule') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('maintenance/schedule') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/schedule') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('maintenance/schedule') ?>">
                         <i class="fas fa-fw fa-calendar-alt"></i>
                         <span>My Schedule</span>
                     </a>
@@ -219,10 +254,19 @@
 
                 <!-- Profile -->
                 <li class="nav-item">
-                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/profile') === 0 ? 'active' : '' ?>" 
-                       href="<?= site_url('maintenance/profile') ?>">
+                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/profile') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('maintenance/profile') ?>">
                         <i class="fas fa-fw fa-user-cog"></i>
                         <span>Profile</span>
+                    </a>
+                </li>
+
+                <!--Help -->
+                <li class="nav-item">
+                    <a class="nav-link <?= strpos(uri_string(), 'maintenance/help') === 0 ? 'active' : '' ?>"
+                        href="<?= site_url('maintenance/help') ?>">
+                        <i class="fas fa-life-ring"></i>
+                        <span>Help & Support</span>
                     </a>
                 </li>
 
@@ -247,8 +291,8 @@
                 <ul class="navbar-nav ms-auto">
                     <!-- User Information -->
                     <li class="nav-item dropdown no-arrow">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="me-2 d-none d-lg-inline text-gray-600 small">
                                 <?= session()->get('full_name') ?>
                             </span>
@@ -316,22 +360,22 @@
 
     <!-- Bootstrap core JavaScript-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom scripts -->
     <script>
         // Toggle sidebar on mobile
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebarToggle').addEventListener('click', function () {
             document.getElementById('sidebar').classList.toggle('active');
         });
 
         // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
+        setTimeout(function () {
             const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
+            alerts.forEach(function (alert) {
                 if (alert) {
                     alert.style.transition = 'opacity 0.5s ease';
                     alert.style.opacity = '0';
-                    setTimeout(function() {
+                    setTimeout(function () {
                         alert.remove();
                     }, 500);
                 }
@@ -339,16 +383,16 @@
         }, 5000);
 
         // Loading states for forms
-        document.querySelectorAll('form').forEach(function(form) {
-            form.addEventListener('submit', function() {
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function () {
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     const originalText = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
                     submitBtn.disabled = true;
-                    
+
                     // Re-enable after 10 seconds in case of error
-                    setTimeout(function() {
+                    setTimeout(function () {
                         submitBtn.innerHTML = originalText;
                         submitBtn.disabled = false;
                     }, 10000);
@@ -357,7 +401,7 @@
         });
 
         // Add visual feedback for urgent requests
-        document.querySelectorAll('.border-left-danger').forEach(function(element) {
+        document.querySelectorAll('.border-left-danger').forEach(function (element) {
             element.style.animation = 'pulse 2s infinite';
         });
 
@@ -375,4 +419,5 @@
 
     <?= $this->renderSection('scripts') ?>
 </body>
+
 </html>

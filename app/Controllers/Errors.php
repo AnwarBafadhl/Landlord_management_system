@@ -10,15 +10,7 @@ class Errors extends BaseController
 {
     public function show404()
     {
-        $this->response->setStatusCode(404);
-        
-        if (session()->get('role') === 'admin') {
-            return view('admin/errors/404');
-        } elseif (session()->get('role') === 'landlord') {
-            return view('landlord/errors/404');
-        } else {
-            return view('errors/404');
-        }
+        return view('errors/custom_404'); // or echo 'Not found';
     }
     
     public function showError($message = 'An error occurred')

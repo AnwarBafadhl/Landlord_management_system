@@ -77,11 +77,11 @@ class Logger extends BaseConfig
      * @var array<class-string<HandlerInterface>, array<string, int|list<string>|string>>
      */
     public array $handlers = [
-        /*
-         * --------------------------------------------------------------------
-         * File Handler
-         * --------------------------------------------------------------------
-         */
+            /*
+             * --------------------------------------------------------------------
+             * File Handler
+             * --------------------------------------------------------------------
+             */
         FileHandler::class => [
             // The log levels that this handler will handle.
             'handles' => [
@@ -148,4 +148,16 @@ class Logger extends BaseConfig
         //     'messageType' => 0,
         // ],
     ];
+    /*
+'monthly_reports' => [
+    'handlers' => [
+        'file' => [
+            'class'     => 'CodeIgniter\Log\Handlers\FileHandler',
+            'formatter' => 'CodeIgniter\Log\Formatters\LineFormatter',
+            'file'      => WRITEPATH . 'logs/monthly_reports.log',
+        ]
+    ],
+    'threshold' => 4, // LOG_DEBUG and above
+]
+*/
 }

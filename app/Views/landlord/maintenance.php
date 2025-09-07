@@ -13,13 +13,10 @@
             <button class="btn btn-success" onclick="showAddMaintenanceModal()">
                 <i class="fas fa-plus"></i> Add Request
             </button>
-            <button class="btn btn-outline-danger" onclick="exportReport()">
-                <i class="fas fa-file-pdf"></i> Export PDF Report
-            </button>
         </div>
     </div>
 
-    <!-- Alert Messages -->
+    <!-- Alerts -->
     <?php if (session()->getFlashdata('success')): ?>
         <div class="alert alert-success alert-dismissible fade show">
             <i class="fas fa-check-circle"></i> <?= session()->getFlashdata('success') ?>
@@ -34,96 +31,57 @@
         </div>
     <?php endif; ?>
 
-    <!-- Status Overview Cards -->
+    <!-- Status cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2 hover-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Pending Approval
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                <?= $stats['pending_count'] ?? 0 ?>
-                            </div>
-                            <div class="text-xs text-muted">
-                                Awaiting your review
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-warning"></i>
-                        </div>
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800"><?= $stats['pending_count'] ?? 0 ?></div>
+                        <div class="text-xs text-muted">Awaiting acceptance</div>
                     </div>
+                    <i class="fas fa-clock fa-2x text-warning"></i>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2 hover-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Approved
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                <?= $stats['approved_count'] ?? 0 ?>
-                            </div>
-                            <div class="text-xs text-muted">
-                                Ready for work
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-primary"></i>
-                        </div>
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Approved</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800"><?= $stats['approved_count'] ?? 0 ?></div>
+                        <div class="text-xs text-muted">Accepted by maintenance</div>
                     </div>
+                    <i class="fas fa-check-circle fa-2x text-primary"></i>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2 hover-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                In Progress
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                <?= $stats['in_progress_count'] ?? 0 ?>
-                            </div>
-                            <div class="text-xs text-muted">
-                                Work ongoing
-                            </div>
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">In Progress</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800"><?= $stats['in_progress_count'] ?? 0 ?>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-spinner fa-2x text-info"></i>
-                        </div>
+                        <div class="text-xs text-muted">Work ongoing</div>
                     </div>
+                    <i class="fas fa-spinner fa-2x text-info"></i>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2 hover-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Completed
-                            </div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">
-                                <?= $stats['completed_count'] ?? 0 ?>
-                            </div>
-                            <div class="text-xs text-muted">
-                                Work finished
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-double fa-2x text-success"></i>
-                        </div>
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800"><?= $stats['completed_count'] ?? 0 ?></div>
+                        <div class="text-xs text-muted">Work finished</div>
                     </div>
+                    <i class="fas fa-check-double fa-2x text-success"></i>
                 </div>
             </div>
         </div>
@@ -132,27 +90,29 @@
     <!-- Filters -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-filter"></i> Filter Requests
-            </h6>
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-filter"></i> Filter Requests</h6>
         </div>
         <div class="card-body">
             <form method="GET" id="filterForm" class="row g-3">
                 <div class="col-md-3">
                     <label for="status" class="form-label">Status</label>
                     <select class="form-select" id="status" name="status">
-                        <option value="">All Statuses</option>
+                        <option value="">All</option>
                         <option value="pending" <?= ($current_status === 'pending') ? 'selected' : '' ?>>Pending</option>
-                        <option value="approved" <?= ($current_status === 'approved') ? 'selected' : '' ?>>Approved</option>
-                        <option value="in_progress" <?= ($current_status === 'in_progress') ? 'selected' : '' ?>>In Progress</option>
-                        <option value="completed" <?= ($current_status === 'completed') ? 'selected' : '' ?>>Completed</option>
-                        <option value="rejected" <?= ($current_status === 'rejected') ? 'selected' : '' ?>>Rejected</option>
+                        <option value="approved" <?= ($current_status === 'approved') ? 'selected' : '' ?>>Approved
+                        </option>
+                        <option value="in_progress" <?= ($current_status === 'in_progress') ? 'selected' : '' ?>>In
+                            Progress</option>
+                        <option value="completed" <?= ($current_status === 'completed') ? 'selected' : '' ?>>Completed
+                        </option>
+                        <option value="rejected" <?= ($current_status === 'rejected') ? 'selected' : '' ?>>Rejected
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label for="priority" class="form-label">Priority</label>
                     <select class="form-select" id="priority" name="priority">
-                        <option value="">All Priorities</option>
+                        <option value="">All</option>
                         <option value="low" <?= ($current_priority === 'low') ? 'selected' : '' ?>>Low</option>
                         <option value="normal" <?= ($current_priority === 'normal') ? 'selected' : '' ?>>Normal</option>
                         <option value="high" <?= ($current_priority === 'high') ? 'selected' : '' ?>>High</option>
@@ -162,7 +122,7 @@
                 <div class="col-md-3">
                     <label for="property" class="form-label">Property</label>
                     <select class="form-select" id="property" name="property">
-                        <option value="">All Properties</option>
+                        <option value="">All</option>
                         <?php foreach ($properties as $property): ?>
                             <option value="<?= $property['id'] ?>" <?= ($current_property == $property['id']) ? 'selected' : '' ?>>
                                 <?= esc($property['property_name']) ?>
@@ -172,9 +132,7 @@
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
                     <div class="btn-group w-100">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i> Filter
-                        </button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
                         <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
                             <i class="fas fa-times"></i> Clear
                         </button>
@@ -184,155 +142,168 @@
         </div>
     </div>
 
-    <!-- Debug Properties Info (Development Only) -->
-    <?php if (ENVIRONMENT === 'development' && empty($properties)): ?>
-        <div class="alert alert-warning">
-            <strong>Debug Info:</strong> No properties found for user ID <?= session()->get('user_id') ?>
-            <br><small>Check if property_shareholders table exists and has entries for this user</small>
-        </div>
-    <?php endif; ?>
-
-    <!-- Maintenance Requests Table -->
+    <!-- Requests Table -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-list"></i> Maintenance Requests 
+                <i class="fas fa-list"></i> Maintenance Requests
                 <span class="badge bg-secondary"><?= count($maintenance_requests) ?></span>
             </h6>
-            <div>
-                <button class="btn btn-sm btn-outline-primary" onclick="refreshTable()">
-                    <i class="fas fa-sync"></i> Refresh
-                </button>
-            </div>
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshTable()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
         </div>
         <div class="card-body">
             <?php if (!empty($maintenance_requests)): ?>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped" id="maintenanceTable">
+                    <table class="table table-bordered table-striped align-middle" id="maintenanceTable">
                         <thead class="table-dark">
                             <tr>
-                                <th width="5%">#</th>
-                                <th width="15%">Property/Unit</th>
-                                <th width="20%">Title</th>
-                                <th width="10%">Priority</th>
-                                <th width="10%">Status</th>
-                                <th width="10%">Cost</th>
-                                <th width="10%">Date</th>
-                                <th width="5%">Actions</th>
+                                <th width="11%">Date</th>
+                                <th width="23%">Request</th>
+                                <th width="16%">Property</th>
+                                <th width="12%">Unit</th>
+                                <th width="12%">Priority</th>
+                                <th width="14%">Status</th>
+                                <th width="12%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($maintenance_requests as $request): ?>
-                                <tr>
-                                    <td>
-                                        <strong>#<?= $request['id'] ?></strong>
-                                    </td>
+                                <?php
+                                $priorityColor = match ($request['priority']) {
+                                    'low' => 'secondary',
+                                    'normal' => 'primary',
+                                    'high' => 'warning',
+                                    'urgent' => 'danger',
+                                    default => 'secondary'
+                                };
+                                $priorityIcon = match ($request['priority']) {
+                                    'low' => 'arrow-down',
+                                    'normal' => 'minus',
+                                    'high' => 'arrow-up',
+                                    'urgent' => 'exclamation-triangle',
+                                    default => 'minus'
+                                };
+                                $statusColor = match ($request['status']) {
+                                    'pending' => 'warning',
+                                    'approved' => 'primary',
+                                    'in_progress' => 'info',
+                                    'completed' => 'success',
+                                    'rejected' => 'danger',
+                                    default => 'secondary'
+                                };
+                                $statusIcon = match ($request['status']) {
+                                    'pending' => 'clock',
+                                    'approved' => 'check-circle',
+                                    'in_progress' => 'spinner',
+                                    'completed' => 'check-double',
+                                    'rejected' => 'times-circle',
+                                    default => 'question'
+                                };
+
+                                // helpful flags from controller if available
+                                $approvedCost = $request['approved_cost'] ?? null;
+                                $approvedByName = $request['approved_by_name'] ?? ($request['approved_by_staff_name'] ?? null);
+                                $assignedDate = $request['assigned_date'] ?? null;
+                                $completedDate = $request['completed_date'] ?? null;
+                                $estCost = $request['estimated_cost'] ?? null;
+                                $desiredStart = $request['desired_start_date'] ?? null;
+                                $cancelCount = (int) ($request['cancel_count'] ?? 0);
+                                ?>
+                                <tr data-id="<?= (int) $request['id'] ?>" data-created="<?= esc($request['created_at']) ?>"
+                                    data-title="<?= esc($request['title']) ?>"
+                                    data-property="<?= esc($request['property_name']) ?>"
+                                    data-unit="<?= esc($request['unit_name'] ?? 'N/A') ?>"
+                                    data-priority="<?= esc(ucfirst($request['priority'])) ?>"
+                                    data-status="<?= esc(ucfirst(str_replace('_', ' ', $request['status']))) ?>"
+                                    data-estimated-cost="<?= $estCost !== null ? number_format((float) $estCost, 2) : '' ?>"
+                                    data-approved-cost="<?= $approvedCost !== null ? number_format((float) $approvedCost, 2) : '' ?>"
+                                    data-approved-by="<?= esc($approvedByName ?? '') ?>"
+                                    data-assigned-date="<?= !empty($assignedDate) ? date('M d, Y', strtotime($assignedDate)) : '' ?>"
+                                    data-completed-date="<?= !empty($completedDate) ? date('M d, Y', strtotime($completedDate)) : '' ?>"
+                                    data-desired-start="<?= !empty($desiredStart) ? date('M d, Y', strtotime($desiredStart)) : '' ?>"
+                                    data-cancel-count="<?= $cancelCount ?>">
                                     <td>
                                         <div class="small">
-                                            <strong><?= esc($request['property_name']) ?></strong>
-                                            <?php if (!empty($request['unit_name'])): ?>
-                                                <br><span class="text-muted">Unit: <?= esc($request['unit_name']) ?></span>
-                                            <?php endif; ?>
+                                            <?= date('M d, Y', strtotime($request['created_at'])) ?><br>
+                                            <span
+                                                class="text-muted"><?= date('g:i A', strtotime($request['created_at'])) ?></span>
                                         </div>
                                     </td>
                                     <td>
                                         <strong><?= esc($request['title']) ?></strong>
+                                        <?php if ($approvedCost !== null): ?>
+                                            <div class="small mt-1">
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="fas fa-handshake"></i>
+                                                    Agreed: <strong><?= number_format((float) $approvedCost, 2) ?></strong> SAR
+                                                </span>
+                                                <?php if (!empty($approvedByName)): ?>
+                                                    <span class="text-muted ms-1 small">by <?= esc($approvedByName) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($assignedDate)): ?>
+                                            <div class="small text-muted mt-1">
+                                                <i class="fas fa-calendar-check"></i>
+                                                Scheduled: <?= date('M d, Y', strtotime($assignedDate)) ?>
+                                            </div>
+                                        <?php elseif (!empty($desiredStart)): ?>
+                                            <div class="small text-muted mt-1">
+                                                <i class="fas fa-calendar"></i>
+                                                Desired start: <?= date('M d, Y', strtotime($desiredStart)) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($cancelCount > 0 && $request['status'] === 'pending'): ?>
+                                            <div class="mt-1">
+                                                <span class="badge bg-dark">
+                                                    <i class="fas fa-undo-alt"></i> Previously cancelled (available again)
+                                                </span>
+                                            </div>
+                                        <?php endif; ?>
+
                                         <br>
-                                        <span class="text-muted small"><?= esc(substr($request['description'], 0, 50)) ?>...</span>
+                                        <span
+                                            class="text-muted small preview"><?= esc(substr($request['description'], 0, 50)) ?>...</span>
+                                        <span class="full-desc d-none"><?= nl2br(esc($request['description'])) ?></span>
+                                    </td>
+                                    <td><strong><?= esc($request['property_name']) ?></strong></td>
+                                    <td>
+                                        <?php if (!empty($request['unit_name'])): ?>
+                                            <span class="badge bg-info"><?= esc($request['unit_name']) ?></span>
+                                        <?php else: ?>
+                                            <span class="text-muted">N/A</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php
-                                        $priorityColor = match($request['priority']) {
-                                            'low' => 'secondary',
-                                            'normal' => 'primary', 
-                                            'high' => 'warning',
-                                            'urgent' => 'danger',
-                                            default => 'secondary'
-                                        };
-                                        $priorityIcon = match($request['priority']) {
-                                            'low' => 'arrow-down',
-                                            'normal' => 'minus',
-                                            'high' => 'arrow-up', 
-                                            'urgent' => 'exclamation-triangle',
-                                            default => 'minus'
-                                        };
-                                        ?>
                                         <span class="badge bg-<?= $priorityColor ?>">
                                             <i class="fas fa-<?= $priorityIcon ?>"></i>
                                             <?= ucfirst($request['priority']) ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <?php
-                                        $statusColor = match($request['status']) {
-                                            'pending' => 'warning',
-                                            'approved' => 'primary',
-                                            'in_progress' => 'info',
-                                            'completed' => 'success',
-                                            'rejected' => 'danger',
-                                            default => 'secondary'
-                                        };
-                                        $statusIcon = match($request['status']) {
-                                            'pending' => 'clock',
-                                            'approved' => 'check-circle',
-                                            'in_progress' => 'spinner',
-                                            'completed' => 'check-double',
-                                            'rejected' => 'times-circle',
-                                            default => 'question'
-                                        };
-                                        ?>
                                         <span class="badge bg-<?= $statusColor ?> p-2">
                                             <i class="fas fa-<?= $statusIcon ?>"></i>
                                             <?= ucfirst(str_replace('_', ' ', $request['status'])) ?>
                                         </span>
-                                    </td>
-                                    <td>
-                                        <?php if (!empty($request['first_name']) || !empty($request['last_name'])): ?>
-                                            <div class="small">
-                                                <strong><?= esc(trim($request['first_name'] . ' ' . $request['last_name'])) ?></strong>
-                                                <?php if (!empty($request['tenant_email'])): ?>
-                                                    <br><span class="text-muted"><?= esc($request['tenant_email']) ?></span>
-                                                <?php endif; ?>
+                                        <?php if (!empty($completedDate)): ?>
+                                            <div class="small text-muted mt-1">
+                                                <i class="fas fa-flag-checkered"></i>
+                                                <?= date('M d, Y', strtotime($completedDate)) ?>
                                             </div>
-                                        <?php else: ?>
-                                            <span class="badge bg-info">Landlord Request</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <div class="small">
-                                            <?php if (!empty($request['estimated_cost'])): ?>
-                                                <span class="text-muted">Est:</span> $<?= number_format($request['estimated_cost'], 2) ?><br>
-                                            <?php endif; ?>
-                                            <?php if (!empty($request['actual_cost'])): ?>
-                                                <span class="text-success">Act:</span> $<?= number_format($request['actual_cost'], 2) ?>
-                                            <?php endif; ?>
-                                            <?php if (empty($request['estimated_cost']) && empty($request['actual_cost'])): ?>
-                                                <span class="text-muted">N/A</span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="small">
-                                            <?= date('M d, Y', strtotime($request['created_at'])) ?>
-                                            <br><span class="text-muted"><?= date('g:i A', strtotime($request['created_at'])) ?></span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group-vertical btn-group-sm" role="group">
-                                            <button class="btn btn-outline-info btn-sm" onclick="viewRequest(<?= $request['id'] ?>)" title="View Details">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" onclick="viewRequest(<?= $request['id'] ?>)"
+                                                title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            
                                             <?php if ($request['status'] === 'pending'): ?>
-                                                <button class="btn btn-outline-success btn-sm" onclick="approveRequest(<?= $request['id'] ?>)" title="Approve">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger btn-sm" onclick="rejectRequest(<?= $request['id'] ?>)" title="Reject">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            <?php elseif (in_array($request['status'], ['approved', 'in_progress'])): ?>
-                                                <button class="btn btn-outline-primary btn-sm" onclick="updateStatus(<?= $request['id'] ?>)" title="Update Status">
-                                                    <i class="fas fa-edit"></i>
+                                                <button class="btn btn-outline-danger"
+                                                    onclick="deleteRequest(<?= $request['id'] ?>)" title="Delete Request">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
                                             <?php endif; ?>
                                         </div>
@@ -369,9 +340,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-plus"></i> Add New Maintenance Request
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Add New Maintenance Request</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="addMaintenanceForm">
@@ -380,11 +349,12 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="modal_property_id" class="form-label">Property <span class="text-danger">*</span></label>
+                                <label class="form-label">Property <span class="text-danger">*</span></label>
                                 <select class="form-select" id="modal_property_id" name="property_id" required>
                                     <option value="">Select Property</option>
                                     <?php foreach ($properties as $property): ?>
-                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?></option>
+                                        <option value="<?= $property['id'] ?>"><?= esc($property['property_name']) ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </select>
                                 <?php if (empty($properties)): ?>
@@ -394,26 +364,26 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="modal_unit_id" class="form-label">Unit <span class="text-danger">*</span></label>
+                                <label class="form-label">Unit <span class="text-danger">*</span></label>
                                 <select class="form-select" id="modal_unit_id" name="unit_id" required>
                                     <option value="">Select Unit</option>
                                 </select>
-                                <small class="text-muted">Please select a property first to load units</small>
+                                <small class="text-muted">Select a property first to load units</small>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
-                                <label for="modal_title" class="form-label">Request Title <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="modal_title" name="title" required maxlength="200"
-                                       placeholder="Brief description of the issue">
+                                <label class="form-label">Request Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="modal_title" name="title" required
+                                    maxlength="200" placeholder="Brief description of the issue">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="modal_priority" class="form-label">Priority <span class="text-danger">*</span></label>
+                                <label class="form-label">Priority <span class="text-danger">*</span></label>
                                 <select class="form-select" id="modal_priority" name="priority" required>
                                     <option value="normal" selected>Normal</option>
                                     <option value="low">Low</option>
@@ -423,29 +393,39 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label for="modal_description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <label class="form-label">Description <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="modal_description" name="description" rows="4" required
-                                  placeholder="Detailed description of the maintenance issue"></textarea>
+                            placeholder="Detailed description of the maintenance issue"></textarea>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_estimated_cost" class="form-label">Estimated Cost (Optional)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="modal_estimated_cost" name="estimated_cost" 
-                                   min="0" step="0.01" placeholder="0.00">
+
+                    <!-- NEW: optional landlord-side fields to support the flow -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estimated Cost (SAR, optional)</label>
+                                <input type="number" step="0.01" min="0" class="form-control" id="modal_estimated_cost"
+                                    name="estimated_cost" placeholder="0.00">
+                                <small class="text-muted">If set, maintenance cannot approve more than estimate + 150
+                                    SAR.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Desired Start Date (optional)</label>
+                                <input type="date" class="form-control" id="modal_desired_start_date"
+                                    name="desired_start_date">
+                                <small class="text-muted">Maintenance will try to start on or before this date.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="submit" class="btn btn-success" id="submitBtn">
-                        <i class="fas fa-save"></i> Create Request
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i>
+                        Cancel</button>
+                    <button type="submit" class="btn btn-success" id="submitBtn"><i class="fas fa-save"></i> Create
+                        Request</button>
                 </div>
             </form>
         </div>
@@ -454,12 +434,10 @@
 
 <!-- Request Details Modal -->
 <div class="modal fade" id="requestDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-info-circle"></i> Maintenance Request Details
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-info-circle"></i> Maintenance Request Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="requestDetailsContent">
@@ -475,377 +453,540 @@
     </div>
 </div>
 
-<!-- Status Update Modal -->
-<div class="modal fade" id="statusUpdateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-edit"></i> Update Request Status
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="statusUpdateForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="update_status" class="form-label">Status</label>
-                        <select class="form-select" id="update_status" name="status" required>
-                            <option value="approved">Approved</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3" id="cost_section" style="display: none;">
-                        <label for="actual_cost" class="form-label">Actual Cost</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="actual_cost" name="actual_cost" 
-                                   min="0" step="0.01" placeholder="0.00">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3" id="rejection_section" style="display: none;">
-                        <label for="rejection_reason" class="form-label">Rejection Reason</label>
-                        <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3"
-                                  placeholder="Please provide a reason for rejection"></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="status_notes" class="form-label">Notes (Optional)</label>
-                        <textarea class="form-control" id="status_notes" name="notes" rows="3"
-                                  placeholder="Additional notes about the status update"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Status</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
-let currentRequestId = null;
+    let currentRequestId = null;
 
-// Show Add Maintenance Modal
-function showAddMaintenanceModal() {
-    // Check if properties are available
-    const propertySelect = document.getElementById('modal_property_id');
-    if (propertySelect.options.length <= 1) { // Only has "Select Property" option
-        showAlert('warning', 'No properties available. Please contact admin to assign properties to your account.');
-        return;
+    function showAddMaintenanceModal() {
+        const propertySelect = document.getElementById('modal_property_id');
+        if (!propertySelect || propertySelect.options.length <= 1) {
+            showAlert('warning', 'No properties available. Please contact admin to assign properties to your account.');
+            return;
+        }
+        document.getElementById('addMaintenanceForm').reset();
+        document.getElementById('modal_unit_id').innerHTML = '<option value="">Select Unit</option>';
+        new bootstrap.Modal(document.getElementById('addMaintenanceModal')).show();
     }
-    
-    document.getElementById('addMaintenanceForm').reset();
-    document.getElementById('modal_unit_id').innerHTML = '<option value="">Select Unit</option>';
-    new bootstrap.Modal(document.getElementById('addMaintenanceModal')).show();
-}
 
-// Handle property selection change - IMPROVED VERSION
-document.getElementById('modal_property_id').addEventListener('change', function() {
-    const propertyId = this.value;
-    const unitSelect = document.getElementById('modal_unit_id');
-    
-    // Reset and disable units dropdown
-    unitSelect.innerHTML = '<option value="">Loading units...</option>';
-    unitSelect.disabled = true;
-    
-    if (propertyId) {
-        // Load units for selected property
-        console.log('Loading units for property:', propertyId);
-        
-        fetch(`<?= site_url('landlord/get-units-by-property') ?>/${propertyId}`, {
+    // Load units for a property
+    document.getElementById('modal_property_id')?.addEventListener('change', function () {
+        const propertyId = this.value;
+        const unitSelect = document.getElementById('modal_unit_id');
+        unitSelect.innerHTML = '<option value="">Loading units...</option>';
+        unitSelect.disabled = true;
+
+        if (!propertyId) {
+            unitSelect.innerHTML = '<option value="">Select Unit</option>';
+            unitSelect.disabled = false;
+            return;
+        }
+
+        fetch(`<?= site_url('landlord/maintenance/get-units') ?>/${propertyId}`, {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => r.json())
+            .then(data => {
+                unitSelect.innerHTML = '<option value="">Select Unit</option>';
+                if (data.success && Array.isArray(data.units) && data.units.length) {
+                    data.units.forEach(u => {
+                        const name = u.unit_name || u.name || ('Unit ' + u.id);
+                        unitSelect.innerHTML += `<option value="${u.id}">${name}</option>`;
+                    });
+                } else if (data.success) {
+                    unitSelect.innerHTML = '<option value="" disabled>No units found for this property</option>';
+                } else {
+                    unitSelect.innerHTML = '<option value="" disabled>Error loading units</option>';
+                    showAlert('warning', data.message || 'Failed to load units');
+                }
+                unitSelect.disabled = false;
+            })
+            .catch(err => {
+                unitSelect.innerHTML = '<option value="" disabled>Error loading units</option>';
+                unitSelect.disabled = false;
+                showAlert('danger', 'Failed to load units. Please try again.');
+            });
+    });
+
+    // Submit add form
+    document.getElementById('addMaintenanceForm')?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const unitSelect = document.getElementById('modal_unit_id');
+        if (!unitSelect.value) {
+            showAlert('warning', 'Please select a unit.');
+            unitSelect.focus();
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        const original = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+        const formData = new FormData(this);
+        fetch('<?= site_url('landlord/add-maintenance-request') ?>', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showAlert('success', 'Maintenance request created successfully with pending status.');
+                    bootstrap.Modal.getInstance(document.getElementById('addMaintenanceModal')).hide();
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showAlert('danger', d.message || 'Failed to create request.');
+                }
+            })
+            .catch(err => showAlert('danger', err.message))
+            .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = original; });
+    });
+
+    // Enhanced view request function with proper database field mapping
+    function viewRequest(requestId) {
+        currentRequestId = requestId;
+        const modal = new bootstrap.Modal(document.getElementById('requestDetailsModal'));
+        const content = document.getElementById('requestDetailsContent');
+
+        // Show loading state
+        content.innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+            <p>Loading request details...</p>
+        </div>
+    `;
+
+        modal.show();
+
+        // Fetch request details via AJAX
+        fetch(`<?= site_url('landlord/maintenance/view-request') ?>/${requestId}`, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Content-Type': 'application/json'
             }
         })
-        .then(response => {
-            console.log('Response status:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Units data received:', data);
-            
-            unitSelect.innerHTML = '<option value="">Select Unit *</option>';
-            
-            if (data.success && data.units && data.units.length > 0) {
-                data.units.forEach(unit => {
-                    unitSelect.innerHTML += `<option value="${unit.id}">${unit.unit_name}</option>`;
-                });
-                console.log(`Loaded ${data.units.length} units`);
-            } else {
-                unitSelect.innerHTML += '<option value="" disabled>No units found for this property</option>';
-                showAlert('warning', 'No units found for the selected property');
-            }
-            
-            unitSelect.disabled = false;
-        })
-        .catch(error => {
-            console.error('Error loading units:', error);
-            unitSelect.innerHTML = '<option value="">Error loading units</option>';
-            unitSelect.disabled = false;
-            showAlert('danger', 'Failed to load units: ' + error.message);
-        });
-    } else {
-        unitSelect.innerHTML = '<option value="">Select Unit *</option>';
-        unitSelect.disabled = false;
-    }
-});
-
-// Handle form submission - IMPROVED VERSION WITH UNIT VALIDATION
-document.getElementById('addMaintenanceForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Validate unit selection
-    const unitSelect = document.getElementById('modal_unit_id');
-    if (!unitSelect.value) {
-        showAlert('warning', 'Please select a unit. Unit selection is required for maintenance requests.');
-        unitSelect.focus();
-        return;
-    }
-    
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
-    
-    // Disable button and show loading
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-    
-    const formData = new FormData(this);
-    
-    // Debug form data
-    console.log('Form data being sent:');
-    for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-    }
-    
-    fetch('<?= site_url('landlord/add-maintenance-request') ?>', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        return response.json();
-    })
-    .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-            showAlert('success', data.message);
-            bootstrap.Modal.getInstance(document.getElementById('addMaintenanceModal')).hide();
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showAlert('danger', data.message);
-            if (data.errors) {
-                let errorMsg = 'Validation errors:\n';
-                for (let field in data.errors) {
-                    errorMsg += `- ${field}: ${data.errors[field]}\n`;
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayRequestDetails(data.request, data.images || [], data.cancellations || []);
+                } else {
+                    content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error: ${data.message || 'Failed to load request details'}
+                </div>
+            `;
                 }
-                console.error('Validation errors:', data.errors);
-                alert(errorMsg); // Show detailed errors
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', 'An error occurred while creating the request: ' + error.message);
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    });
-});
+            })
+            .catch(error => {
+                content.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                Error loading request details. Please try again.
+            </div>
+        `;
+                console.error('Error:', error);
+            });
+    }
 
-// View Request Details
-function viewRequest(requestId) {
-    currentRequestId = requestId;
-    
-    // Show modal with loading state
-    const modal = new bootstrap.Modal(document.getElementById('requestDetailsModal'));
-    const content = document.getElementById('requestDetailsContent');
-    
-    content.innerHTML = `
-        <div class="text-center py-4">
-            <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
-            <p>Loading request details...</p>
+    // Enhanced display function with cancellation history
+    function displayRequestDetails(request, images, cancellations) {
+        const content = document.getElementById('requestDetailsContent');
+
+        // Format dates using your actual database field names
+        const createdDate = request.requested_date ? new Date(request.requested_date).toLocaleString() : '—';
+        const assignedDate = request.assigned_date ? new Date(request.assigned_date).toLocaleString() : '—';
+        const approvedDate = request.approved_date ? new Date(request.approved_date).toLocaleString() : '—';
+        const completedDate = request.completed_date ? new Date(request.completed_date).toLocaleString() : '—';
+        const rejectedDate = request.rejected_date ? new Date(request.rejected_date).toLocaleString() : '—';
+
+        // Format currency
+        const formatCurrency = (amount) => amount ? `SAR ${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—';
+
+        // Status badge
+        const getStatusBadge = (status) => {
+            const statusColors = {
+                'pending': 'warning',
+                'approved': 'primary',
+                'in_progress': 'info',
+                'completed': 'success',
+                'rejected': 'danger',
+                'cancelled': 'secondary'
+            };
+            return `<span class="badge bg-${statusColors[status] || 'secondary'}">${status.replace('_', ' ').toUpperCase()}</span>`;
+        };
+
+        // Priority badge
+        const getPriorityBadge = (priority) => {
+            const priorityColors = {
+                'low': 'secondary',
+                'normal': 'primary',
+                'high': 'warning',
+                'urgent': 'danger'
+            };
+            return `<span class="badge bg-${priorityColors[priority] || 'secondary'}">${priority.toUpperCase()}</span>`;
+        };
+
+        // Build images HTML
+        let imagesHtml = '';
+        if (images && images.length > 0) {
+            imagesHtml = `
+        <div class="col-12">
+            <h6 class="mb-3"><i class="fas fa-images"></i> Completion Images</h6>
+            <div class="row g-3">
+                ${images.map(img => {
+                // Extract just the filename from the full path
+                const filename = img.image_path.split('/').pop();
+                // Use the correct route for serving images
+                const imageUrl = `https://www.tab3ni.online/landlord/landlord/maintenance/image/${filename}`;
+
+                return `
+                        <div class="col-md-4 col-lg-3">
+                            <div class="card">
+                                <img src="${imageUrl}" 
+                                     class="card-img-top completion-image" 
+                                     alt="Completion Image"
+                                     style="height: 200px; object-fit: cover; cursor: pointer;"
+                                     onclick="showImageModal('${imageUrl}', '${escapeHtml(img.description || 'Completion Image')}')"
+                                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4='">
+                                <div class="card-body p-2">
+                                    <small class="text-muted">${escapeHtml(img.description || 'Completion Image')}</small>
+                                    <br><small class="text-muted">${new Date(img.created_at).toLocaleDateString()}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+            }).join('')}
+            </div>
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle"></i>
+                Click on any image to view it in full size.
+            </div>
         </div>
     `;
-    
-    modal.show();
-    
-    // For now, show basic info from the table
-    // In a full implementation, you'd fetch detailed info from the server
-    const row = document.querySelector(`button[onclick="viewRequest(${requestId})"]`).closest('tr');
-    if (row) {
-        const cells = row.querySelectorAll('td');
-        content.innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <h6>Request Information</h6>
-                    <p><strong>ID:</strong> ${cells[0].textContent.trim()}</p>
-                    <p><strong>Property:</strong> ${cells[1].textContent.trim()}</p>
-                    <p><strong>Title:</strong> ${cells[2].querySelector('strong').textContent}</p>
-                    <p><strong>Priority:</strong> ${cells[3].textContent.trim()}</p>
-                    <p><strong>Status:</strong> ${cells[4].textContent.trim()}</p>
-                </div>
-                <div class="col-md-6">
-                    <h6>Additional Details</h6>
-                    <p><strong>Cost:</strong> ${cells[6].textContent.trim()}</p>
-                    <p><strong>Date:</strong> ${cells[7].textContent.trim()}</p>
-                </div>
+        } else if (request.status === 'completed') {
+            imagesHtml = `
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No completion images available for this completed request.
             </div>
-            <div class="mt-3">
-                <h6>Description</h6>
-                <div class="bg-light p-3 rounded">
-                    ${cells[2].querySelector('.text-muted').textContent}
+        </div>
+    `;
+        }
+
+        // Build cancellation history HTML
+        let cancellationHtml = '';
+        if (cancellations && cancellations.length > 0) {
+            cancellationHtml = `
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-undo-alt"></i> Cancellation History 
+                    <span class="badge bg-warning">${cancellations.length}</span>
+                </h6>
+                <div class="timeline">
+                    ${cancellations.map(cancel => `
+                        <div class="alert alert-warning">
+                            <small class="text-muted float-end">${new Date(cancel.cancelled_at).toLocaleString()}</small>
+                            <strong>Cancelled by:</strong> ${escapeHtml(cancel.first_name + ' ' + (cancel.last_name || ''))}
+                            <br><strong>Reason:</strong> ${escapeHtml(cancel.notes)}
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
-    }
-}
-
-// Approve Request
-function approveRequest(requestId) {
-    if (confirm('Are you sure you want to approve this maintenance request?')) {
-        updateRequestStatus(requestId, 'approved', {}, 'Request approved successfully');
-    }
-}
-
-// Reject Request
-function rejectRequest(requestId) {
-    const reason = prompt('Please provide a reason for rejection (optional):');
-    if (reason !== null) { // User didn't cancel
-        const data = reason.trim() ? { rejection_reason: reason.trim() } : {};
-        updateRequestStatus(requestId, 'rejected', data, 'Request rejected successfully');
-    }
-}
-
-// Update Status Modal
-function updateStatus(requestId) {
-    currentRequestId = requestId;
-    
-    // Reset form
-    document.getElementById('statusUpdateForm').reset();
-    document.getElementById('cost_section').style.display = 'none';
-    document.getElementById('rejection_section').style.display = 'none';
-    
-    new bootstrap.Modal(document.getElementById('statusUpdateModal')).show();
-}
-
-// Handle status change in update modal
-document.getElementById('update_status').addEventListener('change', function() {
-    const costSection = document.getElementById('cost_section');
-    const rejectionSection = document.getElementById('rejection_section');
-    
-    // Hide all sections first
-    costSection.style.display = 'none';
-    rejectionSection.style.display = 'none';
-    
-    if (this.value === 'completed') {
-        costSection.style.display = 'block';
-    } else if (this.value === 'rejected') {
-        rejectionSection.style.display = 'block';
-    }
-});
-
-// Handle status update form submission
-document.getElementById('statusUpdateForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (!currentRequestId) return;
-    
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData);
-    
-    updateRequestStatus(currentRequestId, data.status, data, 'Status updated successfully');
-});
-
-// Update Request Status Function
-function updateRequestStatus(requestId, status, additionalData = {}, successMessage = 'Status updated successfully') {
-    const data = { status, ...additionalData };
-    
-    fetch(`<?= site_url('landlord/update-maintenance-status') ?>/${requestId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', successMessage);
-            bootstrap.Modal.getInstance(document.getElementById('statusUpdateModal'))?.hide();
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showAlert('danger', data.message || 'Failed to update status');
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', 'Error: ' + error.message);
-    });
-}
 
-// Clear Filters
-function clearFilters() {
-    window.location.href = '<?= site_url('landlord/maintenance') ?>';
-}
+        // Staff information using your actual field names
+        const staffInfo = request.staff_first_name ?
+            `${request.staff_first_name} ${request.staff_last_name || ''}` : '—';
 
-// Export Report - PDF ONLY
-function exportReport() {
-    const params = new URLSearchParams(window.location.search);
-    window.open(`<?= site_url('landlord/export-maintenance-report') ?>?${params.toString()}`, '_blank');
-}
+        const staffContact = request.staff_phone || request.staff_email ?
+            `<br><small class="text-muted">${request.staff_phone || ''} ${request.staff_email || ''}</small>` : '';
 
-// Refresh Table
-function refreshTable() {
-    location.reload();
-}
+        content.innerHTML = `
+        <div class="row g-4">
+            <!-- Request Information -->
+            <div class="col-md-6">
+                <h6 class="mb-3"><i class="fas fa-info-circle"></i> Request Information</h6>
+                <table class="table table-sm table-borderless">
+                    <tr><td><strong>ID:</strong></td><td>#${request.id}</td></tr>
+                    <tr><td><strong>Created:</strong></td><td>${createdDate}</td></tr>
+                    <tr><td><strong>Title:</strong></td><td>${escapeHtml(request.title)}</td></tr>
+                    <tr><td><strong>Property:</strong></td><td>${escapeHtml(request.property_name)}</td></tr>
+                    <tr><td><strong>Unit:</strong></td><td>${escapeHtml(request.unit_name || 'N/A')}</td></tr>
+                    <tr><td><strong>Priority:</strong></td><td>${getPriorityBadge(request.priority)}</td></tr>
+                    <tr><td><strong>Status:</strong></td><td>${getStatusBadge(request.status)}</td></tr>
+                    ${request.cancel_count > 0 ? `<tr><td><strong>Cancel Count:</strong></td><td><span class="badge bg-warning">${request.cancel_count}</span></td></tr>` : ''}
+                    ${request.created_by_landlord ? `<tr><td><strong>Created By:</strong></td><td><span class="badge bg-info">Landlord</span></td></tr>` : ''}
+                </table>
+            </div>
+            
+            <!-- Status & Cost Information -->  
+            <div class="col-md-6">
+                <h6 class="mb-3"><i class="fas fa-chart-line"></i> Progress & Costs</h6>
+                <table class="table table-sm table-borderless">
+                    ${request.estimated_cost ? `<tr><td><strong>Estimated Cost:</strong></td><td>${formatCurrency(request.estimated_cost)}</td></tr>` : ''}
+                    ${request.approved_cost ? `<tr><td><strong>Approved Cost:</strong></td><td>${formatCurrency(request.approved_cost)}</td></tr>` : ''}
+                    ${request.actual_cost ? `<tr><td><strong>Actual Cost:</strong></td><td>${formatCurrency(request.actual_cost)}</td></tr>` : ''}
+                    ${request.assigned_date ? `<tr><td><strong>Assigned:</strong></td><td>${assignedDate}</td></tr>` : ''}
+                    ${request.approved_date ? `<tr><td><strong>Approved:</strong></td><td>${approvedDate}</td></tr>` : ''}
+                    ${request.completed_date ? `<tr><td><strong>Completed:</strong></td><td>${completedDate}</td></tr>` : ''}
+                    ${request.rejected_date ? `<tr><td><strong>Rejected:</strong></td><td>${rejectedDate}</td></tr>` : ''}
+                    ${staffInfo !== '—' ? `<tr><td><strong>Assigned Staff:</strong></td><td>${staffInfo}${staffContact}</td></tr>` : ''}
+                    ${request.approved_by_name ? `<tr><td><strong>Approved By:</strong></td><td>${escapeHtml(request.approved_by_name)}</td></tr>` : ''}
+                </table>
+            </div>
+            
+            <!-- Description -->
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-file-text"></i> Description</h6>
+                <div class="bg-light p-3 rounded">
+                    ${escapeHtml(request.description).replace(/\n/g, '<br>')}
+                </div>
+            </div>
+            
+            <!-- Work Notes -->
+            ${request.work_notes ? `
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-sticky-note"></i> Work Notes</h6>
+                <div class="bg-info bg-opacity-10 p-3 rounded">
+                    ${escapeHtml(request.work_notes).replace(/\n/g, '<br>')}
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Materials Used -->
+            ${request.materials_used ? `
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-tools"></i> Materials Used</h6>
+                <div class="bg-success bg-opacity-10 p-3 rounded">
+                    ${escapeHtml(request.materials_used).replace(/\n/g, '<br>')}
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Rejection Reason -->
+            ${request.rejection_reason ? `
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-times-circle"></i> Rejection Reason</h6>
+                <div class="bg-danger bg-opacity-10 p-3 rounded">
+                    ${escapeHtml(request.rejection_reason).replace(/\n/g, '<br>')}
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Cancellation History -->
+            ${cancellationHtml}
+            
+            <!-- Images Section -->
+            ${imagesHtml}
+        </div>
+    `;
+    }
 
-// Show Alert Function
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}
+    function deleteRequest(requestId) {
+        console.log('Attempting to delete request ID:', requestId);
+
+        // Get request status from table row
+        const row = document.querySelector(`tr[data-id="${requestId}"]`);
+        if (!row) {
+            showAlert('danger', 'Request not found');
+            return;
+        }
+
+        // FIXED: Get status specifically from the Status column badge
+        const statusCell = row.cells[5]; // Status column is the 6th column (index 5)
+        const statusBadge = statusCell.querySelector('.badge');
+        let status = '';
+
+        if (statusBadge) {
+            status = statusBadge.textContent.toLowerCase().trim();
+            console.log('Status badge text:', statusBadge.textContent);
+            console.log('Cleaned status:', status);
+        } else {
+            console.log('No status badge found in status cell');
+            showAlert('danger', 'Could not determine request status');
+            return;
+        }
+
+        // Check if status is pending
+        if (!status.includes('pending')) {
+            showAlert('warning', `Only pending requests can be deleted. Current status: "${status}"`);
+            return;
+        }
+
+        if (!confirm('Delete this maintenance request? This cannot be undone.')) {
+            return;
+        }
+
+        // Build URL manually for localhost
+        const fullUrl = `https://www.tab3ni.online/landlord/landlord/delete-maintenance-request/${requestId}`;
+        console.log('DELETE URL:', fullUrl);
+
+        // Get CSRF token
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            || document.querySelector('input[name="csrf_test_name"]')?.value;
+
+        fetch(fullUrl, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrf
+            },
+            body: JSON.stringify({
+                csrf_test_name: csrf
+            })
+        })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response URL:', response.url);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    showAlert('success', 'Maintenance request deleted successfully.');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert('danger', data.message || 'Failed to delete request.');
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showAlert('danger', 'An error occurred while deleting the request: ' + error.message);
+            });
+    }
+
+    // Helper functions remain the same
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function showImageModal(imageSrc, description) {
+        const imageModal = `
+        <div class="modal fade" id="imageViewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-image"></i> ${escapeHtml(description)}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="${imageSrc}" class="img-fluid" alt="Completion Image">
+                    </div>
+                    <div class="modal-footer">
+                        <a href="${imageSrc}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-external-link-alt"></i> Open in New Tab
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Remove existing image modal if any
+        const existingModal = document.getElementById('imageViewModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Add new modal to body
+        document.body.insertAdjacentHTML('beforeend', imageModal);
+
+        // Show the modal
+        new bootstrap.Modal(document.getElementById('imageViewModal')).show();
+    }
+
+    function showAlert(type, message) {
+        // Remove existing alerts
+        document.querySelectorAll('.alert-dynamic').forEach(el => el.remove());
+
+        const div = document.createElement('div');
+        div.className = `alert alert-${type} alert-dismissible fade show alert-dynamic mb-4`;
+        div.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> 
+        ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
-    const container = document.querySelector('.container-fluid');
-    const firstChild = container.querySelector('.d-sm-flex');
-    container.insertBefore(alertDiv, firstChild.nextSibling);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
+
+        const container = document.querySelector('.container-fluid');
+        const header = container.querySelector('.d-sm-flex.align-items-center.justify-content-between.mb-4');
+
+        if (header) {
+            header.insertAdjacentElement('afterend', div);
+        } else {
+            container.insertBefore(div, container.firstChild);
         }
-    }, 5000);
-}
 
-// Debug function for development
-function debugPropertyLoad() {
-    console.log('Available properties:', <?= json_encode($properties) ?>);
-    console.log('Current user ID:', <?= session()->get('user_id') ?>);
-    console.log('User role:', '<?= session()->get('role') ?>');
-}
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (div && div.parentNode) {
+                div.remove();
+            }
+        }, 5000);
 
-// Call debug function in development
-<?php if (ENVIRONMENT === 'development'): ?>
-debugPropertyLoad();
-<?php endif; ?>
+        // Scroll to top to show alert
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 </script>
+
+<style>
+    .completion-image {
+        transition: transform 0.2s ease;
+    }
+
+    .completion-image:hover {
+        transform: scale(1.05);
+    }
+
+    .modal-xl {
+        max-width: 90%;
+    }
+
+    @media (min-width: 1200px) {
+        .modal-xl {
+            max-width: 1140px;
+        }
+    }
+
+    /* Status indicators */
+    .badge {
+        font-size: 0.75em;
+        padding: 0.35em 0.65em;
+    }
+
+    /* Enhanced table styling */
+    .table-borderless td {
+        border: none;
+        padding: 0.25rem 0.75rem 0.25rem 0;
+    }
+
+    .table-borderless td:first-child {
+        width: 140px;
+        color: #6c757d;
+    }
+
+    /* Image gallery styling */
+    .card img {
+        border-radius: 0.375rem 0.375rem 0 0;
+    }
+
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: box-shadow 0.15s ease-in-out;
+    }
+
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+</style>
 
 <?= $this->endSection() ?>
